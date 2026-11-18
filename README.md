@@ -13,7 +13,7 @@
   <img alt="License" src="https://img.shields.io/badge/license-none%20yet-lightgrey">
 </p>
 
-<h3 align="center">Capture any website section by section: screenshots at every breakpoint, standalone HTML,<br>the exact colour palette and the tech stack, in one click and one bundle.</h3>
+<h3 align="center">Capture any website section by section: screenshots at every breakpoint, standalone HTML, the exact colour palette and the tech stack, in one click and one bundle.</h3>
 
 ---
 
@@ -38,7 +38,7 @@ Copying a design accurately usually means screenshots that miss half the page, a
 gets colours slightly wrong, and guessing which libraries the site uses. Specimen opens in the
 browser's side panel and reads the page the way the browser renders it.
 
-| | |
+| Feature | What you get |
 |---|---|
 | **Sections** | Finds the page's sections (header, hero, features, footer…) by their HTML tags, then by layout. You can untick, remove or capture one, or click **Pick element** to add any element on the page. Hovering a row outlines it on the page. |
 | **Screenshots** | Full page and every section at desktop (1440px), tablet (768px) and mobile (390px), taken through the browser itself so a full-screen hero stays exactly one screen tall. Sticky headers are hidden in other sections' shots so they don't repeat. |
