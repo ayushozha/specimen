@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fixture landing page</title>
+<style>
+  :root {
+    --brand: oklch(0.62 0.19 255);
+    --brand-p3: color(display-p3 0.95 0.3 0.1);
+    --surface: #f5f5f4;
+    --ink: #111827;
+    --muted: #6b7280;
+    --tw-ring-offset-width: 0px;
+    --space: 24px;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 16px/1.5 system-ui, sans-serif; color: var(--ink); background: #ffffff; }
+  header { position: sticky; top: 0; z-index: 10; height: 64px; display: flex; align-items: center; justify-content: space-between; padding: 0 32px; background: rgba(255, 255, 255, 0.85); border-bottom: 1px solid #e5e7eb; }
+  header nav a { margin-left: 16px; color: var(--muted); text-decoration: none; }
+  .hero { height: 100vh; min-height: 500px; display: grid; place-items: center; text-align: center; background: var(--surface); }
+  .hero h1 { font-size: 56px; margin: 0 0 16px; }
+  .hero p { color: var(--brand-p3); }
+  .btn { display: inline-block; padding: 12px 20px; border-radius: 10px; background: var(--brand); color: #fff; text-decoration: none; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3); }
+  .features { padding: 80px 32px; display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space); }
+  .card { border: 1px solid #e5e7eb; border-radius: 16px; padding: 24px; }
+  .card img { width: 100%; display: block; border-radius: 8px; }
+  .faint { color: #c4c4c4; }
+  .pricing { padding: 80px 32px; background: linear-gradient(135deg, #0f172a 0%, #312e81 100%); color: #f8fafc; }
+  footer { padding: 40px 32px; background: #0a0a0a; color: #a3a3a3; }
+  #cookie-consent { position: fixed; bottom: 16px; left: 16px; right: 16px; padding: 16px; background: #111; color: #fff; border-radius: 12px; display: flex; gap: 8px; z-index: 20; }
+  @media (max-width: 768px) { .features { grid-template-columns: 1fr; } .hero h1 { font-size: 36px; } }
+</style>
+</head>
+<body>
+<div id="__next">
+  <header>
+    <strong>Fixture</strong>
+    <nav><a href="#features">Features</a><a href="#pricing">Pricing</a></nav>
+  </header>
+  <main>
+    <section class="hero">
+      <div>
+        <h1>Ship exact designs</h1>
+        <p>Capture every pixel</p>
+        <a class="btn" href="#pricing">Get started</a>
+      </div>
+    </section>
+    <section class="features" id="features" aria-label="Features">
+      <div class="card"><img src="hero.svg" alt=""><h3>Fast</h3><p class="faint">Low contrast text</p></div>
+      <div class="card"><fixture-badge></fixture-badge><h3>Exact</h3><p>Colours as written</p></div>
+      <div class="card"><h3>Open</h3><p>Plain HTML out</p></div>
+    </section>
+    <section class="pricing" id="pricing">
+      <h2>Pricing</h2>
+      <p>One plan</p>
+    </section>
+  </main>
+  <footer>Footer text</footer>
+</div>
+<div id="cookie-consent" role="dialog" aria-label="Cookie consent">
+  <span>We use cookies.</span>
+  <button onclick="this.parentElement.remove(); window.__consent = 'accepted'">Accept all</button>
+  <button onclick="this.parentElement.remove(); window.__consent = 'rejected'">Reject all</button>
+</div>
+<script id="__NEXT_DATA__" type="application/json">{"page":"/"}</script>
+<script>
+  window.gsap = { version: '3.12.5', to() {} };
+  window.ScrollTrigger = { version: '3.12.5' };
+  customElements.define('fixture-badge', class extends HTMLElement {
+    constructor() {
+      super();
+      this.attachShadow({ mode: 'open' }).innerHTML = '<style>span{background:#ecfdf5;color:#047857;padding:2px 8px;border-radius:99px}</style><span>New</span>';
+    }
+  });
+</script>
+</body>
+</html>
