@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/banner.svg" alt="Specimen — capture any website, exactly" width="100%">
+  <img src="docs/assets/banner.webp" alt="Specimen — capture any website, exactly" width="100%">
 </p>
 
 <p align="center">
