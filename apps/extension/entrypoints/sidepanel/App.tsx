@@ -165,7 +165,7 @@ export function App() {
   return (
     <div className="app">
       <header className="header">
-        <Mark />
+        <img className="logo" src="/icon/96.png" alt="" />
         <span className="title">Specimen</span>
         <span className="host" title={analysis?.url}>{host}</span>
       </header>
@@ -630,22 +630,6 @@ function StackView({ analysis }: { analysis: FullAnalysis }) {
         </div>
       ))}
     </section>
-  );
-}
-
-/** The Specimen mark (crop marks around a sample); same drawing as docs/assets/mark.svg. */
-function Mark() {
-  return (
-    <svg className="logo" viewBox="0 0 128 128" aria-hidden="true">
-      <rect width="128" height="128" rx="28" fill="var(--text)" />
-      <g fill="none" stroke="var(--bg)" strokeWidth="10" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M30 54V30h24" />
-        <path d="M74 30h24v24" />
-        <path d="M98 74v24H74" />
-        <path d="M54 98H30V74" />
-      </g>
-      <rect x="51" y="51" width="26" height="26" rx="6" fill="var(--bg)" />
-    </svg>
   );
 }
 
