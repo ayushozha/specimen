@@ -275,15 +275,26 @@ Breakpoints, fps, video format, max recording length, deep vs quick mode, which 
 | Phase | Scope | Done when |
 |---|---|---|
 | **1. Core + Chromium extension** ✅ built 2026-11-18 | WXT setup, side panel, adapter interface, section detection, static + DOM, stack detection, palette + eyedropper, bundle zip | One click on a 10-section landing page gives correct screenshots, HTML, `stack.json` and a palette whose values match the CSS exactly |
-| **2. Interactions & motion** | Hooks, hover/interaction prober, motion tracer, library adapters (CSS/WAAPI, GSAP, Motion, Lottie, Webflow, AOS), frame-exact video | Fixture pages: every hover effect and animation found, with correct timing and easing |
-| **3. Exports** | Figma plugin (frames, variables, styles, variants), Paper paste + MCP tokens, SVG, PSD, ASE, After Effects script, Lottie | A captured section opens editable in Figma, Paper, Illustrator, Photoshop and AE |
-| **4. Replication** | Curve fitting (bezier/spring), code generation for each target, SSIM verification | Replicas of fixture effects score ≥ 0.95 SSIM |
-| **5. Firefox + Safari** | Adapter fallbacks, Safari macOS app, store submissions (Chrome Web Store → also Brave/Arc/Opera/Vivaldi, Edge Add-ons, Firefox AMO, Mac App Store) | Same fixtures pass on all three engines at their supported tier |
-| **6. Companion & CLI** | Native helper for ffmpeg/HLS/ProRes and very large pages; Playwright CLI for batch captures; capture diff | — |
+| **2. Interactions & motion** ✅ | Hooks, hover/interaction prober, motion tracer, library adapters (CSS/WAAPI, GSAP, Motion, Lottie, Webflow, AOS), frame-exact video | Fixture pages: every hover effect and animation found, with correct timing and easing |
+| **3. Exports** ✅ | Figma plugin (frames, variables, styles, variants), Paper paste + MCP tokens, SVG, PSD, ASE, After Effects script, Lottie | A captured section opens editable in Figma, Paper, Illustrator, Photoshop and AE |
+| **4. Replication** ✅ | Curve fitting (bezier/spring), code generation for each target, SSIM verification | Replicas of fixture effects score ≥ 0.95 SSIM |
+| **5. Firefox + Safari** ✅ builds (stores not submitted) | Adapter fallbacks, Safari macOS app, store submissions (Chrome Web Store → also Brave/Arc/Opera/Vivaldi, Edge Add-ons, Firefox AMO, Mac App Store) | Same fixtures pass on all three engines at their supported tier |
+| **6. Companion & CLI** ✅ CLI | Native helper for ffmpeg/HLS/ProRes and very large pages; Playwright CLI for batch captures; capture diff | — |
 
 **Tests:** local fixture sites (CSS hover, GSAP + ScrollTrigger, Motion springs, Lenis, Webflow export, Lottie, canvas/WebGL, shadow DOM, sticky header, oklch/P3 colours). Chromium E2E with Playwright loading the unpacked extension; Firefox via `web-ext`; Safari checked manually each release.
 
 ---
+
+### What changed from the plan (2026-11-18)
+
+All six phases are built and tested. Where the build differs from the plan above:
+
+- **Phase 2 — clock control.** JS-driven animations are recorded in real time (screencast) and traced, not stepped with fake timers; CSS animations and transitions are stepped frame by frame through the Web Animations API instead, which is exact without patching the page's clock. Webflow IX2 and Framer Motion are detected, not read in detail.
+- **Phase 3 — Paper** uses HTML paste (Copy → HTML); tokens go through the files, not Paper's MCP server. **Adobe** apps get files (SVG, PSD, ASE, .jsx), not UXP plugins. Figma, Photoshop and After Effects output is tested against their formats and APIs, not inside the apps.
+- **Phase 4 — verification** compares numbers, not SSIM: fitted curves are scored against the recorded samples, and the tests replay the generated CSS in a browser and compare it with the original curve. JS animation loops aren't rebuilt as code.
+- **Phase 5 — Firefox and Safari** share one adapter built on standard extension APIs: `tabs.captureTab` (Firefox) or scroll-and-stitch (Safari), window-width breakpoints, hover simulated from the page's `:hover` rules, deep mode through a MAIN-world content script. No store submissions yet (they need developer accounts).
+- **Phase 6 — no native desktop helper.** The CLI covers batch capture, diff and HLS/DASH via ffmpeg; ProRes export isn't included.
+- **Security.** Two reviews with a hostile test page found and fixed script injection into saved HTML, user activation leaking to page code, typed values in exports, code injection through generated-code comments, tab-split `javascript:` URLs, and a path traversal in the CLI diff. All are regression tests.
 
 ## 15. Extension UI colours — Pure mono
 

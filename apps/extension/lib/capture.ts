@@ -2,6 +2,7 @@ import {
   globalPaths,
   probeGlobals,
   type Breakpoint,
+  type LayoutTree,
   type Palette,
   type Rect,
   type Section,
@@ -12,6 +13,8 @@ import { strToU8, zipSync, type Zippable } from 'fflate';
 import type { PageAdapter } from './adapter';
 import { CONFIG } from './config';
 import { sampleMediaColors, type MediaColors, type Tile } from './media';
+import { buildExports, type ExportSummary } from './exports';
+import { MOTION_STEPS, captureMotion, type MotionSummary, type SectionMotion } from './motion';
 import { renderPaletteCss, renderReport } from './report';
 
 export interface Analysis {
@@ -43,9 +46,12 @@ export interface Manifest {
   capturedAt: string;
   browser: PageAdapter['browser'];
   scale: number;
-  breakpoints: Breakpoint[];
+  /** `captured` is the viewport width reached (browsers without device emulation resize the window). */
+  breakpoints: (Breakpoint & { captured: number })[];
   scope: 'page' | 'sections';
   sections: (Section & { rects: Record<string, Rect | null>; files: string[] })[];
+  motion: MotionSummary | null;
+  exports: ExportSummary | null;
   files: string[];
   errors: StepError[];
 }
@@ -80,7 +86,7 @@ export async function analyse(adapter: PageAdapter, onProgress: (p: Progress) =>
   tick('Reading stylesheets', 2);
   const sheets = await adapter.styleSheets();
   tick('Finding sections', 3);
-  const sections = await adapter.call('detectSections', {});
+  const sections = (await adapter.call('detectSections', {})).slice(0, CONFIG.maxSections);
   const fixed = await adapter.call('findFixedElements');
 
   tick('Detecting tech stack', 4);
@@ -113,9 +119,18 @@ export async function capture(
   const sectionFiles: Record<string, string[]> = Object.fromEntries(sections.map((s) => [s.id, []]));
   const resources = new Set<string>();
   const sectionHtml = new Map<string, string>();
+  const trees = new Map<string, LayoutTree>();
+  const shots = new Map<string, Uint8Array>();
+  const desktopRects = new Map<string, Rect>();
+  const assetPaths = new Map<string, string>();
+  let motionDetails: Record<string, SectionMotion> | null = null;
+  let exportSummary: ExportSummary | null = null;
+  const actualWidths: Record<string, number> = {};
   let desktopTiles: Tile[] = [];
 
-  const total = breakpoints.length * (sections.length + 1) + (wholePage ? 4 : 2);
+  const withMotion = CONFIG.motion.enabled;
+  let motion: MotionSummary | null = null;
+  const total = breakpoints.length * (sections.length + 1) + (wholePage ? 4 : 2) + 1 + (withMotion ? MOTION_STEPS : 0);
   let done = 0;
   const step = async (name: string, fn: () => Promise<void>) => {
     onProgress({ step: name, done, total });
@@ -131,15 +146,35 @@ export async function capture(
   };
 
   try {
+    if (withMotion) {
+      // Motion first: it reloads the page in deep mode, and the screenshots below then see the settled page.
+      ({ summary: motion, sections: motionDetails } = await captureMotion({
+        adapter,
+        sections,
+        sheets: analysis.sheets,
+        desktop: breakpoints[0],
+        scale,
+        put,
+        step,
+        addSectionFile: (id, path) => sectionFiles[id]?.push(path),
+      }));
+    }
+
     for (const [bpIndex, bp] of breakpoints.entries()) {
       let measured: Section[] = sections;
       await step(`Full page at ${bp.name} (${bp.width}px)`, async () => {
-        await adapter.setViewport(bp, scale);
+        const reached = await adapter.setViewport(bp, scale);
+        if (reached !== null && Math.abs(reached - bp.width) > 1) {
+          errors.push({ step: `Full page at ${bp.name}`, message: `Captured at ${reached}px instead of ${bp.width}px: this browser couldn't resize the window to that width on this screen.` });
+        }
+        actualWidths[bp.name] = reached ?? bp.width;
         await sleep(CONFIG.settleMs);
         await adapter.call('autoScroll', CONFIG.scroll.stepRatio, CONFIG.scroll.quickDelayMs, 200);
         measured = await adapter.call('measureSections', sections);
         if (!wholePage) return;
-        const { height } = await adapter.call('pageSize');
+        const { height: fullHeight } = await adapter.call('pageSize');
+        const height = Math.min(fullHeight, CONFIG.maxPageHeight);
+        if (height < fullHeight) errors.push({ step: `Full page at ${bp.name}`, message: `Page is ${fullHeight}px tall; captured the first ${height}px` });
         const tiles = await fullPageTiles(adapter, bp.width, height, scale);
         tiles.forEach((t, i) => put(tiles.length > 1 ? `page/full-${bp.name}-${i + 1}.png` : `page/full-${bp.name}.png`, t.png, false));
         if (bpIndex === 0) desktopTiles = tiles;
@@ -153,8 +188,13 @@ export async function capture(
           await adapter.call('hideFixedOutside', analysis.fixed, section.selector);
           try {
             const path = `sections/${section.id}/${bp.name}.png`;
-            put(path, await adapter.screenshot(section.rect), false);
+            const png = await adapter.screenshot(section.rect);
+            put(path, png, false);
             sectionFiles[section.id].push(path);
+            if (bpIndex === 0) {
+              shots.set(section.id, png);
+              desktopRects.set(section.id, section.rect);
+            }
           } finally {
             await adapter.call('restoreHidden');
           }
@@ -163,6 +203,10 @@ export async function capture(
             const { html, resources: used } = await adapter.call('serializeElement', section.selector, analysis.sheets);
             used.forEach((u) => resources.add(u));
             sectionHtml.set(section.id, html);
+            // The layout tree drives the design-tool exports (Figma, SVG, Photoshop).
+            const tree = await adapter.call('layoutTree', section.selector, CONFIG.maxLayoutNodes);
+            tree.images.forEach((u) => resources.add(u));
+            trees.set(section.id, tree);
           }
         });
       }
@@ -189,7 +233,6 @@ export async function capture(
     }
 
     await step('Downloading assets', async () => {
-      const assetPaths = new Map<string, string>();
       let bytes = 0;
       for (const url of resources) {
         if (bytes > CONFIG.maxAssetBytes) {
@@ -209,6 +252,22 @@ export async function capture(
         sectionFiles[id].push(path);
       }
     });
+
+    await step('Building exports (Figma, SVG, Photoshop, After Effects, Lottie)', async () => {
+      exportSummary = await buildExports({
+        sections,
+        trees,
+        shots,
+        rects: desktopRects,
+        motion: motionDetails,
+        palette: analysis.palette,
+        assets: assetPaths,
+        scale,
+        source: { url: analysis.url, title: analysis.title },
+        put,
+        errors,
+      });
+    });
   } finally {
     await adapter.setViewport(null, 1).catch(() => {});
   }
@@ -221,9 +280,11 @@ export async function capture(
     capturedAt: new Date().toISOString(),
     browser: adapter.browser,
     scale,
-    breakpoints,
+    breakpoints: breakpoints.map((b) => ({ ...b, captured: actualWidths[b.name] ?? b.width })),
     scope: wholePage ? 'page' : 'sections',
     sections: sections.map((s) => ({ ...s, rects: rects[s.id], files: sectionFiles[s.id] })),
+    motion,
+    exports: exportSummary,
     files: [],
     errors,
   };
@@ -281,15 +342,18 @@ function assetName(url: string, mimeType: string): string {
   return `${base}-${hash.toString(16).padStart(8, '0')}.${ext}`;
 }
 
-function bundleName(url: string): string {
-  let host = 'page';
+/** `<host>[-<path>]_<date>.specimen.zip`, with only filename-safe characters. */
+export function bundleName(url: string, now = new Date()): string {
+  const safe = (s: string) => s.replace(/[^a-z0-9.-]+/gi, '-').replace(/^-+|-+$/g, '');
+  let name = 'page';
   try {
-    host = new URL(url).hostname.replace(/^www\./, '');
+    const u = new URL(url);
+    const path = safe(u.pathname.replace(/\.(html?|php|aspx?)$/i, '')).slice(0, 40);
+    name = [safe(u.hostname.replace(/^www\./, '')), path].filter(Boolean).join('-') || 'page';
   } catch {
     // Keep default.
   }
-  const stamp = new Date().toISOString().slice(0, 16).replace(/:/g, '-');
-  return `${host}_${stamp}.specimen.zip`;
+  return `${name}_${now.toISOString().slice(0, 19).replace(/:/g, '-')}.specimen.zip`;
 }
 
 function json(value: unknown): Uint8Array {

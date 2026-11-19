@@ -73,6 +73,30 @@ test('Capture everything produces a complete bundle', async () => {
     const hero = media.find((m: { src: string }) => m.src?.endsWith('hero.svg'));
     expect(hero.colors.map((c: { hex: string }) => c.hex)).toEqual(expect.arrayContaining(['#f97316', '#1e3a8a']));
 
+    // Phase 2: motion and interactions.
+    const video = (base: string) => Object.keys(files).find((k) => k.startsWith(base) && /\.(mp4|webm)$/.test(k));
+    for (const base of ['page/intro', 'page/scroll-desktop', 'page/pointer', 'sections/02-ship-exact-designs/motion/pulse-', 'sections/02-ship-exact-designs/states/get-started-1--hover']) {
+      expect(video(base), base).toBeTruthy();
+    }
+    const heroHover = JSON.parse(strFromU8(files['sections/02-ship-exact-designs/interactions.json']));
+    expect(heroHover[0].changes).toEqual(expect.arrayContaining([{ path: '', prop: 'transform', from: 'none', to: 'matrix(1, 0, 0, 1, 0, -2)' }]));
+    expect(heroHover[0].transitions).toEqual(expect.arrayContaining([{ property: 'transform', duration: 200, delay: 0, easing: 'ease-out' }]));
+    const cardHover = JSON.parse(strFromU8(files['sections/03-features/interactions.json']));
+    expect(cardHover[0]).toMatchObject({ trigger: 'hover', sources: ['js'] });
+    const heroMotion = JSON.parse(strFromU8(files['sections/02-ship-exact-designs/motion.json']));
+    expect(heroMotion.animations[0]).toMatchObject({ kind: 'css-animation', name: 'pulse', duration: 1200, iterations: 'infinite' });
+    expect(heroMotion.tracks.every((t: { kind: string }) => t.kind === 'time'), 'the looping pulse is time-based').toBe(true);
+    const pricingMotion = JSON.parse(strFromU8(files['sections/04-pricing/motion.json']));
+    expect(pricingMotion.tracks.find((t: { prop: string }) => t.prop === 'opacity')).toMatchObject({ kind: 'scroll-reveal', observed: true });
+    expect(files['sections/04-pricing/states/is-there-a-free-tier-1--open.png']).toBeTruthy();
+    expect(manifest.motion.libraries.gsap.tweens[0].vars).toEqual({ y: 40, opacity: 0, duration: 1, ease: 'power2.out' });
+    expect(JSON.parse(strFromU8(files['page/pointer.json'])).some((t: { prop: string }) => t.prop === 'transform')).toBe(true);
+
+    await panel.getByRole('tab', { name: 'Motion' }).click();
+    await expect(panel.getByText('Hover and focus effects')).toBeVisible();
+    await expect(panel.getByText('The page changed.'), 'our own deep-mode reload is not reported').toHaveCount(0);
+    await panel.screenshot({ path: 'test-results/panel-motion.png' });
+
     // The palette tab renders the captured colours.
     await panel.getByRole('tab', { name: 'Palette' }).click();
     await panel.getByRole('button', { name: /^#[0-9a-f]{6}, used/ }).first().click();
@@ -81,6 +105,22 @@ test('Capture everything produces a complete bundle', async () => {
     await panel.getByRole('tab', { name: 'Stack' }).click();
     await expect(panel.getByText('GSAP', { exact: true })).toBeVisible();
     await panel.screenshot({ path: 'test-results/panel-stack.png', fullPage: true });
+  } finally {
+    await context.close();
+  }
+});
+
+test('page code never gets user activation from the extension', async () => {
+  const { context, extensionId } = await launchWithExtension();
+  try {
+    const site = context.pages()[0] ?? (await context.newPage());
+    await site.goto('http://localhost:4321/hostile.html');
+    const [tab] = await context.serviceWorkers()[0].evaluate(() => chrome.tabs.query({}));
+    const panel = await context.newPage();
+    await panel.goto(`chrome-extension://${extensionId}/sidepanel.html?tabId=${tab.id}`);
+    await expect(panel.getByRole('button', { name: 'Capture everything' })).toBeEnabled({ timeout: 60_000 });
+    // hostile.html records navigator.userActivation.isActive inside a getter the stack probe reads.
+    expect(await site.evaluate(() => document.documentElement.dataset.activation)).toBe('false');
   } finally {
     await context.close();
   }

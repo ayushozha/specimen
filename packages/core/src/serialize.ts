@@ -19,7 +19,29 @@ const INHERITED = new Set([
 ]);
 
 const URL_ATTRS = ['src', 'href', 'poster', 'xlink:href', 'action'];
-const DROP_TAGS = new Set(['SCRIPT', 'NOSCRIPT', 'TEMPLATE', 'LINK', 'META', 'BASE']);
+/** Never copied: anything that can run code, load plugins or change how the document loads. Compared lowercase (SVG keeps case). */
+const DROP_TAGS = new Set(['script', 'noscript', 'template', 'link', 'meta', 'base', 'style', 'object', 'embed', 'applet', 'frame', 'frameset', 'portal']);
+const DROP_ATTRS = new Set(['class', 'style', 'srcset', 'sizes', 'srcdoc', 'formaction', 'loading', 'decoding', 'nonce', 'integrity']);
+const SAFE_ATTR_NAME = /^[a-zA-Z_:][-a-zA-Z0-9_:.]*$/;
+/**
+ * URLs that run code. Browsers drop tabs, newlines and control characters inside a scheme
+ * (`java\tscript:` works), so those are removed before checking.
+ */
+export function isScriptUrl(value: string): boolean {
+  return /^(javascript|vbscript|data:text\/html)/i.test(value.replace(/[\u0000-\u0020\u007f-\u00a0]/g, ''));
+}
+
+/**
+ * Content-Security-Policy for every generated HTML file: no scripts of any kind (inline, event
+ * handlers, javascript: URLs, SVG scripts), no plugins, no forms; images, media and fonts may load.
+ */
+export const GENERATED_HTML_CSP =
+  "default-src 'none'; img-src * data: blob:; media-src * data: blob:; font-src * data:; style-src 'unsafe-inline'; frame-src *; base-uri 'none'; form-action 'none'";
+
+/** Makes CSS safe to place inside a <style> element: `<` can never close the element. */
+export function cssForStyleElement(css: string): string {
+  return css.replace(/</g, '\\3c ');
+}
 
 /**
  * Serialises an element into a standalone HTML page that renders like the original:
@@ -36,7 +58,7 @@ export function serializeElement(selector: string, sheets: StyleSheetText[] = []
   let counter = 0;
 
   const serializeTree = (el: Element, parentStyle: CSSStyleDeclaration | null, rules: string[]): string => {
-    if (DROP_TAGS.has(el.tagName)) return '';
+    if (DROP_TAGS.has(el.localName.toLowerCase())) return '';
     const style = getComputedStyle(el);
     if (style.display === 'none') return '';
 
@@ -68,9 +90,10 @@ export function serializeElement(selector: string, sheets: StyleSheetText[] = []
     if (el.shadowRoot) {
       const shadowRules: string[] = [];
       const shadowHtml = Array.from(el.shadowRoot.childNodes, (n) => serializeNode(n, style, shadowRules)).join('');
-      inner += `<template shadowrootmode="open"><style>${shadowRules.join('\n')}</style>${shadowHtml}</template>`;
+      inner += `<template shadowrootmode="open"><style>${cssForStyleElement(shadowRules.join('\n'))}</style>${shadowHtml}</template>`;
     }
-    if (el instanceof HTMLTextAreaElement) inner += escapeText(el.value);
+    // The page's original text, never what the user has typed.
+    if (el instanceof HTMLTextAreaElement) inner += escapeText(el.defaultValue);
     else if (el instanceof HTMLIFrameElement) inner += '';
     else inner += Array.from(el.childNodes, (n) => serializeNode(n, style, rules)).join('');
     return `<${tag}${attrs}>${inner}</${tag}>`;
@@ -98,16 +121,14 @@ export function serializeElement(selector: string, sheets: StyleSheetText[] = []
   const pageBg = getComputedStyle(document.body).backgroundColor;
   const htmlBg = getComputedStyle(document.documentElement).backgroundColor;
   const html = `<!doctype html>
-<html lang="${document.documentElement.lang || 'en'}">
+<html lang="${escapeAttr(document.documentElement.lang || 'en')}">
 <head>
 <meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="${GENERATED_HTML_CSP}">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${escapeText(document.title)}</title>
 <style>
-${fontFaces.join('\n')}
-html{background:${htmlBg}}
-body{margin:0;background:${pageBg};width:${rect.width}px}
-${rules.join('\n')}
+${cssForStyleElement([...fontFaces, `html{background:${htmlBg}}`, `body{margin:0;background:${pageBg};width:${rect.width}px}`, ...rules].join('\n'))}
 </style>
 </head>
 <body>${body}</body>
@@ -140,12 +161,15 @@ function declarations(
 
 function serializeAttributes(el: Element, cls: string, resources: Set<string>): string {
   const parts = [` class="${cls}"`];
+  const isPassword = el instanceof HTMLInputElement && el.type === 'password';
   for (const attr of Array.from(el.attributes)) {
     const name = attr.name;
-    if (name === 'class' || name === 'style' || name.startsWith('on') || name === 'srcset' || name === 'sizes') continue;
-    if (name === 'loading' || name === 'decoding') continue;
+    const lower = name.toLowerCase();
+    if (DROP_ATTRS.has(lower) || lower.startsWith('on') || !SAFE_ATTR_NAME.test(name)) continue;
+    if (isPassword && lower === 'value') continue;
     let value = attr.value;
-    if (URL_ATTRS.includes(name) && value && !value.startsWith('#') && !value.startsWith('javascript:')) {
+    if (isScriptUrl(value)) continue;
+    if (URL_ATTRS.includes(name) && value && !value.startsWith('#')) {
       value = absoluteUrl(value);
       if (name !== 'href' || el.tagName !== 'A') resources.add(value);
     }
@@ -162,9 +186,6 @@ function serializeAttributes(el: Element, cls: string, resources: Set<string>): 
   if (el instanceof HTMLVideoElement && el.currentSrc) {
     parts.push(` src="${escapeAttr(el.currentSrc)}"`);
     resources.add(el.currentSrc);
-  }
-  if (el instanceof HTMLInputElement && el.type !== 'password' && el.value) {
-    parts.push(` value="${escapeAttr(el.value)}"`);
   }
   return parts.join('');
 }

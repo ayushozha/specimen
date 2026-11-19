@@ -21,4 +21,31 @@ export const CONFIG = {
   mediaColors: 5,
   /** Stop downloading section assets after this many bytes. */
   maxAssetBytes: 200 * 1024 * 1024,
+  /** Limits that keep a hostile or endless page from exhausting memory. */
+  maxPageHeight: 60000,
+  maxSections: 60,
+  /** Boxes read per section for the design-tool exports. */
+  maxLayoutNodes: 1500,
+  /** Time limit for code run in the page's own JS world (page getters can run during it). */
+  mainWorldTimeoutMs: 5000,
+  motion: {
+    /** Record load, scroll, animations, hover/focus and toggles during "Capture everything". */
+    enabled: true,
+    fps: 30,
+    /** Page-load recording after the deep-mode reload. */
+    introMs: 3000,
+    loadTimeoutMs: 15000,
+    scrollStepRatio: 0.5,
+    scrollDelayMs: 120,
+    traceMaxElements: 500,
+    maxAnimations: 20,
+    maxFramesPerAnimation: 60,
+    maxInteractions: 40,
+    /** Copies of one component (same tag and classes) probed at most this many times. */
+    perSignature: 2,
+    maxToggles: 10,
+    pointerSweepMs: 2000,
+    settleMs: 250,
+    clipPadding: 12,
+  },
 } as const;

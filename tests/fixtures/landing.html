@@ -21,7 +21,16 @@
   .hero { height: 100vh; min-height: 500px; display: grid; place-items: center; text-align: center; background: var(--surface); }
   .hero h1 { font-size: 56px; margin: 0 0 16px; }
   .hero p { color: var(--brand-p3); }
-  .btn { display: inline-block; padding: 12px 20px; border-radius: 10px; background: var(--brand); color: #fff; text-decoration: none; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3); }
+  .btn { display: inline-block; padding: 12px 20px; border-radius: 10px; background: var(--brand); color: #fff; text-decoration: none; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3); transition: transform 200ms ease-out, box-shadow 200ms ease-out; }
+  .btn:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(37, 99, 235, 0.4); }
+  .pulse { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--brand); animation: pulse 1.2s ease-in-out infinite; }
+  @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(1.4); } }
+  .card { transition: transform 300ms cubic-bezier(0.2, 0.8, 0.2, 1); }
+  .card.lift { transform: translateY(-6px); }
+  .reveal { opacity: 0; transform: translateY(24px); transition: opacity 600ms ease-out, transform 600ms ease-out; }
+  .reveal.in { opacity: 1; transform: none; }
+  #cursor { position: fixed; top: 0; left: 0; width: 12px; height: 12px; border-radius: 50%; background: #111827; pointer-events: none; z-index: 30; }
+  .faq-answer[hidden] { display: none; }
   .features { padding: 80px 32px; display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space); }
   .card { border: 1px solid #e5e7eb; border-radius: 16px; padding: 24px; }
   .card img { width: 100%; display: block; border-radius: 8px; }
@@ -41,7 +50,7 @@
   <main>
     <section class="hero">
       <div>
-        <h1>Ship exact designs</h1>
+        <h1>Ship exact designs <span class="pulse" aria-hidden="true"></span></h1>
         <p>Capture every pixel</p>
         <a class="btn" href="#pricing">Get started</a>
       </div>
@@ -52,12 +61,15 @@
       <div class="card"><h3>Open</h3><p>Plain HTML out</p></div>
     </section>
     <section class="pricing" id="pricing">
-      <h2>Pricing</h2>
+      <h2 class="reveal">Pricing</h2>
       <p>One plan</p>
+      <button type="button" class="faq" aria-expanded="false" aria-controls="faq1">Is there a free tier?</button>
+      <div id="faq1" class="faq-answer" hidden><p>Yes, forever.</p></div>
     </section>
   </main>
   <footer>Footer text</footer>
 </div>
+<div id="cursor" aria-hidden="true"></div>
 <div id="cookie-consent" role="dialog" aria-label="Cookie consent">
   <span>We use cookies.</span>
   <button onclick="this.parentElement.remove(); window.__consent = 'accepted'">Accept all</button>
@@ -65,7 +77,32 @@
 </div>
 <script id="__NEXT_DATA__" type="application/json">{"page":"/"}</script>
 <script>
-  window.gsap = { version: '3.12.5', to() {} };
+  // A stand-in for GSAP with the parts of its API Specimen reads.
+  const heroTitle = document.querySelector('.hero h1');
+  window.gsap = {
+    version: '3.12.5',
+    to() {},
+    globalTimeline: {
+      getChildren: () => [{
+        targets: () => [heroTitle],
+        vars: { y: 40, opacity: 0, duration: 1, ease: 'power2.out', onComplete() {} },
+        duration: () => 1, delay: () => 0, startTime: () => 0, repeat: () => 0, yoyo: () => false,
+      }],
+    },
+  };
+  document.querySelectorAll('.card').forEach((card) => {
+    card.addEventListener('mouseenter', () => card.classList.add('lift'));
+    card.addEventListener('mouseleave', () => card.classList.remove('lift'));
+  });
+  const io = new IntersectionObserver((entries) => entries.forEach((e) => e.isIntersecting && e.target.classList.add('in')), { threshold: 0.2 });
+  document.querySelectorAll('.reveal').forEach((el) => io.observe(el));
+  const cursor = document.getElementById('cursor');
+  document.addEventListener('mousemove', (e) => { cursor.style.transform = `translate(${e.clientX}px, ${e.clientY}px)`; });
+  document.querySelectorAll('.faq').forEach((b) => b.addEventListener('click', () => {
+    const open = b.getAttribute('aria-expanded') === 'true';
+    b.setAttribute('aria-expanded', String(!open));
+    document.getElementById(b.getAttribute('aria-controls')).hidden = open;
+  }));
   window.ScrollTrigger = { version: '3.12.5' };
   customElements.define('fixture-badge', class extends HTMLElement {
     constructor() {

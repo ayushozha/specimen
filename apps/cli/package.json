@@ -1,0 +1,19 @@
+{
+  "name": "@specimen/cli",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Batch captures, capture diffs and full media downloads for Specimen bundles.",
+  "bin": { "specimen": "./src/cli.ts" },
+  "scripts": {
+    "typecheck": "tsc -p ."
+  },
+  "dependencies": {
+    "@playwright/test": "1.64.1",
+    "fflate": "0.8.3"
+  },
+  "devDependencies": {
+    "@types/node": "26.6.6",
+    "typescript": "6.0.3"
+  }
+}

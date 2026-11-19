@@ -1,5 +1,6 @@
 import type { Breakpoint, Rect, StyleSheetText } from '@specimen/core';
-import type { Capabilities, CoreFn, PageAdapter } from './adapter';
+import type { Capabilities, CoreFn, PageAdapter, ScreencastFrame } from './adapter';
+import { CONFIG } from './config';
 
 const CORE_SCRIPT = '/core.js';
 const WORLD_NAME = 'specimen';
@@ -13,7 +14,7 @@ interface StyleSheetHeader {
 /** Drives a tab through the Chrome DevTools Protocol via `chrome.debugger`. */
 export class ChromiumAdapter implements PageAdapter {
   readonly browser = 'chromium';
-  readonly capabilities: Capabilities = { exactFullPage: true, mhtml: true, allStyleSheets: true };
+  readonly capabilities: Capabilities = { exactFullPage: true, mhtml: true, allStyleSheets: true, screencast: true, hooks: true, frameStepping: true, realPointer: true, deviceEmulation: true };
 
   private target: chrome.debugger.Debuggee;
   private contextId: number | null = null;
@@ -22,6 +23,8 @@ export class ChromiumAdapter implements PageAdapter {
   private attached = true;
   private coreSource: Promise<string>;
   private resourceTree: Promise<ResourceTree> | null = null;
+  private frames: ScreencastFrame[] | null = null;
+  private loadWaiters: (() => void)[] = [];
 
   private constructor(tabId: number) {
     this.target = { tabId };
@@ -60,8 +63,17 @@ export class ChromiumAdapter implements PageAdapter {
       this.sheets.delete((params as { styleSheetId: string }).styleSheetId);
     } else if (method === 'Page.frameNavigated') {
       const frame = (params as { frame: { parentId?: string } }).frame;
-      if (!frame.parentId) this.contextId = null;
+      if (!frame.parentId) {
+        this.contextId = null;
+        this.sheets.clear();
+      }
       this.resourceTree = null;
+    } else if (method === 'Page.screencastFrame') {
+      const { data, sessionId, metadata } = params as { data: string; sessionId: number; metadata: { timestamp?: number; scrollOffsetY: number } };
+      void this.send('Page.screencastFrameAck', { sessionId }).catch(() => {});
+      this.frames?.push({ data: base64ToBytes(data), type: 'image/jpeg', time: metadata.timestamp ?? performance.now() / 1000, scrollY: metadata.scrollOffsetY });
+    } else if (method === 'Page.loadEventFired') {
+      this.loadWaiters.splice(0).forEach((resolve) => resolve());
     }
   };
 
@@ -94,10 +106,14 @@ export class ChromiumAdapter implements PageAdapter {
     return executionContextId;
   }
 
-  private async evaluate(expression: string, contextId?: number): Promise<unknown> {
+  /**
+   * Never pass `userGesture`: page code can run during our calls (getters, click handlers), and a
+   * gesture would let it open pop-ups or write to the clipboard as if the user had clicked.
+   */
+  private async evaluate(expression: string, contextId?: number, timeout?: number): Promise<unknown> {
     const res = await this.send<{ result: { value?: unknown }; exceptionDetails?: { text: string; exception?: { description?: string } } }>(
       'Runtime.evaluate',
-      { expression, contextId, awaitPromise: true, returnByValue: true, userGesture: true },
+      { expression, contextId, awaitPromise: true, returnByValue: true, timeout },
     );
     if (res.exceptionDetails) {
       throw new Error(res.exceptionDetails.exception?.description ?? res.exceptionDetails.text);
@@ -118,18 +134,19 @@ export class ChromiumAdapter implements PageAdapter {
   }
 
   async evaluateMain<A extends unknown[], R>(fn: (...args: A) => R, ...args: A): Promise<R> {
-    return (await this.evaluate(`(${fn.toString()})(...${JSON.stringify(args)})`)) as R;
+    // Page code (getters on globals) runs during this call, so it gets a time limit.
+    return (await this.evaluate(`(${fn.toString()})(...${JSON.stringify(args)})`, undefined, CONFIG.mainWorldTimeoutMs)) as R;
   }
 
   async pageInfo(): Promise<{ url: string; title: string }> {
     return (await this.evaluate('({ url: location.href, title: document.title })')) as { url: string; title: string };
   }
 
-  async setViewport(bp: Breakpoint | null, scale: number): Promise<void> {
+  async setViewport(bp: Breakpoint | null, scale: number): Promise<number | null> {
     if (!bp) {
       await this.send('Emulation.clearDeviceMetricsOverride');
       await this.send('Emulation.setTouchEmulationEnabled', { enabled: false });
-      return;
+      return null;
     }
     await this.send('Emulation.setDeviceMetricsOverride', {
       width: bp.width,
@@ -138,6 +155,7 @@ export class ChromiumAdapter implements PageAdapter {
       mobile: bp.mobile,
     });
     await this.send('Emulation.setTouchEmulationEnabled', { enabled: bp.mobile });
+    return bp.width;
   }
 
   async screenshot(clip: Rect): Promise<Uint8Array> {
@@ -176,6 +194,41 @@ export class ChromiumAdapter implements PageAdapter {
       };
     } catch {
       return null;
+    }
+  }
+
+  async mouseMove(x: number, y: number): Promise<void> {
+    await this.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: Math.round(x), y: Math.round(y), button: 'none' });
+  }
+
+  async hover(_selector: string, box: Rect, on: boolean): Promise<void> {
+    if (on) await this.mouseMove(box.x + box.width / 2, box.y + box.height / 2);
+    else await this.mouseMove(1, 1);
+  }
+
+  async startScreencast(maxWidth: number, maxHeight: number): Promise<void> {
+    this.frames = [];
+    await this.send('Page.startScreencast', { format: 'jpeg', quality: 85, maxWidth, maxHeight, everyNthFrame: 1 });
+  }
+
+  async stopScreencast(): Promise<ScreencastFrame[]> {
+    await this.send('Page.stopScreencast').catch(() => {});
+    const frames = this.frames ?? [];
+    this.frames = null;
+    return frames;
+  }
+
+  async reloadWithHooks(source: string, timeoutMs: number): Promise<void> {
+    const { identifier } = await this.send<{ identifier: string }>('Page.addScriptToEvaluateOnNewDocument', { source });
+    try {
+      const loaded = new Promise<void>((resolve) => {
+        this.loadWaiters.push(resolve);
+        setTimeout(resolve, timeoutMs);
+      });
+      await this.send('Page.reload', { ignoreCache: false });
+      await loaded;
+    } finally {
+      await this.send('Page.removeScriptToEvaluateOnNewDocument', { identifier }).catch(() => {});
     }
   }
 

@@ -1,7 +1,7 @@
 import { chromium, type BrowserContext } from '@playwright/test';
 import { join } from 'node:path';
 
-export const EXTENSION_DIR = join(import.meta.dirname, '../../apps/extension/.output/chrome-mv3');
+export const EXTENSION_DIR = join(import.meta.dirname, '../../apps/extension/.output/chrome-mv3-e2e');
 export const CORE_SCRIPT = join(EXTENSION_DIR, 'core.js');
 
 /** Chromium with the built extension loaded (headless new mode supports extensions). */
@@ -18,4 +18,32 @@ export async function launchWithExtension(): Promise<{ context: BrowserContext; 
 export function pngSize(bytes: Uint8Array): { width: number; height: number } {
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   return { width: view.getUint32(16), height: view.getUint32(20) };
+}
+
+/** Opens the panel for `url`, runs Capture everything and returns the bundle's files. */
+export async function captureBundle(url: string): Promise<Record<string, Uint8Array>> {
+  const { context, extensionId } = await launchWithExtension();
+  try {
+    await context.pages()[0].goto(url);
+    const [tab] = await context.serviceWorkers()[0].evaluate(() => chrome.tabs.query({}));
+    const panel = await context.newPage();
+    await panel.goto(`chrome-extension://${extensionId}/sidepanel.html?tabId=${tab.id}`);
+    await panel.waitForFunction(() => document.querySelector('.primary') && !document.querySelector('.primary')?.hasAttribute('disabled'), null, { timeout: 60_000 });
+    const zip = panel.evaluate(
+      () =>
+        new Promise<string>((resolve) =>
+          window.addEventListener('specimen:done', (e) => {
+            const z = (e as CustomEvent<{ zip: Uint8Array }>).detail.zip;
+            let bin = '';
+            for (let i = 0; i < z.length; i += 0x8000) bin += String.fromCharCode(...z.subarray(i, i + 0x8000));
+            resolve(btoa(bin));
+          }),
+        ),
+    );
+    await panel.locator('.primary').click();
+    const { unzipSync } = await import('fflate');
+    return unzipSync(Buffer.from(await zip, 'base64'));
+  } finally {
+    await context.close();
+  }
 }

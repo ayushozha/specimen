@@ -1,9 +1,14 @@
 export * from './types';
 export * from './color';
-export { allElements, pageRect, uniqueSelector } from './dom';
+export { allElements, pageRect, pageRectsOf, uniqueSelector } from './dom';
 export * from './sections';
 export * from './palette';
 export * from './stack';
 export * from './serialize';
 export * from './prep';
 export * from './picker';
+export * from './motion-math';
+export * from './motion';
+export * from './interactions';
+export * from './hooks';
+export * from './layout';
