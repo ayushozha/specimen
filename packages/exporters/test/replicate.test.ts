@@ -59,7 +59,7 @@ describe('replicate', () => {
 
   it('keeps the page own keyframes and hover values exactly', () => {
     const reps = replicate({
-      animations: [{ id: 'a1', kind: 'css-animation', name: 'pulse', target: '.pulse', pseudo: null, keyframes: [{ offset: 0, computedOffset: 0, easing: 'ease-in-out', opacity: '1', transform: 'scale(1)' }, { offset: 0.5, computedOffset: 0.5, easing: 'ease-in-out', opacity: '0.4', transform: 'scale(1.4)' }, { offset: 1, computedOffset: 1, easing: 'ease-in-out', opacity: '1', transform: 'scale(1)' }], duration: 1200, delay: 0, iterations: 'infinite', easing: 'linear', direction: 'normal', fill: 'none', playState: 'running', rect: null }],
+      animations: [{ id: 'a1', kind: 'css-animation', timeline: 'document', name: 'pulse', target: '.pulse', pseudo: null, keyframes: [{ offset: 0, computedOffset: 0, easing: 'ease-in-out', opacity: '1', transform: 'scale(1)' }, { offset: 0.5, computedOffset: 0.5, easing: 'ease-in-out', opacity: '0.4', transform: 'scale(1.4)' }, { offset: 1, computedOffset: 1, easing: 'ease-in-out', opacity: '1', transform: 'scale(1)' }], duration: 1200, delay: 0, iterations: 'infinite', easing: 'linear', direction: 'normal', fill: 'none', playState: 'running', rect: null }],
       interactions: [{ selector: '.btn', label: 'Get started', trigger: 'hover', rect: { x: 0, y: 0, width: 10, height: 10 }, changes: [{ path: '', prop: 'transform', from: 'none', to: 'matrix(1, 0, 0, 1, 0, -2)' }, { path: '0', prop: 'color', from: 'red', to: 'blue' }], transitions: [{ property: 'transform', duration: 200, delay: 0, easing: 'ease-out' }] }],
       tracks: [],
     });
@@ -77,7 +77,7 @@ describe('replicate', () => {
 describe('generated code from hostile pages', () => {
   it('never turns page text into code', () => {
     const name = 'pwn\nwindow.pwnedCode=1;//*/ */\u2028more';
-    const anim = { id: 'a1', kind: 'css-animation' as const, name, target: '.x', pseudo: null, keyframes: [{ offset: 0, computedOffset: 0, opacity: '0.5' }, { offset: 1, computedOffset: 1, opacity: '1' }], duration: 1000, delay: 0, iterations: 'infinite' as const, easing: 'linear', direction: 'normal', fill: 'none', playState: 'running', rect: { x: 0, y: 0, width: 1, height: 1 } };
+    const anim = { id: 'a1', kind: 'css-animation' as const, timeline: 'document' as const, name, target: '.x', pseudo: null, keyframes: [{ offset: 0, computedOffset: 0, opacity: '0.5' }, { offset: 1, computedOffset: 1, opacity: '1' }], duration: 1000, delay: 0, iterations: 'infinite' as const, easing: 'linear', direction: 'normal', fill: 'none', playState: 'running', rect: { x: 0, y: 0, width: 1, height: 1 } };
     const hover = { selector: '.y', label: 'evil */ body{} /* \n alert(1)', trigger: 'hover' as const, rect: { x: 0, y: 0, width: 1, height: 1 }, changes: [{ path: '', prop: 'opacity', from: '1', to: '0.5' }], transitions: [{ property: 'opacity', duration: 100, delay: 0, easing: 'ease' }] };
     const reps = replicate({ animations: [anim], interactions: [hover], tracks: [] });
     const g = globalThis as unknown as { window: unknown; pwnedCode?: number };

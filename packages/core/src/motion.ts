@@ -4,6 +4,8 @@ import { downsample, type Track } from './motion-math';
 export interface AnimationInfo {
   id: string;
   kind: 'css-animation' | 'css-transition' | 'waapi';
+  /** `scroll`: driven by scroll position (animation-timeline: scroll()/view()), not by time. */
+  timeline: 'document' | 'scroll';
   /** Keyframes name, transitioned property, or the animation's id. */
   name: string;
   target: string | null;
@@ -52,11 +54,13 @@ export function collectAnimations(withinSelector: string | null = null): Animati
     return {
       id: idOf(a),
       kind,
+      timeline: a.timeline instanceof DocumentTimeline ? 'document' : 'scroll',
       name,
       target: target ? uniqueSelector(target) : null,
       pseudo: effect?.pseudoElement ?? null,
       keyframes,
-      duration: Number(timing?.duration ?? 0),
+      // Scroll-driven animations report 'auto' or a percentage: not a time.
+      duration: Number.isFinite(Number(timing?.duration)) ? Number(timing?.duration) : 0,
       delay: Number(timing?.delay ?? 0),
       iterations: timing?.iterations === Infinity ? 'infinite' : Number(timing?.iterations ?? 1),
       easing: String(effect?.getTiming().easing ?? 'linear'),
@@ -71,6 +75,7 @@ export function collectAnimations(withinSelector: string | null = null): Animati
 export function pauseAllAnimations(): number {
   const all = document.getAnimations();
   for (const a of all) {
+    if (!(a.timeline instanceof DocumentTimeline)) continue; // scroll-driven: follows the scroll position
     const id = idOf(a);
     if (!resumeState.has(id)) resumeState.set(id, { time: a.currentTime === null ? null : Number(a.currentTime), playing: a.playState === 'running' });
     a.pause();
@@ -82,10 +87,15 @@ export function pauseAllAnimations(): number {
 export async function seekAnimations(animationIds: string[], timeMs: number): Promise<void> {
   for (const id of animationIds) {
     const a = registry.get(id);
-    if (!a) continue;
-    const delay = Number((a.effect as KeyframeEffect | null)?.getComputedTiming().delay ?? 0);
-    a.pause();
-    a.currentTime = delay + timeMs;
+    if (!a || !(a.timeline instanceof DocumentTimeline)) continue;
+    const time = Number((a.effect as KeyframeEffect | null)?.getComputedTiming().delay ?? 0) + timeMs;
+    if (!Number.isFinite(time)) continue;
+    try {
+      a.pause();
+      a.currentTime = time;
+    } catch {
+      // An animation the page replaced or cancelled meanwhile.
+    }
   }
   // Let the style change reach the compositor before the screenshot.
   await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
@@ -95,8 +105,12 @@ export function resumeAllAnimations(): void {
   for (const [id, state] of resumeState) {
     const a = registry.get(id);
     if (!a) continue;
-    if (state.time !== null) a.currentTime = state.time;
-    if (state.playing) a.play();
+    try {
+      if (state.time !== null && Number.isFinite(state.time)) a.currentTime = state.time;
+      if (state.playing) a.play();
+    } catch {
+      // Gone or replaced meanwhile.
+    }
   }
   resumeState.clear();
 }

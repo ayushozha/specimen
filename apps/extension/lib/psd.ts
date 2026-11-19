@@ -40,9 +40,12 @@ export async function toPsd(tree: LayoutTree, screenshotPng: Uint8Array, scale: 
       if (n.type === 'image' || n.type === 'svg') return { name: n.name, ...pos, canvas: crop(n) };
 
       const children: Layer[] = [];
-      const fill = fillLayer(n, scale);
-      if (fill) children.push({ name: 'Background', ...pos, canvas: fill });
-      if (n.image) children.push({ name: 'Background image', ...pos, canvas: crop(n) });
+      if (n.raster) children.push({ name: 'Background (pixels)', ...pos, canvas: crop(n) });
+      else {
+        const fill = fillLayer(n, scale);
+        if (fill) children.push({ name: 'Background', ...pos, canvas: fill });
+        if (n.image) children.push({ name: 'Background image', ...pos, canvas: crop(n) });
+      }
       for (const child of n.children) {
         const layer = build(child);
         if (layer) children.push(layer);

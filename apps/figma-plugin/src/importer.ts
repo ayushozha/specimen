@@ -131,9 +131,11 @@ export async function importDocument(figma: PluginAPI, doc: FigmaDocument, files
     frame.name = n.name;
     frame.resize(Math.max(0.01, n.width), Math.max(0.01, n.height));
     const fills: Paint[] = [];
-    if (n.fill) fills.push(solid(n.fill));
-    if (n.gradient) fills.push(gradient(n.gradient.stops, n.gradient.angle));
-    if (n.image) {
+    const shot = rasterFill(n);
+    if (shot) fills.push(shot);
+    else if (n.fill) fills.push(solid(n.fill));
+    if (n.gradient && !shot) fills.push(gradient(n.gradient.stops, n.gradient.angle));
+    if (n.image && !shot) {
       const hash = image(n.image);
       if (hash) fills.push({ type: 'IMAGE', imageHash: hash, scaleMode: n.imageFit === 'contain' ? 'FIT' : 'FILL' });
     }
@@ -142,7 +144,7 @@ export async function importDocument(figma: PluginAPI, doc: FigmaDocument, files
     frame.topRightRadius = n.radius[1];
     frame.bottomRightRadius = n.radius[2];
     frame.bottomLeftRadius = n.radius[3];
-    if (n.border) {
+    if (n.border && !shot) {
       frame.strokes = [solid(n.border.color)];
       frame.strokeWeight = n.border.width;
       frame.strokeAlign = 'INSIDE';
@@ -171,9 +173,21 @@ export async function importDocument(figma: PluginAPI, doc: FigmaDocument, files
     return frame;
   };
 
+  // Boxes marked raster show their exact pixels: the section screenshot, cropped to the box.
+  let current: FigmaSection | null = null;
+  function rasterFill(n: LayoutNode): ImagePaint | null {
+    if (!n.raster || !current) return null;
+    const hash = image(current.screenshot);
+    if (!hash) return null;
+    const W = current.tree.width;
+    const H = current.tree.height;
+    return { type: 'IMAGE', imageHash: hash, scaleMode: 'CROP', imageTransform: [[n.width / W, 0, n.x / W], [0, n.height / H, n.y / H]] };
+  }
+
   const roots: SceneNode[] = [];
   let y = 0;
   for (const section of doc.sections) {
+    current = section;
     onProgress(`Building ${section.name}`);
     const root = (await build(section.tree.root, figma.currentPage, 0, 0)) as FrameNode;
     root.name = section.name;

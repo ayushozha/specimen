@@ -176,7 +176,7 @@ export async function captureMotion(ctx: MotionContext): Promise<{ summary: Moti
 
   await ctx.step('Capturing animations frame by frame', async () => {
     const anims = (await adapter.call('collectAnimations', null))
-      .filter((a) => a.kind !== 'css-transition' && a.target && a.duration > 0 && Number.isFinite(a.duration))
+      .filter((a) => a.kind !== 'css-transition' && a.timeline === 'document' && a.target && a.duration > 0)
       .slice(0, m.maxAnimations);
     summary.animations = anims.length;
     const ids = await sectionOf(anims.map((a) => a.target));
@@ -235,7 +235,7 @@ export async function captureMotion(ctx: MotionContext): Promise<{ summary: Moti
       if (c.states.includes('hover') || c.sources.includes('js')) {
         await adapter.hover(c.selector, box.viewport, true);
         await sleep(20);
-        const running = (await adapter.call('collectAnimations', c.selector)).filter((a) => a.playState === 'running' && Number.isFinite(a.duration));
+        const running = (await adapter.call('collectAnimations', c.selector)).filter((a) => a.playState === 'running' && a.timeline === 'document' && a.duration > 0);
         const longest = Math.max(0, ...running.map((a) => a.delay + a.duration));
         const files: string[] = [];
         if (running.length && caps.frameStepping) {

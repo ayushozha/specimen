@@ -28,6 +28,8 @@ export interface ExportContext {
   trees: Map<string, LayoutTree>;
   shots: Map<string, Uint8Array>;
   rects: Map<string, Rect>;
+  /** Each section's @font-face rules with bundled font paths (relative to sections/<id>/). */
+  fontCss: Map<string, string>;
   motion: Record<string, SectionMotion> | null;
   palette: Palette;
   /** Page asset URL → bundle path. */
@@ -73,7 +75,12 @@ export async function buildExports(ctx: ExportContext): Promise<ExportSummary> {
 
     // Images point at the bundled copy when there is one, else at the live URL.
     const href = (prefix: string) => (url: string) => (ctx.assets.has(url) ? prefix + ctx.assets.get(url) : /^https?:/.test(url) ? url : null);
-    await attempt('SVG', () => ctx.put(`exports/svg/${section.id}.svg`, strToU8(toSvg(tree, href('../../')))));
+    await attempt('SVG', () =>
+      ctx.put(
+        `exports/svg/${section.id}.svg`,
+        strToU8(toSvg(tree, href('../../'), { screenshot: `../../sections/${section.id}/desktop.png`, fontCss: ctx.fontCss.get(section.id) })),
+      ),
+    );
     await attempt('Photoshop file', async () => ctx.put(`exports/psd/${section.id}.psd`, await toPsd(tree, shot, ctx.scale)));
 
     const relative = (r: Rect): Rect => ({ x: r.x - rect.x, y: r.y - rect.y, width: r.width, height: r.height });

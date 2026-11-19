@@ -37,7 +37,7 @@ export function detectSections(options: Partial<SectionOptions> = {}): Section[]
   let picked: { el: Element; source: SectionSource }[] = semantic.map((el) => ({ el, source: 'semantic' }));
 
   if (coverage(picked.map((p) => p.el)) < 0.5 * pageHeight) {
-    const blocks = layoutBlocks(opts);
+    const blocks = layoutBlocks(opts).flatMap((b) => splitTall(b, opts, 3));
     if (coverage(blocks) > coverage(picked.map((p) => p.el))) {
       picked = blocks.map((el) => ({ el, source: 'block' }));
     }
@@ -121,6 +121,14 @@ function layoutBlocks(opts: SectionOptions): Element[] {
     column = big[0];
   }
   return Array.from(column.children).filter((c) => isSectionSized(c, opts));
+}
+
+/** A block taller than a few screens is usually a wrapper: use its section-sized children instead. */
+function splitTall(el: Element, opts: SectionOptions, depth: number): Element[] {
+  if (depth === 0 || el.getBoundingClientRect().height < window.innerHeight * 2.5) return [el];
+  const children = Array.from(el.children).filter((c) => isSectionSized(c, opts));
+  if (children.length < 2) return [el];
+  return children.flatMap((c) => splitTall(c, opts, depth - 1));
 }
 
 function coverage(els: Element[]): number {

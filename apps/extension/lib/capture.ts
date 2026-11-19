@@ -123,6 +123,7 @@ export async function capture(
   const shots = new Map<string, Uint8Array>();
   const desktopRects = new Map<string, Rect>();
   const assetPaths = new Map<string, string>();
+  const fontCss = new Map<string, string>();
   let motionDetails: Record<string, SectionMotion> | null = null;
   let exportSummary: ExportSummary | null = null;
   const actualWidths: Record<string, number> = {};
@@ -249,7 +250,10 @@ export async function capture(
       }
       for (const [id, html] of sectionHtml) {
         const path = `sections/${id}/${id}.html`;
-        put(path, strToU8(rewriteUrls(html, assetPaths, '../../')));
+        const final = rewriteUrls(html, assetPaths, '../../');
+        put(path, strToU8(final));
+        // The same fonts make the SVG export render in the page's typefaces (same folder depth).
+        fontCss.set(id, (final.match(/@font-face\s*\{[^}]*\}/g) ?? []).join('\n'));
         sectionFiles[id].push(path);
       }
     });
@@ -260,6 +264,7 @@ export async function capture(
         trees,
         shots,
         rects: desktopRects,
+        fontCss,
         motion: motionDetails,
         palette: analysis.palette,
         assets: assetPaths,

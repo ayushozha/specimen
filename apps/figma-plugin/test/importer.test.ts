@@ -46,7 +46,7 @@ function fakeFigma() {
 
 const box = (over: Partial<LayoutNode>): LayoutNode => ({
   type: 'frame', name: 'box', x: 0, y: 0, width: 10, height: 10, opacity: 1, fill: null, gradient: null, radius: [0, 0, 0, 0],
-  border: null, shadows: [], clips: false, image: null, imageFit: 'fill', svg: null, text: null, layout: null, children: [], ...over,
+  border: null, shadows: [], clips: false, image: null, imageFit: 'fill', raster: false, svg: null, text: null, layout: null, children: [], ...over,
 });
 
 const doc: FigmaDocument = {

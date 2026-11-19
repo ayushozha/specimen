@@ -168,3 +168,27 @@ test('names keep line-break spaces, and positioned layers belong to the section 
   const tree = await page.evaluate(() => window.__specimenCore.layoutTree('body'));
   expect(tree.images).toEqual([]);
 });
+
+test('scroll-driven animations are reported but never seeked in milliseconds', async ({ page }) => {
+  await page.setContent(`<style>@keyframes grow { to { transform: scale(2); } }
+    #s { width: 50px; height: 50px; animation: grow linear both; animation-timeline: scroll(root); }
+    #t { width: 50px; height: 50px; animation: grow 1s infinite; }</style><div style="height:3000px"><div id="s"></div><div id="t"></div></div>`);
+  await page.addScriptTag({ path: CORE_SCRIPT });
+  const result = await page.evaluate(async () => {
+    const c = window.__specimenCore;
+    const anims = c.collectAnimations(null);
+    c.pauseAllAnimations();
+    await c.seekAnimations(anims.map((a) => a.id), 500);
+    c.resumeAllAnimations();
+    return anims.map((a) => ({ target: a.target, timeline: a.timeline, duration: a.duration }));
+  });
+  expect(result).toEqual(expect.arrayContaining([{ target: '#s', timeline: 'scroll', duration: 0 }, { target: '#t', timeline: 'document', duration: 1000 }]));
+});
+
+test('tall wrapper blocks are split into their sections', async ({ page }) => {
+  await page.setViewportSize({ width: 1200, height: 800 });
+  await page.setContent(`<body style="margin:0"><div id="app"><div class="wrap">${['One', 'Two', 'Three', 'Four'].map((n) => `<div style="height:900px"><h2>${n}</h2></div>`).join('')}</div><div style="height:400px"><h2>Footer-ish</h2></div></div></body>`);
+  await page.addScriptTag({ path: CORE_SCRIPT });
+  const names = await page.evaluate(() => window.__specimenCore.detectSections().map((s) => s.name));
+  expect(names).toEqual(['One', 'Two', 'Three', 'Four', 'Footer-ish']);
+});
