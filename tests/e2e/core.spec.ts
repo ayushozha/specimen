@@ -192,3 +192,13 @@ test('tall wrapper blocks are split into their sections', async ({ page }) => {
   const names = await page.evaluate(() => window.__specimenCore.detectSections().map((s) => s.name));
   expect(names).toEqual(['One', 'Two', 'Three', 'Four', 'Footer-ish']);
 });
+
+test('section HTML only carries the fonts the section uses', async ({ page }) => {
+  const faces = Array.from({ length: 50 }, (_, i) => `@font-face { font-family: "Unused ${i}"; src: url(https://fonts.example/u${i}.woff2); }`).join('\n');
+  await page.setContent(`<style>${faces} @font-face { font-family: "Brand Sans"; src: url(https://fonts.example/brand.woff2); }</style>
+    <section id="s" style="font-family: 'Brand Sans', sans-serif"><h2>Hello</h2></section>`);
+  await page.addScriptTag({ path: CORE_SCRIPT });
+  const { html } = await page.evaluate(() => window.__specimenCore.serializeElement('#s'));
+  expect(html.match(/@font-face/g)).toHaveLength(1);
+  expect(html).toContain('brand.woff2');
+});

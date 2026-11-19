@@ -116,7 +116,7 @@ export function serializeElement(selector: string, sheets: StyleSheetText[] = []
   const body = serializeTree(root, null, rules);
   defaults.dispose();
 
-  const fontFaces = collectFontFaces(sheets, resources);
+  const fontFaces = collectFontFaces(sheets, resources, usedFontFamilies(root));
   const rect = pageRect(root);
   const pageBg = getComputedStyle(document.body).backgroundColor;
   const htmlBg = getComputedStyle(document.documentElement).backgroundColor;
@@ -191,15 +191,38 @@ function serializeAttributes(el: Element, cls: string, resources: Set<string>): 
 }
 
 /** @font-face rules from all stylesheets, with absolute font URLs. */
-export function collectFontFaces(sheets: StyleSheetText[], resources: Set<string>): string[] {
+/** Font family names (lowercase, unquoted) used by an element and everything inside it. */
+export function usedFontFamilies(root: Element): Set<string> {
+  const out = new Set<string>();
+  const add = (stack: string) => stack.split(',').forEach((f) => out.add(f.trim().replace(/^["']|["']$/g, '').toLowerCase()));
+  for (const el of [root, ...Array.from(root.querySelectorAll('*'))]) {
+    add(getComputedStyle(el).fontFamily);
+    for (const p of ['::before', '::after']) add(getComputedStyle(el, p).fontFamily);
+  }
+  return out;
+}
+
+/**
+ * @font-face rules from all stylesheets, with absolute font URLs. With `families`, only faces of those
+ * families: sites can declare hundreds of fonts, and copying all of them makes exports slow to open.
+ */
+export function collectFontFaces(sheets: StyleSheetText[], resources: Set<string>, families?: Set<string>): string[] {
   const faces = new Set<string>();
+  const wanted = (rule: string) => {
+    if (!families) return true;
+    const m = rule.match(/font-family\s*:\s*(["']?)([^;"'}]+)\1/i);
+    return !!m && families.has(m[2].trim().toLowerCase());
+  };
+  const add = (rule: string, base: string) => {
+    if (wanted(rule)) faces.add(rewriteCssUrls(rule, base, resources));
+  };
   for (const s of sheets) {
-    for (const m of s.text.matchAll(/@font-face\s*{[^}]*}/g)) faces.add(rewriteCssUrls(m[0], s.url || document.baseURI, resources));
+    for (const m of s.text.matchAll(/@font-face\s*{[^}]*}/g)) add(m[0], s.url || document.baseURI);
   }
   for (const sheet of Array.from(document.styleSheets)) {
     try {
       for (const rule of Array.from(sheet.cssRules)) {
-        if (rule instanceof CSSFontFaceRule) faces.add(rewriteCssUrls(rule.cssText, sheet.href ?? document.baseURI, resources));
+        if (rule instanceof CSSFontFaceRule) add(rule.cssText, sheet.href ?? document.baseURI);
       }
     } catch {
       // Cross-origin; covered by `sheets`.
