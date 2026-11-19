@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang='en"><script>window.pwnedLang=1</script><x y="'>
+<head>
+<meta charset="utf-8">
+<title>Hostile page</title>
+<link rel="stylesheet" href="hostile.css"><script>window.pwnedCss=1</script><style>"; }
+  @font-face { font-family: x; src: url(x.woff2); /*</style><img src=x onerror="window.pwnedFont=1"><style>*/ }
+</style>
+</head>
+<body>
+<section id="evil" aria-label="Evil">
+  <h2>Hostile section</h2>
+  <a id="jslink" href="javascript:window.pwnedHref=1">Link</a>
+  <svg width="10" height="10"><script>window.pwnedSvg=1</script><rect width="10" height="10"/></svg>
+  <iframe srcdoc="<script>parent.pwnedSrcdoc=1</script>" width="10" height="10"></iframe>
+  <input type="hidden" name="csrf" value="SECRET-CSRF-TOKEN">
+  <input id="typed" type="email">
+  <textarea id="notes"></textarea>
+  <a id="tablink" href="java&#9;script:window.pwnedTab=1">Tab link</a>
+  <svg id="evilsvg" width="20" height="20"><a href="java&#10;script:window.pwnedSvgTab=1"><rect id="svgrect" width="20" height="20"/></a></svg>
+  <span class="named-anim">x</span>
+</section>
+<section style="height:200px"><p>Second</p></section>
+<script>
+  document.getElementById('typed').value = 'user-typed@example.com';
+  document.getElementById('notes').value = 'typed private note';
+  Object.defineProperty(window, 'gsap', {
+    get() {
+      document.documentElement.dataset.activation = String(navigator.userActivation.isActive);
+      return undefined;
+    },
+  });
+</script>
+</body>
+</html>

@@ -102,3 +102,45 @@ test('measures text on gradients against the gradient, and picks a readable mute
   expect(palette.contrast.some((p) => p.fg === '#f8fafc' && p.bg === '#ffffff')).toBe(false);
   expect(palette.colors.find((c) => c.roles.includes('text-muted'))?.hex).toBe('#6b7280');
 });
+
+test.describe('hostile page', () => {
+  test('saved section HTML never runs page scripts or keeps typed values', async ({ page, browser }) => {
+    await page.goto('/hostile.html');
+    await page.addScriptTag({ path: CORE_SCRIPT });
+    const css = await (await fetch('http://localhost:4321/hostile.css')).text();
+    const { html } = await page.evaluate(
+      (text) => window.__specimenCore.serializeElement('#evil', [{ url: 'http://localhost:4321/hostile.css', text }]),
+      css,
+    );
+    expect(html).toContain('Content-Security-Policy');
+    expect(html).not.toMatch(/java\s*script:|srcdoc|<script/i);
+    expect(html).not.toContain('user-typed@example.com');
+    expect(html).not.toContain('typed private note');
+    expect(html).not.toContain('SECRET-CSRF-TOKEN');
+
+    // Load it the way a user would open the file, and try every injected path.
+    const copy = await browser.newPage();
+    await copy.setContent(html);
+    await copy.locator('a').first().click().catch(() => {});
+    await copy.locator('#tablink').click().catch(() => {});
+    await copy.waitForTimeout(300);
+    const ran = await copy.evaluate(() =>
+      ['pwnedLang', 'pwnedCss', 'pwnedFont', 'pwnedHref', 'pwnedSvg', 'pwnedSrcdoc', 'pwnedTab', 'pwnedSvgTab'].filter((k) => k in window),
+    );
+    expect(ran).toEqual([]);
+    // The hostile CSS string still renders as text: escaping changed the markup, not the design.
+    expect(await copy.evaluate(() => getComputedStyle(document.querySelector('section')!, '::before').content)).toContain('</style>');
+    await copy.close();
+  });
+
+  test('SVG kept for design exports has no script links, even split by tabs or newlines', async ({ page }) => {
+    await page.goto('/hostile.html');
+    await page.addScriptTag({ path: CORE_SCRIPT });
+    const tree = await page.evaluate(() => window.__specimenCore.layoutTree('#evil'));
+    const svgs: string[] = [];
+    const walk = (n: { svg: string | null; children: unknown[] }) => (n.svg && svgs.push(n.svg), n.children.forEach((c) => walk(c as typeof n)));
+    walk(tree.root);
+    expect(svgs.length).toBeGreaterThan(0);
+    for (const svg of svgs) expect(svg.replace(/[\u0000-\u0020]/g, '')).not.toMatch(/javascript:|<script/i);
+  });
+});

@@ -7,12 +7,16 @@
     "dev": "pnpm --filter @specimen/extension dev",
     "build": "pnpm --filter @specimen/extension build",
     "typecheck": "pnpm -r typecheck",
-    "test": "pnpm --filter @specimen/core test",
-    "test:e2e": "pnpm build && playwright test"
+    "test": "pnpm --filter @specimen/core --filter @specimen/exporters --filter @specimen/figma-plugin test",
+    "test:e2e": "pnpm --filter @specimen/extension build:e2e && playwright test",
+    "build:all": "pnpm --filter @specimen/extension build && pnpm --filter @specimen/extension build:firefox && pnpm --filter @specimen/extension build:safari && pnpm --filter @specimen/figma-plugin build",
+    "safari:project": "pnpm --filter @specimen/extension build:safari && xcrun safari-web-extension-converter apps/extension/.output/safari-mv3 --project-location apps/safari --app-name Specimen --bundle-identifier dev.specimen.Specimen --macos-only --no-open --no-prompt --copy-resources --force"
   },
   "devDependencies": {
     "@playwright/test": "1.64.1",
+    "ag-psd": "34.1.0",
     "fflate": "0.8.3",
+    "lottie-web": "5.13.0",
     "typescript": "6.0.3"
   }
 }

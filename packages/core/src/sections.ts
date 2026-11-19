@@ -63,6 +63,19 @@ export function measureSections(sections: Section[]): Section[] {
   });
 }
 
+/** For each selector, the id of the section that contains it (or null). Viewport slices match by position. */
+export function sectionsContaining(selectors: (string | null)[], sections: Section[]): (string | null)[] {
+  const roots = sections.map((s) => ({ id: s.id, el: s.selector ? document.querySelector(s.selector) : null, rect: s.rect }));
+  return selectors.map((sel) => {
+    const el = sel ? document.querySelector(sel) : null;
+    if (!el) return null;
+    const hit = roots.find((r) => r.el && (r.el === el || r.el.contains(el)));
+    if (hit) return hit.id;
+    const y = pageRect(el).y;
+    return roots.find((r) => !r.el && y >= r.rect.y && y < r.rect.y + r.rect.height)?.id ?? null;
+  });
+}
+
 export function sectionFromElement(el: Element, index: number): Section {
   const name = sectionName(el);
   return { id: sectionId(index, name), name, selector: uniqueSelector(el), rect: pageRect(el), source: 'picked' };

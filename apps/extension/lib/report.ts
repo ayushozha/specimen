@@ -1,4 +1,4 @@
-import type { Palette } from '@specimen/core';
+import { GENERATED_HTML_CSP, type Palette } from '@specimen/core';
 import type { Analysis, Manifest } from './capture';
 import tokens from '../assets/tokens.css?raw';
 
@@ -34,7 +34,7 @@ export function renderReport(manifest: Manifest, analysis: Analysis): string {
   const swatches = palette.colors
     .filter((c) => c.alpha === 1 || c.count > 2)
     .map(
-      (c) => `<div class="swatch"><span class="chip" style="background:${c.values[0]}"></span>
+      (c) => `<div class="swatch"><span class="chip" style="background:${esc(c.values[0])}"></span>
 <div><div class="mono">${c.hex}</div><div class="muted small mono">${esc(c.values[0])}</div>
 <div class="muted small">${c.variables.map(esc).join(', ')}${c.roles.length ? ` · ${c.roles.join(', ')}` : ''} · ${c.count}×</div></div></div>`,
     )
@@ -54,6 +54,7 @@ export function renderReport(manifest: Manifest, analysis: Analysis): string {
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="${GENERATED_HTML_CSP}">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(manifest.title || manifest.url)} — Specimen</title>
 <style>
@@ -83,6 +84,9 @@ ${fullShots.length ? `<h2>Full page</h2><div class="muted">${fullShots.map((f) =
 <h2>Colours (${palette.colors.length})</h2>
 <div class="swatches">${swatches}</div>
 <p class="muted small">Contrast: ${palette.contrast.length} text/background pairs, ${failing.length} below WCAG AA. Full data in <a href="palette.json">palette.json</a> and <a href="design/palette.css">palette.css</a>.</p>
+${manifest.motion ? `<h2>Motion</h2>
+<p class="muted">${manifest.exports ? `${manifest.exports.replicas} effects rebuilt as CSS, GSAP and Motion code${manifest.exports.fittedScore != null ? ` (fitted ones match ${Math.round(manifest.exports.fittedScore * 100)}%)` : ''} · ` : ''}${manifest.motion.animations} animations · ${manifest.motion.interactions} hover and focus effects · ${manifest.motion.scrollEffects} scroll effects · ${manifest.motion.pointerEffects} pointer effects · ${manifest.motion.toggles} menus and accordions</p>
+<div class="muted small">${manifest.files.filter((f) => /^page\/(intro|scroll-desktop|pointer)\.(mp4|webm)$/.test(f)).map((f) => `<a href="${f}">${f.split('/').pop()}</a>`).join(' · ')}</div>` : ''}
 <h2>Built with</h2>
 ${stack.length ? `<table>${stackRows}</table>` : '<p class="muted">Nothing detected.</p>'}
 ${errors}

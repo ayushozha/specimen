@@ -55,6 +55,14 @@ export function uniqueSelector(el: Element): string {
   return parts.join(' > ');
 }
 
+/** Page rects for selectors (null when missing). */
+export function pageRectsOf(selectors: string[]): (Rect | null)[] {
+  return selectors.map((s) => {
+    const el = document.querySelector(s);
+    return el ? pageRect(el) : null;
+  });
+}
+
 export function absoluteUrl(url: string, base = document.baseURI): string {
   try {
     return new URL(url, base).href;
