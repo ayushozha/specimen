@@ -9,7 +9,7 @@
   <img alt="Safari" src="https://img.shields.io/badge/Safari-macOS-0A0A0A?logo=safari&logoColor=white">
   <img alt="Figma plugin" src="https://img.shields.io/badge/Figma-plugin-0A0A0A?logo=figma&logoColor=white">
   <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-6-3178C6?logo=typescript&logoColor=white">
-  <img alt="Tests" src="https://img.shields.io/badge/tests-62%20passing-2ea44f">
+  <img alt="Tests" src="https://img.shields.io/badge/tests-69%20passing-2ea44f">
   <img alt="License" src="https://img.shields.io/badge/license-none%20yet-lightgrey">
 </p>
 
@@ -30,6 +30,7 @@
 - [Configuration](#configuration)
 - [Repository map](#repository-map)
 - [Testing](#testing)
+- [Real-site results](#real-site-results)
 - [Limits](#limits)
 - [Privacy and security](#privacy-and-security)
 - [License](#license)
@@ -209,10 +210,25 @@ pnpm test
 pnpm test:e2e
 ```
 
-- **Unit tests (38):** colour maths, median cut, motion maths, easing fits (named, bezier, spring), every exporter, generated-code safety, and the Figma importer against a recording stand-in for Figma's API.
-- **Browser tests (24):** the core in a real page; the full extension capturing the fixture; every export opened the way its tool would (SVG pixel-compared to the screenshot, PSD parsed, Lottie played in lottie-web, the After Effects script parsed); generated CSS replayed and compared to the original curve; the Firefox/Safari code path run inside Chromium; the CLI's batch capture, diff and HLS download; and a hostile page that tries to inject scripts, steal typed values, get user activation and escape file paths.
+- **Unit tests (39):** colour maths, median cut, motion maths, easing fits (named, bezier, spring), every exporter, generated-code safety, and the Figma importer against a recording stand-in for Figma's API.
+- **Browser tests (30):** the core in a real page; the full extension capturing the fixture; every export opened the way its tool would (SVG pixel-compared to the screenshot, PSD parsed, Lottie played in lottie-web, the After Effects script parsed); generated CSS replayed and compared to the original curve; the Firefox/Safari code path run inside Chromium; the CLI's batch capture, diff and HLS download; and a hostile page that tries to inject scripts, steal typed values, get user activation and escape file paths.
 
 Run `npx playwright install chromium` once. The Firefox build is checked with `npx web-ext lint --source-dir apps/extension/.output/firefox-mv3` (0 errors) and the Safari app with `xcodebuild`.
+
+## Real-site results
+
+Captured with the real extension through the CLI (`specimen capture`, headless Chromium, 1440px desktop) on 2026-11-19. "SVG match" is the share of pixels in each section's SVG export, opened from the bundle, that match the section's real screenshot.
+
+| Site | Time | Sections | Stack detected | Hover effects | Animations | SVG match (per section) |
+|---|---|---|---|---|---|---|
+| stripe.com | 198s | 12 | React, Next.js 14.2.32, Three.js 178 | 27 | 12 | 79–100%, 10 of 12 above 85% |
+| linear.app | 160s | 9 | React, Next.js, styled-components | 23 | 12 | 94–99% |
+| vercel.com | 79s | 6 | React, Next.js 16.5 canary, Tailwind | 20 | – | 86–99% |
+| framer.com | 114s | 4 | React, Framer | 12 | 3 | 86–99% |
+| gsap.com | 84s | 8 | GSAP 3.15 + ScrollTrigger (200 tweens read) | 15 | – | 49–99%, 7 of 8 above 90% |
+| tailwindcss.com | 95s | 7 | React, Next.js 16.2, Tailwind | 12 | 1 | 44–99%, 5 of 7 above 80% |
+
+The lowest scores are sections whose content animates on its own (a notification ticker, a code editor that types): the screenshot and the editable layers are read a moment apart. Real-site runs found and fixed these bugs: colour values that crashed the parser (apple.com), scroll-driven animations that crashed frame stepping (stripe.com), lazy content moving sections after measurement, hundreds of unused fonts copied into exports (framer.com), section names losing spaces at line breaks, oversized wrapper blocks (tailwindcss.com), and poorly fitted effects written as code (now left out below an 80% match).
 
 ## Limits
 

@@ -170,15 +170,11 @@ export function layoutTree(selector: string, maxNodes = 1500): LayoutTree {
   if (!tree) throw new Error(`${selector} is not rendered`);
   tree.x = 0;
   tree.y = 0;
-  // A transparent section shows what its ancestors paint: take their colour, or their pixels.
+  // A transparent section shows its ancestors' background colour. (Not their pixels: a whole-section
+  // pixel layer would sit under every editable text and double it.)
   if (!tree.fill && !tree.gradient && !tree.raster) {
     for (let a = root.parentElement; a; a = a.parentElement) {
-      const s = getComputedStyle(a);
-      if (s.backgroundImage !== 'none') {
-        tree.raster = true;
-        break;
-      }
-      const c = colorOrNull(s.backgroundColor);
+      const c = colorOrNull(getComputedStyle(a).backgroundColor);
       if (c) {
         tree.fill = c;
         break;

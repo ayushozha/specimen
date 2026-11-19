@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { evaluateBezier, type Sample } from '@specimen/core';
-import { fitEasing, replicate, replicaFiles, springAt, toAfterEffectsScript, type ProgressSample } from '../src';
+import { fitEasing, isTrustworthy, replicate, replicaFiles, springAt, toAfterEffectsScript, type ProgressSample } from '../src';
 
 const curve = (f: (u: number) => number, n = 30): ProgressSample[] => Array.from({ length: n + 1 }, (_, i) => [i / n, f(i / n)]);
 
@@ -96,5 +96,16 @@ describe('generated code from hostile pages', () => {
     const script = toAfterEffectsScript([{ name: 'a\u2028b\u2029c', width: 1, height: 1, background: null, layers: [] }]);
     expect(script).toContain('"a\\u2028b\\u2029c"');
     expect(script).not.toMatch(/[\u2028\u2029]/);
+  });
+});
+
+describe('poor fits', () => {
+  it('are kept with their score but not written as code', () => {
+    // A value that jumps around with scroll: no straight line describes it.
+    const samples: [number, number, string][] = Array.from({ length: 20 }, (_, i) => [i * 100, i * 300, String(i % 2)]);
+    const reps = replicate({ animations: [], interactions: [], tracks: [{ selector: '#p', prop: 'opacity', kind: 'scroll-linked', samples }] });
+    expect(reps[0].score).toBeLessThan(0.8);
+    expect(isTrustworthy(reps[0])).toBe(false);
+    expect(replicaFiles(reps).css).not.toContain('#p');
   });
 });

@@ -10,6 +10,12 @@ export interface ReplicateInput {
   gsap?: { targets: string[]; vars: Record<string, unknown>; duration: number | null; delay: number | null; repeat: number | null; yoyo: boolean | null; scrollTrigger: boolean }[];
 }
 
+/**
+ * Fitted effects below this match are not turned into code: the recording (video) is the reference
+ * for them. They stay listed, with their score, in replication.json.
+ */
+export const MIN_FIT_SCORE = 0.8;
+
 export type ReplicaTrigger = 'loop' | 'load' | 'hover' | 'scroll-reveal' | 'scroll-linked';
 
 export interface Replica {
@@ -365,8 +371,14 @@ export function motionFor(r: Replica): string {
   return '';
 }
 
-/** One file per target for a section's replicas. */
-export function replicaFiles(replicas: Replica[]): { css: string; gsap: string; motion: string } {
+/** Whether a replica's code reproduces the original well enough to ship. */
+export function isTrustworthy(r: Replica): boolean {
+  return r.source !== 'fitted' || r.score >= MIN_FIT_SCORE;
+}
+
+/** One file per target for a section's replicas (effects that fit poorly are left out). */
+export function replicaFiles(all: Replica[]): { css: string; gsap: string; motion: string } {
+  const replicas = all.filter(isTrustworthy);
   const gsap = replicas.map((r) => r.gsap).filter(Boolean);
   const motion = replicas.map((r) => r.motion).filter(Boolean);
   return {

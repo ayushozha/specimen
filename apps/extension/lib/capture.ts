@@ -182,8 +182,11 @@ export async function capture(
         if (bpIndex === 0) desktopTiles = tiles;
       });
 
-      for (const section of measured) {
-        await step(`${section.name} at ${bp.name}`, async () => {
+      for (const planned of measured) {
+        await step(`${planned.name} at ${bp.name}`, async () => {
+          // Measured again right before the shot: lazy content above can move a section after the
+          // first measurement (stripe.com's moved ~1,160px).
+          const [section] = await adapter.call('measureSections', [planned]);
           const visible = section.rect.width > 0 && section.rect.height > 0;
           rects[section.id][bp.name] = visible ? section.rect : null;
           if (!visible) return;

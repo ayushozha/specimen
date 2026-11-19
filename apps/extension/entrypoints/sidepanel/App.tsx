@@ -562,6 +562,7 @@ function MotionView({ result, sections }: { result: CaptureResult | null; sectio
       {rebuilt?.fittedScore != null && (
         <p className="muted small">
           Effects fitted from recorded motion match the original at {Math.round(rebuilt.fittedScore * 100)}% on average. Code is in exports/code as CSS, GSAP and Motion.
+          {rebuilt.leftOut ? ` ${rebuilt.leftOut} effects matched below 80% and are only in the recordings.` : ''}
         </p>
       )}
       {libs.length > 0 && (
