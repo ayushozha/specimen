@@ -24,6 +24,12 @@ export interface LayoutNode {
   /** Image URL (img, video poster, CSS background) or a data URL (canvas). */
   image: string | null;
   imageFit: 'cover' | 'contain' | 'fill' | 'none';
+  /**
+   * Paint that design tools can't express as vectors (canvas/WebGL, video, radial or layered
+   * gradients, filters, masks, blend modes, painted pseudo-elements). Exporters use the exact
+   * pixels from the section screenshot for this box, behind its editable children.
+   */
+  raster: boolean;
   /** Sanitised SVG markup. */
   svg: string | null;
   text: TextInfo | null;
@@ -101,6 +107,7 @@ export function layoutTree(selector: string, maxNodes = 1500): LayoutTree {
       clips: style.overflow !== 'visible' || style.overflowX !== 'visible',
       image: null,
       imageFit: 'fill',
+      raster: needsRaster(el, style),
       svg: null,
       text: null,
       layout: layoutOf(style),
@@ -116,17 +123,20 @@ export function layoutTree(selector: string, maxNodes = 1500): LayoutTree {
       node.type = 'image';
       node.imageFit = (style.objectFit as LayoutNode['imageFit']) || 'fill';
       if (el instanceof HTMLCanvasElement) {
-        try {
-          node.image = el.toDataURL('image/png');
-        } catch {
-          node.image = null;
-        }
-      } else node.image = el instanceof HTMLImageElement ? el.currentSrc || el.src : el.poster || null;
+        // WebGL canvases read back blank and 2D ones may be tainted: the screenshot has the real pixels.
+        node.image = null;
+        node.raster = true;
+      } else if (el instanceof HTMLVideoElement) {
+        // The frame on screen, not the poster (which may be missing or different).
+        node.image = null;
+        node.raster = true;
+      } else node.image = el.currentSrc || el.src;
       if (node.image && !node.image.startsWith('data:')) images.add(node.image);
       return node;
     }
     const bgUrl = style.backgroundImage.match(/url\(\s*['"]?([^'")]+)['"]?\s*\)/);
-    if (bgUrl) {
+    // url(#id) points into an inline SVG, not at an image file.
+    if (bgUrl && !bgUrl[1].startsWith('#')) {
       node.image = absoluteUrl(bgUrl[1]);
       node.imageFit = style.backgroundSize === 'contain' ? 'contain' : 'cover';
       images.add(node.image);
@@ -160,6 +170,17 @@ export function layoutTree(selector: string, maxNodes = 1500): LayoutTree {
   if (!tree) throw new Error(`${selector} is not rendered`);
   tree.x = 0;
   tree.y = 0;
+  // A transparent section shows its ancestors' background colour. (Not their pixels: a whole-section
+  // pixel layer would sit under every editable text and double it.)
+  if (!tree.fill && !tree.gradient && !tree.raster) {
+    for (let a = root.parentElement; a; a = a.parentElement) {
+      const c = colorOrNull(getComputedStyle(a).backgroundColor);
+      if (c) {
+        tree.fill = c;
+        break;
+      }
+    }
+  }
   return {
     width: tree.width,
     height: tree.height,
@@ -168,6 +189,22 @@ export function layoutTree(selector: string, maxNodes = 1500): LayoutTree {
     fonts: [...fonts.values()],
     images: [...images],
   };
+}
+
+const SIMPLE_GRADIENT = /^linear-gradient\((?:[^()]|\([^()]*\))*\)$/;
+
+/** Whether an element paints something only its pixels can reproduce. */
+function needsRaster(el: Element, style: CSSStyleDeclaration): boolean {
+  const image = style.backgroundImage;
+  if (image !== 'none' && !SIMPLE_GRADIENT.test(image) && !/^url\([^)]*\)$/.test(image)) return true;
+  if (style.filter !== 'none' || style.backdropFilter !== 'none' || style.mixBlendMode !== 'normal') return true;
+  if ((style.maskImage && style.maskImage !== 'none') || (style.clipPath && style.clipPath !== 'none')) return true;
+  for (const pseudo of ['::before', '::after']) {
+    const p = getComputedStyle(el, pseudo);
+    if (p.content === 'none' || p.content === 'normal') continue;
+    if (p.backgroundImage !== 'none' || (colorOrNull(p.backgroundColor) && parseFloat(p.width) > 0)) return true;
+  }
+  return false;
 }
 
 function textNode(text: Text, style: CSSStyleDeclaration, rel: (r: DOMRect) => Rect): LayoutNode | null {
@@ -192,6 +229,7 @@ function textNode(text: Text, style: CSSStyleDeclaration, rel: (r: DOMRect) => R
     clips: false,
     image: null,
     imageFit: 'fill',
+    raster: false,
     svg: null,
     layout: null,
     text: {

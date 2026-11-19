@@ -144,3 +144,61 @@ test.describe('hostile page', () => {
     for (const svg of svgs) expect(svg.replace(/[\u0000-\u0020]/g, '')).not.toMatch(/javascript:|<script/i);
   });
 });
+
+test('the text role is readable on the page background, even when a dark nav has more light text', async ({ page }) => {
+  await page.setContent(`<body style="margin:0;background:#fff;color:#1d1d1f;font:16px sans-serif">
+    <nav style="background:#000;color:#f5f5f7;height:200px">${'<a style="color:#f5f5f7">Link</a> '.repeat(30)}</nav>
+    <main style="height:2000px"><p>Body copy</p><p>More body copy</p></main></body>`);
+  await page.addScriptTag({ path: CORE_SCRIPT });
+  const palette = await page.evaluate(() => window.__specimenCore.extractPalette());
+  expect(palette.colors.find((c) => c.roles.includes('text'))?.hex).toBe('#1d1d1f');
+});
+
+test('names keep line-break spaces, and positioned layers belong to the section under them', async ({ page }) => {
+  await page.setViewportSize({ width: 1200, height: 800 });
+  await page.setContent(`<body style="margin:0">
+    <section id="a" style="height:600px"><h2>Intake<br>and integrations</h2></section>
+    <section id="b" style="height:600px"><h2>Second</h2></section>
+    <div id="layer" style="position:absolute;top:700px;left:0;width:100px;height:50px;animation:x 1s infinite"></div>
+    <div id="bg" style="width:10px;height:10px;background-image:url(#gradient)"></div></body>`);
+  await page.addScriptTag({ path: CORE_SCRIPT });
+  const sections = await page.evaluate(() => window.__specimenCore.detectSections());
+  expect(sections[0].name).toBe('Intake and integrations');
+  expect(await page.evaluate((s) => window.__specimenCore.sectionsContaining(['#layer'], s), sections)).toEqual([sections[1].id]);
+  const tree = await page.evaluate(() => window.__specimenCore.layoutTree('body'));
+  expect(tree.images).toEqual([]);
+});
+
+test('scroll-driven animations are reported but never seeked in milliseconds', async ({ page }) => {
+  await page.setContent(`<style>@keyframes grow { to { transform: scale(2); } }
+    #s { width: 50px; height: 50px; animation: grow linear both; animation-timeline: scroll(root); }
+    #t { width: 50px; height: 50px; animation: grow 1s infinite; }</style><div style="height:3000px"><div id="s"></div><div id="t"></div></div>`);
+  await page.addScriptTag({ path: CORE_SCRIPT });
+  const result = await page.evaluate(async () => {
+    const c = window.__specimenCore;
+    const anims = c.collectAnimations(null);
+    c.pauseAllAnimations();
+    await c.seekAnimations(anims.map((a) => a.id), 500);
+    c.resumeAllAnimations();
+    return anims.map((a) => ({ target: a.target, timeline: a.timeline, duration: a.duration }));
+  });
+  expect(result).toEqual(expect.arrayContaining([{ target: '#s', timeline: 'scroll', duration: 0 }, { target: '#t', timeline: 'document', duration: 1000 }]));
+});
+
+test('tall wrapper blocks are split into their sections', async ({ page }) => {
+  await page.setViewportSize({ width: 1200, height: 800 });
+  await page.setContent(`<body style="margin:0"><div id="app"><div class="wrap">${['One', 'Two', 'Three', 'Four'].map((n) => `<div style="height:900px"><h2>${n}</h2></div>`).join('')}</div><div style="height:400px"><h2>Footer-ish</h2></div></div></body>`);
+  await page.addScriptTag({ path: CORE_SCRIPT });
+  const names = await page.evaluate(() => window.__specimenCore.detectSections().map((s) => s.name));
+  expect(names).toEqual(['One', 'Two', 'Three', 'Four', 'Footer-ish']);
+});
+
+test('section HTML only carries the fonts the section uses', async ({ page }) => {
+  const faces = Array.from({ length: 50 }, (_, i) => `@font-face { font-family: "Unused ${i}"; src: url(https://fonts.example/u${i}.woff2); }`).join('\n');
+  await page.setContent(`<style>${faces} @font-face { font-family: "Brand Sans"; src: url(https://fonts.example/brand.woff2); }</style>
+    <section id="s" style="font-family: 'Brand Sans', sans-serif"><h2>Hello</h2></section>`);
+  await page.addScriptTag({ path: CORE_SCRIPT });
+  const { html } = await page.evaluate(() => window.__specimenCore.serializeElement('#s'));
+  expect(html.match(/@font-face/g)).toHaveLength(1);
+  expect(html).toContain('brand.woff2');
+});

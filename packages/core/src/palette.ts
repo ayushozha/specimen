@@ -311,11 +311,13 @@ function assignRoles(colors: PaletteColor[]) {
   const background = byArea[0];
   tag(background, 'background');
   tag(byArea.find((c) => c !== background && c.group !== background?.group), 'surface');
-  tag(byText[0], 'text');
-  // Muted text: the most used text colour with less contrast than the main text, but still readable.
   const bgRgba = background ? parseColor(background.hex)!.rgba : WHITE;
   const contrastOnBg = (c: PaletteColor) => contrastRatio(parseColor(c.hex)!.rgba, bgRgba);
-  const main = byText[0];
+  // Main text: the most used text colour that is readable on the page background (light text in a
+  // dark navigation bar is common but isn't the page's text colour).
+  const main = byText.find((c) => contrastOnBg(c) >= 4.5) ?? byText[0];
+  tag(main, 'text');
+  // Muted text: the most used text colour with less contrast than the main text, but still readable.
   tag(
     main && byText.find((c) => c !== main && c.group !== main.group && contrastOnBg(c) >= 3 && contrastOnBg(c) < contrastOnBg(main)),
     'text-muted',

@@ -1,6 +1,7 @@
 import { GENERATED_HTML_CSP, cubicBezierOf, type LayoutTree, type Palette, type Rect, type Section } from '@specimen/core';
 import {
   namedColors,
+  isTrustworthy,
   replicaFiles,
   replicate,
   type Replica,
@@ -28,6 +29,8 @@ export interface ExportContext {
   trees: Map<string, LayoutTree>;
   shots: Map<string, Uint8Array>;
   rects: Map<string, Rect>;
+  /** Each section's @font-face rules with bundled font paths (relative to sections/<id>/). */
+  fontCss: Map<string, string>;
   motion: Record<string, SectionMotion> | null;
   palette: Palette;
   /** Page asset URL → bundle path. */
@@ -43,7 +46,10 @@ const json = (v: unknown) => strToU8(JSON.stringify(v, null, 2));
 
 /** Phase 3: Figma, Paper/SVG, Illustrator, Photoshop, After Effects, Lottie and token exports under `exports/`. */
 export interface ExportSummary {
+  /** Effects written as code. */
   replicas: number;
+  /** Fitted effects that matched too poorly to write as code (kept in replication.json with scores). */
+  leftOut: number;
   /** Average match of effects fitted from recorded motion (read-from-page effects are exact). */
   fittedScore: number | null;
 }
@@ -56,7 +62,7 @@ export async function buildExports(ctx: ExportContext): Promise<ExportSummary> {
 
   const figma: FigmaDocument = { format: 'specimen-figma', version: 1, source: ctx.source, colors, sections: [], assets: {} };
   const aeComps: AeComp[] = [];
-  const replication: { section: string; replicas: Omit<Replica, 'css' | 'gsap' | 'motion'>[] }[] = [];
+  const replication: { section: string; replicas: (Omit<Replica, 'css' | 'gsap' | 'motion'> & { inCode: boolean })[] }[] = [];
 
   for (const section of ctx.sections) {
     const tree = ctx.trees.get(section.id);
@@ -73,7 +79,12 @@ export async function buildExports(ctx: ExportContext): Promise<ExportSummary> {
 
     // Images point at the bundled copy when there is one, else at the live URL.
     const href = (prefix: string) => (url: string) => (ctx.assets.has(url) ? prefix + ctx.assets.get(url) : /^https?:/.test(url) ? url : null);
-    await attempt('SVG', () => ctx.put(`exports/svg/${section.id}.svg`, strToU8(toSvg(tree, href('../../')))));
+    await attempt('SVG', () =>
+      ctx.put(
+        `exports/svg/${section.id}.svg`,
+        strToU8(toSvg(tree, href('../../'), { screenshot: `../../sections/${section.id}/desktop.png`, fontCss: ctx.fontCss.get(section.id) })),
+      ),
+    );
     await attempt('Photoshop file', async () => ctx.put(`exports/psd/${section.id}.psd`, await toPsd(tree, shot, ctx.scale)));
 
     const relative = (r: Rect): Rect => ({ x: r.x - rect.x, y: r.y - rect.y, width: r.width, height: r.height });
@@ -128,20 +139,25 @@ export async function buildExports(ctx: ExportContext): Promise<ExportSummary> {
         if (code.motion) ctx.put(`exports/code/${section.id}.motion.tsx`, strToU8(code.motion));
         const previews: { replica: Replica; image: string }[] = [];
         for (const r of replicas) {
-          if (!r.rect || !r.spec) continue;
+          if (!r.rect || !r.spec || !isTrustworthy(r)) continue;
           const image = `exports/crops/${section.id}/${r.id}.png`;
           ctx.put(image, await cropPng(shot, relative(r.rect), ctx.scale), false);
           previews.push({ replica: r, image: `../crops/${section.id}/${r.id}.png` });
         }
         if (previews.length) ctx.put(`exports/code/${section.id}.preview.html`, strToU8(previewPage(section.name, previews)));
-        replication.push({ section: section.id, replicas: replicas.map(({ css: _c, gsap: _g, motion: _m, ...rest }) => rest) });
+        replication.push({ section: section.id, replicas: replicas.map(({ css: _c, gsap: _g, motion: _m, ...rest }) => ({ ...rest, inCode: isTrustworthy(rest as Replica) })) });
       });
     }
   }
   if (replication.length) ctx.put('exports/code/replication.json', json(replication));
   const all = replication.flatMap((s) => s.replicas);
-  const fitted = all.filter((r) => r.source === 'fitted');
-  const summary: ExportSummary = { replicas: all.length, fittedScore: fitted.length ? fitted.reduce((s, r) => s + r.score, 0) / fitted.length : null };
+  const used = all.filter((r) => r.inCode);
+  const fitted = used.filter((r) => r.source === 'fitted');
+  const summary: ExportSummary = {
+    replicas: used.length,
+    leftOut: all.length - used.length,
+    fittedScore: fitted.length ? fitted.reduce((s, r) => s + r.score, 0) / fitted.length : null,
+  };
 
   ctx.put('exports/figma.json', json(figma));
   if (aeComps.length) ctx.put('exports/after-effects/specimen.jsx', strToU8(toAfterEffectsScript(aeComps)));

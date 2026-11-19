@@ -123,6 +123,7 @@ export async function capture(
   const shots = new Map<string, Uint8Array>();
   const desktopRects = new Map<string, Rect>();
   const assetPaths = new Map<string, string>();
+  const fontCss = new Map<string, string>();
   let motionDetails: Record<string, SectionMotion> | null = null;
   let exportSummary: ExportSummary | null = null;
   const actualWidths: Record<string, number> = {};
@@ -157,6 +158,7 @@ export async function capture(
         put,
         step,
         addSectionFile: (id, path) => sectionFiles[id]?.push(path),
+        note: (stepName, message) => errors.push({ step: stepName, message }),
       }));
     }
 
@@ -180,8 +182,11 @@ export async function capture(
         if (bpIndex === 0) desktopTiles = tiles;
       });
 
-      for (const section of measured) {
-        await step(`${section.name} at ${bp.name}`, async () => {
+      for (const planned of measured) {
+        await step(`${planned.name} at ${bp.name}`, async () => {
+          // Measured again right before the shot: lazy content above can move a section after the
+          // first measurement (stripe.com's moved ~1,160px).
+          const [section] = await adapter.call('measureSections', [planned]);
           const visible = section.rect.width > 0 && section.rect.height > 0;
           rects[section.id][bp.name] = visible ? section.rect : null;
           if (!visible) return;
@@ -248,7 +253,10 @@ export async function capture(
       }
       for (const [id, html] of sectionHtml) {
         const path = `sections/${id}/${id}.html`;
-        put(path, strToU8(rewriteUrls(html, assetPaths, '../../')));
+        const final = rewriteUrls(html, assetPaths, '../../');
+        put(path, strToU8(final));
+        // The same fonts make the SVG export render in the page's typefaces (same folder depth).
+        fontCss.set(id, (final.match(/@font-face\s*\{[^}]*\}/g) ?? []).join('\n'));
         sectionFiles[id].push(path);
       }
     });
@@ -259,6 +267,7 @@ export async function capture(
         trees,
         shots,
         rects: desktopRects,
+        fontCss,
         motion: motionDetails,
         palette: analysis.palette,
         assets: assetPaths,

@@ -158,10 +158,10 @@ export class ChromiumAdapter implements PageAdapter {
     return bp.width;
   }
 
-  async screenshot(clip: Rect): Promise<Uint8Array> {
+  async screenshot(clip: Rect, options: { visible?: boolean } = {}): Promise<Uint8Array> {
     const { data } = await this.send<{ data: string }>('Page.captureScreenshot', {
       format: 'png',
-      captureBeyondViewport: true,
+      captureBeyondViewport: !options.visible,
       fromSurface: true,
       clip: { ...clip, scale: 1 },
     });

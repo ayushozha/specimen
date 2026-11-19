@@ -21,7 +21,14 @@ function roundedRect(n: LayoutNode, x: number, y: number): string {
  * by line. Opens in Illustrator, Figma (paste or import), Sketch and browsers.
  * `href` maps an image URL to the path or data URL to embed (null drops the image).
  */
-export function toSvg(tree: LayoutTree, href: (url: string) => string | null): string {
+export interface SvgOptions {
+  /** Section screenshot href: exact pixels for boxes marked `raster`. */
+  screenshot?: string;
+  /** @font-face rules (with resolvable font URLs) so text renders in the page's own fonts. */
+  fontCss?: string;
+}
+
+export function toSvg(tree: LayoutTree, href: (url: string) => string | null, options: SvgOptions = {}): string {
   const defs: string[] = [];
   let id = 0;
   const body: string[] = [];
@@ -32,7 +39,12 @@ export function toSvg(tree: LayoutTree, href: (url: string) => string | null): s
     const parts: string[] = [];
     const shape = roundedRect(n, x, y);
 
-    if (n.shadows.length) {
+    if (n.raster && options.screenshot) {
+      // The screenshot's pixels for this box (a nested viewport onto the section image).
+      parts.push(
+        `<svg x="${x}" y="${y}" width="${n.width}" height="${n.height}" viewBox="${x} ${y} ${n.width} ${n.height}" overflow="hidden"><image href="${esc(options.screenshot)}" width="${tree.width}" height="${tree.height}"/></svg>`,
+      );
+    } else if (n.shadows.length) {
       const fid = `s${id++}`;
       defs.push(
         `<filter id="${fid}" x="-50%" y="-50%" width="200%" height="200%">${n.shadows
@@ -42,7 +54,9 @@ export function toSvg(tree: LayoutTree, href: (url: string) => string | null): s
       );
       if (n.fill || n.gradient) parts.push(`${shape} ${n.fill ? paint(n.fill) : 'fill="#000"'} filter="url(#${fid})"/>`);
     }
-    if (n.gradient) {
+    if (n.raster && options.screenshot) {
+      // Painted above.
+    } else if (n.gradient) {
       const gid = `g${id++}`;
       const a = ((n.gradient.angle - 90) * Math.PI) / 180;
       const [x1, y1, x2, y2] = [0.5 - Math.cos(a) / 2, 0.5 - Math.sin(a) / 2, 0.5 + Math.cos(a) / 2, 0.5 + Math.sin(a) / 2].map(round);
@@ -51,7 +65,7 @@ export function toSvg(tree: LayoutTree, href: (url: string) => string | null): s
       parts.push(`${shape} fill="url(#${gid})"/>`);
     } else if (n.fill) parts.push(`${shape} ${paint(n.fill)}/>`);
 
-    if (n.image) {
+    if (n.image && !(n.raster && options.screenshot)) {
       const src = href(n.image);
       if (src) {
         const fit = n.imageFit === 'cover' ? 'xMidYMid slice' : n.imageFit === 'contain' ? 'xMidYMid meet' : 'none';
@@ -71,7 +85,7 @@ export function toSvg(tree: LayoutTree, href: (url: string) => string | null): s
         `<text font-family="${esc(t.fontFamily)}" font-size="${t.fontSize}" font-weight="${t.fontWeight}"${t.italic ? ' font-style="italic"' : ''}${t.letterSpacing ? ` letter-spacing="${t.letterSpacing}"` : ''} ${paint(t.color)}${t.decoration.includes('underline') ? ' text-decoration="underline"' : ''}>${lines}</text>`,
       );
     }
-    if (n.border) parts.push(`${roundedRect({ ...n, width: n.width - n.border.width, height: n.height - n.border.width }, x + n.border.width / 2, y + n.border.width / 2)} fill="none" ${paint(n.border.color, 'stroke')} stroke-width="${n.border.width}"/>`);
+    if (n.border && !(n.raster && options.screenshot)) parts.push(`${roundedRect({ ...n, width: n.width - n.border.width, height: n.height - n.border.width }, x + n.border.width / 2, y + n.border.width / 2)} fill="none" ${paint(n.border.color, 'stroke')} stroke-width="${n.border.width}"/>`);
 
     let children = n.children.map((c) => draw(c, ox, oy)).join('');
     if (n.clips && children) {
@@ -86,7 +100,7 @@ export function toSvg(tree: LayoutTree, href: (url: string) => string | null): s
 
   body.push(draw(tree.root, 0, 0));
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${tree.width}" height="${tree.height}" viewBox="0 0 ${tree.width} ${tree.height}">
-<defs>${defs.join('')}</defs>
+<defs>${options.fontCss ? `<style><![CDATA[${options.fontCss.replace(/]]>/g, ']]]]><![CDATA[>')}]]></style>` : ''}${defs.join('')}</defs>
 <rect width="${tree.width}" height="${tree.height}" ${paint(tree.background)}/>
 ${body.join('')}
 </svg>

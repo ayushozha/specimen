@@ -3,7 +3,7 @@ import { evaluateBezier, type AnimationInfo, type LayoutTree, type Palette } fro
 import { namedColors, specFromAnimation, specFromInteraction, toAfterEffectsScript, toAse, toDesignTokens, toLottie, toSvg, toTailwindTheme, valueAt } from '../src';
 
 const pulse: AnimationInfo = {
-  id: 'a1', kind: 'css-animation', name: 'pulse', target: '.pulse', pseudo: null,
+  id: 'a1', kind: 'css-animation', timeline: 'document', name: 'pulse', target: '.pulse', pseudo: null,
   keyframes: [
     { offset: 0, computedOffset: 0, easing: 'ease-in-out', opacity: '1', transform: 'scale(1)' },
     { offset: 0.5, computedOffset: 0.5, easing: 'ease-in-out', opacity: '0.4', transform: 'scale(1.4)' },
@@ -99,11 +99,11 @@ describe('SVG', () => {
     width: 200, height: 100, background: '#ffffff', fonts: [], images: ['https://x/a.png'],
     root: {
       type: 'frame', name: 'section', x: 0, y: 0, width: 200, height: 100, opacity: 1, fill: '#f5f5f4', gradient: null,
-      radius: [8, 8, 8, 8], border: { width: 1, color: '#e5e7eb' }, shadows: [], clips: true, image: null, imageFit: 'fill', svg: null, text: null, layout: null,
+      radius: [8, 8, 8, 8], border: { width: 1, color: '#e5e7eb' }, shadows: [], clips: true, image: null, imageFit: 'fill', raster: false, svg: null, text: null, layout: null,
       children: [
-        { type: 'image', name: 'img', x: 10, y: 10, width: 50, height: 50, opacity: 1, fill: null, gradient: null, radius: [0, 0, 0, 0], border: null, shadows: [], clips: false, image: 'https://x/a.png', imageFit: 'cover', svg: null, text: null, layout: null, children: [] },
+        { type: 'image', name: 'img', x: 10, y: 10, width: 50, height: 50, opacity: 1, fill: null, gradient: null, radius: [0, 0, 0, 0], border: null, shadows: [], clips: false, image: 'https://x/a.png', imageFit: 'cover', raster: false, svg: null, text: null, layout: null, children: [] },
         {
-          type: 'text', name: 'Hi', x: 70, y: 10, width: 60, height: 20, opacity: 1, fill: null, gradient: null, radius: [0, 0, 0, 0], border: null, shadows: [], clips: false, image: null, imageFit: 'fill', svg: null, layout: null, children: [],
+          type: 'text', name: 'Hi', x: 70, y: 10, width: 60, height: 20, opacity: 1, fill: null, gradient: null, radius: [0, 0, 0, 0], border: null, shadows: [], clips: false, image: null, imageFit: 'fill', raster: false, svg: null, layout: null, children: [],
           text: { content: 'Hi & bye', lines: [{ text: 'Hi & bye', x: 70, y: 10, width: 60, height: 20 }], fontFamily: 'Inter', fontSize: 16, fontWeight: 600, italic: false, lineHeight: 20, letterSpacing: 0, color: '#111827', align: 'left', transform: 'none', decoration: 'none' },
         },
       ],

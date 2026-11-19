@@ -31,7 +31,13 @@ export function findColorTokens(value: string): string[] {
 
 /** Parses any CSS colour and maps it into the sRGB gamut. Returns null for non-colours. */
 export function parseColor(value: string): { rgba: Rgba; mode: string } | null {
-  const parsed = parse(value.trim());
+  let parsed: Color | undefined;
+  try {
+    parsed = parse(value.trim());
+  } catch {
+    // culori throws on CSS functions it doesn't know (blur(), inset(), min-width()): not colours.
+    return null;
+  }
   if (!parsed) return null;
   const mapped = toRgb(gamutMap(parsed));
   return {

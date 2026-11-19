@@ -19,6 +19,10 @@ describe('parseColor', () => {
   it('returns null for non-colours', () => {
     expect(parseColor('auto')).toBeNull();
     expect(parseColor('')).toBeNull();
+    // Real values from apple.com that made the colour library throw.
+    expect(parseColor('blur(20px)')).toBeNull();
+    expect(parseColor('inset(0px 0px 99.9% 99.9%)')).toBeNull();
+    expect(parseColor('min-width(1024px)')).toBeNull();
   });
 });
 
