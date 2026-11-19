@@ -71,8 +71,10 @@ export function sectionsContaining(selectors: (string | null)[], sections: Secti
     if (!el) return null;
     const hit = roots.find((r) => r.el && (r.el === el || r.el.contains(el)));
     if (hit) return hit.id;
-    const y = pageRect(el).y;
-    return roots.find((r) => !r.el && y >= r.rect.y && y < r.rect.y + r.rect.height)?.id ?? null;
+    // Not inside any section's markup (positioned layers, portals): the section it sits over.
+    const box = pageRect(el);
+    const middle = box.y + box.height / 2;
+    return roots.map((r) => ({ ...r, rect: r.el ? pageRect(r.el) : r.rect })).find((r) => middle >= r.rect.y && middle < r.rect.y + r.rect.height)?.id ?? null;
   });
 }
 
@@ -85,7 +87,9 @@ export function sectionName(el: Element): string {
   const label = el.getAttribute('aria-label') ?? el.getAttribute('data-framer-name') ?? el.getAttribute('data-section');
   if (label?.trim()) return clean(label);
   const heading = el.querySelector('h1, h2, h3, h4');
-  if (heading?.textContent?.trim()) return clean(heading.textContent);
+  // innerText keeps line breaks as spaces ("Intake<br>and integrations" → "Intake and integrations").
+  const headingText = heading ? ((heading as HTMLElement).innerText || heading.textContent || '') : '';
+  if (headingText.trim()) return clean(headingText);
   if (el.id) return clean(el.id.replace(/[-_]+/g, ' '));
   const tag = el.tagName.toLowerCase();
   return tag === 'header' ? 'Header' : tag === 'footer' ? 'Footer' : tag === 'nav' ? 'Navigation' : 'Section';

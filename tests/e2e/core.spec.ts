@@ -153,3 +153,18 @@ test('the text role is readable on the page background, even when a dark nav has
   const palette = await page.evaluate(() => window.__specimenCore.extractPalette());
   expect(palette.colors.find((c) => c.roles.includes('text'))?.hex).toBe('#1d1d1f');
 });
+
+test('names keep line-break spaces, and positioned layers belong to the section under them', async ({ page }) => {
+  await page.setViewportSize({ width: 1200, height: 800 });
+  await page.setContent(`<body style="margin:0">
+    <section id="a" style="height:600px"><h2>Intake<br>and integrations</h2></section>
+    <section id="b" style="height:600px"><h2>Second</h2></section>
+    <div id="layer" style="position:absolute;top:700px;left:0;width:100px;height:50px;animation:x 1s infinite"></div>
+    <div id="bg" style="width:10px;height:10px;background-image:url(#gradient)"></div></body>`);
+  await page.addScriptTag({ path: CORE_SCRIPT });
+  const sections = await page.evaluate(() => window.__specimenCore.detectSections());
+  expect(sections[0].name).toBe('Intake and integrations');
+  expect(await page.evaluate((s) => window.__specimenCore.sectionsContaining(['#layer'], s), sections)).toEqual([sections[1].id]);
+  const tree = await page.evaluate(() => window.__specimenCore.layoutTree('body'));
+  expect(tree.images).toEqual([]);
+});

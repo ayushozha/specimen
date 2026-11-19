@@ -126,7 +126,8 @@ export function layoutTree(selector: string, maxNodes = 1500): LayoutTree {
       return node;
     }
     const bgUrl = style.backgroundImage.match(/url\(\s*['"]?([^'")]+)['"]?\s*\)/);
-    if (bgUrl) {
+    // url(#id) points into an inline SVG, not at an image file.
+    if (bgUrl && !bgUrl[1].startsWith('#')) {
       node.image = absoluteUrl(bgUrl[1]);
       node.imageFit = style.backgroundSize === 'contain' ? 'contain' : 'cover';
       images.add(node.image);
