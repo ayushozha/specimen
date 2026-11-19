@@ -1,0 +1,20 @@
+import { test } from '@playwright/test';
+import { launchWithExtension } from './helpers';
+test('apple panel ui', async () => {
+  test.setTimeout(120_000);
+  const { context, extensionId } = await launchWithExtension();
+  const site = context.pages()[0];
+  await site.goto('https://www.apple.com/', { waitUntil: 'load' });
+  const [tab] = await context.serviceWorkers()[0].evaluate(() => chrome.tabs.query({}));
+  const panel = await context.newPage();
+  await panel.setViewportSize({ width: 380, height: 860 });
+  await panel.goto(`chrome-extension://${extensionId}/sidepanel.html?tabId=${tab.id}`);
+  await panel.waitForFunction(() => document.querySelector('.primary') && !document.querySelector('.primary')?.hasAttribute('disabled'), null, { timeout: 60000 });
+  await panel.bringToFront();
+  console.log('UI shot1'); await panel.screenshot({ path: '/private/tmp/claude-501/-Users-ayush--claude-spares-spare-sGqYkR/cdbe934d-ac5d-4ad4-b7c8-16b2e19cd8df/scratchpad/real/apple-sections.png', timeout: 15000 });
+  await panel.getByRole('tab', { name: 'Palette' }).click();
+  console.log('UI shot2'); await panel.screenshot({ path: '/private/tmp/claude-501/-Users-ayush--claude-spares-spare-sGqYkR/cdbe934d-ac5d-4ad4-b7c8-16b2e19cd8df/scratchpad/real/apple-palette.png', timeout: 15000 });
+  await panel.getByRole('tab', { name: 'Stack' }).click();
+  console.log('UI shot3'); await panel.screenshot({ path: '/private/tmp/claude-501/-Users-ayush--claude-spares-spare-sGqYkR/cdbe934d-ac5d-4ad4-b7c8-16b2e19cd8df/scratchpad/real/apple-stack.png', timeout: 15000 });
+  await context.close();
+});

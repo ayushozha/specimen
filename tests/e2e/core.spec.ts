@@ -144,3 +144,12 @@ test.describe('hostile page', () => {
     for (const svg of svgs) expect(svg.replace(/[\u0000-\u0020]/g, '')).not.toMatch(/javascript:|<script/i);
   });
 });
+
+test('the text role is readable on the page background, even when a dark nav has more light text', async ({ page }) => {
+  await page.setContent(`<body style="margin:0;background:#fff;color:#1d1d1f;font:16px sans-serif">
+    <nav style="background:#000;color:#f5f5f7;height:200px">${'<a style="color:#f5f5f7">Link</a> '.repeat(30)}</nav>
+    <main style="height:2000px"><p>Body copy</p><p>More body copy</p></main></body>`);
+  await page.addScriptTag({ path: CORE_SCRIPT });
+  const palette = await page.evaluate(() => window.__specimenCore.extractPalette());
+  expect(palette.colors.find((c) => c.roles.includes('text'))?.hex).toBe('#1d1d1f');
+});
