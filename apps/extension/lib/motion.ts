@@ -72,6 +72,8 @@ export interface MotionContext {
   put(path: string, data: Uint8Array, compress?: boolean): void;
   step(name: string, fn: () => Promise<void>): Promise<void>;
   addSectionFile(sectionId: string, path: string): void;
+  /** Records something the capture had to leave out (shown with the bundle's errors). */
+  note(step: string, message: string): void;
 }
 
 export const MOTION_STEPS = 7;
@@ -111,6 +113,12 @@ export async function captureMotion(ctx: MotionContext): Promise<{ summary: Moti
   };
   const sectionOf = async (selectors: (string | null)[]) => adapter.call('sectionsContaining', selectors, sections);
   const pad = (r: Rect, p: number): Rect => ({ x: Math.max(0, r.x - p), y: Math.max(0, r.y - p), width: r.width + p * 2, height: r.height + p * 2 });
+  /** True when an element scrolled into view fits the viewport, so frames can use fast visible-area screenshots. */
+  const fits = (viewport: Rect) => viewport.y - m.clipPadding >= 0 && viewport.y + viewport.height + m.clipPadding <= desktop.height;
+  const budget = () => {
+    const start = Date.now();
+    return () => Date.now() - start > m.stepBudgetMs;
+  };
 
   await adapter.setViewport(desktop, scale).catch(() => null);
 
@@ -177,8 +185,13 @@ export async function captureMotion(ctx: MotionContext): Promise<{ summary: Moti
       return;
     }
     await adapter.call('pauseAllAnimations');
+    const overBudget = budget();
     try {
       for (const [i, anim] of anims.entries()) {
+        if (overBudget()) {
+          ctx.note('Capturing animations frame by frame', `Stopped after ${m.stepBudgetMs / 1000}s: captured ${i} of ${anims.length} animations (motion.stepBudgetMs in config.ts).`);
+          break;
+        }
         const sid = ids[i];
         const box = await adapter.call('prepareElement', anim.target!);
         if (sid) {
@@ -190,7 +203,7 @@ export async function captureMotion(ctx: MotionContext): Promise<{ summary: Moti
         const frames: Pick<ScreencastFrame, 'data' | 'type' | 'time'>[] = [];
         for (let f = 0; f < count; f++) {
           await adapter.call('seekAnimations', [anim.id], (f / (count - 1)) * anim.duration);
-          frames.push({ data: await adapter.screenshot(pad(box.page, m.clipPadding)), type: 'image/png', time: (f / (count - 1)) * (anim.duration / 1000) });
+          frames.push({ data: await adapter.screenshot(pad(box.page, m.clipPadding), { visible: fits(box.viewport) }), type: 'image/png', time: (f / (count - 1)) * (anim.duration / 1000) });
         }
         const path = await saveVideo(frames, `${sid ? `sections/${sid}` : 'page'}/motion/${slug(anim.name)}-${anim.id}`);
         if (path && sid) ctx.addSectionFile(sid, path);
@@ -203,14 +216,20 @@ export async function captureMotion(ctx: MotionContext): Promise<{ summary: Moti
   await ctx.step('Probing hover and focus', async () => {
     const candidates = await adapter.call('findInteractionCandidates', ctx.sheets, summary.hooks?.pointerTargets ?? [], m.maxInteractions, m.perSignature);
     const ids = await sectionOf(candidates.map((c) => c.selector));
+    const overBudget = budget();
     for (const [i, c] of candidates.entries()) {
+      if (overBudget()) {
+        ctx.note('Probing hover and focus', `Stopped after ${m.stepBudgetMs / 1000}s: probed ${i} of ${candidates.length} interactive elements (motion.stepBudgetMs in config.ts).`);
+        break;
+      }
       const box = await adapter.call('prepareElement', c.selector);
       if (!box) continue;
       await sleep(m.settleMs / 2);
       const clip = pad(box.page, m.clipPadding);
+      const visible = fits(box.viewport);
       const base = `${ids[i] ? `sections/${ids[i]}` : 'page'}/states/${slug(c.label)}-${i + 1}`;
       const before = await adapter.call('snapshotStyles', c.selector, 40);
-      const beforePng = await adapter.screenshot(clip);
+      const beforePng = await adapter.screenshot(clip, { visible });
       const effects: InteractionEffect[] = [];
 
       if (c.states.includes('hover') || c.sources.includes('js')) {
@@ -226,7 +245,7 @@ export async function captureMotion(ctx: MotionContext): Promise<{ summary: Moti
             const frames: Pick<ScreencastFrame, 'data' | 'type' | 'time'>[] = [];
             for (let f = 0; f < count; f++) {
               await adapter.call('seekAnimations', running.map((a) => a.id), (f / (count - 1)) * longest);
-              frames.push({ data: await adapter.screenshot(clip), type: 'image/png', time: (f / (count - 1)) * (longest / 1000) });
+              frames.push({ data: await adapter.screenshot(clip, { visible }), type: 'image/png', time: (f / (count - 1)) * (longest / 1000) });
             }
             const path = await saveVideo(frames, `${base}--hover`);
             if (path) files.push(path);
@@ -239,7 +258,7 @@ export async function captureMotion(ctx: MotionContext): Promise<{ summary: Moti
         const changes = diffSnapshots(before, after);
         if (changes.length) {
           const png = `${base}--hover.png`;
-          ctx.put(png, await adapter.screenshot(clip), false);
+          ctx.put(png, await adapter.screenshot(clip, { visible }), false);
           files.push(png);
           effects.push({
             selector: c.selector,
@@ -262,7 +281,7 @@ export async function captureMotion(ctx: MotionContext): Promise<{ summary: Moti
           const changes = diffSnapshots(before, await adapter.call('snapshotStyles', c.selector, 40));
           if (changes.length) {
             const png = `${base}--focus.png`;
-            ctx.put(png, await adapter.screenshot(clip), false);
+            ctx.put(png, await adapter.screenshot(clip, { visible }), false);
             effects.push({ selector: c.selector, rect: box.page, label: c.label, trigger: 'focus', sources: c.sources, changes, transitions: [], files: [png] });
           }
           await adapter.call('blurActive');

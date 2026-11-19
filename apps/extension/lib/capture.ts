@@ -157,6 +157,7 @@ export async function capture(
         put,
         step,
         addSectionFile: (id, path) => sectionFiles[id]?.push(path),
+        note: (stepName, message) => errors.push({ step: stepName, message }),
       }));
     }
 

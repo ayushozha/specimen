@@ -38,9 +38,12 @@ export const CONFIG = {
     scrollStepRatio: 0.5,
     scrollDelayMs: 120,
     traceMaxElements: 500,
-    maxAnimations: 20,
-    maxFramesPerAnimation: 60,
-    maxInteractions: 40,
+    maxAnimations: 12,
+    /** Frames per animation clip; long animations are sampled more sparsely, never cut short. */
+    maxFramesPerAnimation: 30,
+    maxInteractions: 24,
+    /** Time limit per motion step on heavy pages; what's left is reported in the bundle. */
+    stepBudgetMs: 45000,
     /** Copies of one component (same tag and classes) probed at most this many times. */
     perSignature: 2,
     maxToggles: 10,

@@ -46,8 +46,11 @@ export interface PageAdapter {
   pageInfo(): Promise<{ url: string; title: string }>;
   /** Emulates a viewport; null restores the tab's own. Returns the viewport width actually reached. */
   setViewport(bp: Breakpoint | null, scale: number): Promise<number | null>;
-  /** PNG of a page-coordinate rect, at the device scale set by `setViewport`. */
-  screenshot(clip: Rect): Promise<Uint8Array>;
+  /**
+   * PNG of a page-coordinate rect, at the device scale set by `setViewport`. `visible` says the rect is
+   * inside the current viewport, which lets Chromium skip re-rendering the whole page (3–4× faster).
+   */
+  screenshot(clip: Rect, options?: { visible?: boolean }): Promise<Uint8Array>;
   styleSheets(): Promise<StyleSheetText[]>;
   /** A resource the page already loaded (image, font, video), without re-downloading it. */
   resource(url: string): Promise<{ data: Uint8Array; mimeType: string } | null>;
