@@ -67,6 +67,24 @@ export async function targetTabId(): Promise<number | null> {
   return tab?.id ?? null;
 }
 
+/**
+ * When the panel is its own window (Safari), brings the tab's window forward: Safari sends hover and
+ * the first click only to the focused window, so picking on the page needs it in front. Resolves with
+ * a function that puts the panel back in front.
+ */
+export async function focusTabWindow(tabId: number): Promise<() => Promise<void>> {
+  const none = async () => {};
+  if (!chrome.windows) return none;
+  try {
+    const [tab, panel] = await Promise.all([chrome.tabs.get(tabId), chrome.windows.getCurrent()]);
+    if (tab.windowId === panel.id || panel.id === undefined) return none;
+    await chrome.windows.update(tab.windowId, { focused: true });
+    return async () => void (await chrome.windows.update(panel.id!, { focused: true }).catch(() => undefined));
+  } catch {
+    return none;
+  }
+}
+
 export async function downloadBundle(result: CaptureResult): Promise<void> {
   const url = URL.createObjectURL(new Blob([result.zip as BlobPart], { type: 'application/zip' }));
   try {

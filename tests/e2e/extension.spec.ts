@@ -114,6 +114,35 @@ test('Capture everything produces a complete bundle', async () => {
   }
 });
 
+test('Pick element adds the clicked element as a section, and the button cancels', async () => {
+  const { context, extensionId } = await launchWithExtension();
+  try {
+    const site = context.pages()[0] ?? (await context.newPage());
+    await site.setViewportSize({ width: 1200, height: 800 });
+    await site.goto('http://localhost:4321/landing.html');
+    const [tab] = await context.serviceWorkers()[0].evaluate(() => chrome.tabs.query({}));
+    const panel = await context.newPage();
+    await panel.goto(`chrome-extension://${extensionId}/sidepanel.html?tabId=${tab.id}`);
+    await expect(panel.getByText('5 sections')).toBeVisible({ timeout: 60_000 });
+
+    await panel.getByRole('button', { name: 'Pick element' }).click();
+    const picking = panel.getByRole('button', { name: /Click an element/ });
+    await expect(picking).toBeEnabled();
+    await site.locator('.features .card').nth(1).hover();
+    await site.mouse.down();
+    await site.mouse.up();
+    await expect(panel.getByText('6 sections')).toBeVisible();
+    await expect(panel.getByText('Exact', { exact: true })).toBeVisible();
+
+    await panel.getByRole('button', { name: 'Pick element' }).click();
+    await picking.click();
+    await expect(panel.getByRole('button', { name: 'Pick element' })).toBeVisible();
+    await expect(site.locator('#__specimen-overlay')).toBeHidden();
+  } finally {
+    await context.close();
+  }
+});
+
 test('page code never gets user activation from the extension', async () => {
   const { context, extensionId } = await launchWithExtension();
   try {

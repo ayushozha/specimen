@@ -8,3 +8,4 @@ playwright-report/
 # Copied from the Safari build by `pnpm safari:project`
 apps/safari/Specimen/Specimen Extension/Resources/
 apps/figma-plugin/dist/
+apps/safari/Specimen/build/
