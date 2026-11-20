@@ -13,6 +13,8 @@ export const CONFIG = {
   maxTileHeight: 16000,
   /** Wait after changing the viewport, for layout and lazy images. */
   settleMs: 600,
+  /** Longest wait for a section's one-off animations (reveals) to finish before its screenshot. */
+  settleAnimationsMs: 1500,
   scroll: { stepRatio: 0.8, delayMs: 150, quickDelayMs: 60 },
   /** Click "Reject all" / "Necessary only" on cookie banners before capturing. */
   rejectCookies: true,

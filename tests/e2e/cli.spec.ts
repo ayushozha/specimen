@@ -68,3 +68,25 @@ test('a bundle from someone else cannot write outside the diff folder', async ({
   for (const path of Object.keys(images)) expect(path).toMatch(/^diff\/[a-z0-9-]+\.png$/i);
   expect(report.sections[0].diffImage).toBe('diff/escape.png');
 });
+
+test('checking a bundle from someone else never runs its scripts', async ({ browser }) => {
+  const { zipSync, strToU8 } = await import('fflate');
+  const { checkBundle } = await import('../../apps/cli/src/check.ts');
+  const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4//8/AwAI/AL+p5qgoAAAAABJRU5ErkJggg==', 'base64');
+  let pinged = false;
+  const server = (await import('node:http')).createServer((_q, r) => ((pinged = true), r.end('ok'))).listen(4399);
+  try {
+    const zip = zipSync({
+      'manifest.json': strToU8(JSON.stringify({ url: 'x', errors: [], motion: null, sections: [{ id: 'evil', name: 'Evil' }] })),
+      'sections/evil/desktop.png': new Uint8Array(png),
+      'exports/svg/evil.svg': strToU8('<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"><script>fetch("http://localhost:4399/script")</script><image href="http://localhost:4399/image" width="1" height="1"/></svg>'),
+      '../escape.txt': strToU8('should not be written'),
+    });
+    const result = await checkBundle(zip, browser);
+    expect(result.sections[0].svgMatch).not.toBeNull();
+    await new Promise((r) => setTimeout(r, 300));
+    expect(pinged).toBe(false);
+  } finally {
+    server.close();
+  }
+});

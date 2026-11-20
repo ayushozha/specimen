@@ -9,7 +9,7 @@
   <img alt="Safari" src="https://img.shields.io/badge/Safari-macOS-0A0A0A?logo=safari&logoColor=white">
   <img alt="Figma plugin" src="https://img.shields.io/badge/Figma-plugin-0A0A0A?logo=figma&logoColor=white">
   <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-6-3178C6?logo=typescript&logoColor=white">
-  <img alt="Tests" src="https://img.shields.io/badge/tests-69%20passing-2ea44f">
+  <img alt="Tests" src="https://img.shields.io/badge/tests-73%20passing-2ea44f">
   <img alt="License" src="https://img.shields.io/badge/license-none%20yet-lightgrey">
 </p>
 
@@ -143,11 +143,16 @@ node apps/cli/src/cli.ts diff before.specimen.zip after.specimen.zip --out diff
 ```
 
 ```bash
+node apps/cli/src/cli.ts check captures/*.specimen.zip
+```
+
+```bash
 node apps/cli/src/cli.ts media captures/example.com_2026-11-18T14-02-11.specimen.zip --out media
 ```
 
 - `capture` takes URLs or `--urls file.txt`, runs **Capture everything** for each and never overwrites a file.
 - `diff` reports added and removed sections, a pixel diff of every section with highlighted images, colour and CSS variable changes, tech-stack changes and motion totals (`diff/index.html`, `diff/diff.json`).
+- `check` reports a bundle's errors, stack and motion, and how closely each SVG export matches its screenshot. Bundles from others are opened with scripts off and no network.
 - `media` downloads the original videos a capture references; HLS and DASH streams go through `ffmpeg`.
 
 Run `npx playwright install chromium` once before the first capture.
@@ -210,25 +215,27 @@ pnpm test
 pnpm test:e2e
 ```
 
-- **Unit tests (39):** colour maths, median cut, motion maths, easing fits (named, bezier, spring), every exporter, generated-code safety, and the Figma importer against a recording stand-in for Figma's API.
-- **Browser tests (30):** the core in a real page; the full extension capturing the fixture; every export opened the way its tool would (SVG pixel-compared to the screenshot, PSD parsed, Lottie played in lottie-web, the After Effects script parsed); generated CSS replayed and compared to the original curve; the Firefox/Safari code path run inside Chromium; the CLI's batch capture, diff and HLS download; and a hostile page that tries to inject scripts, steal typed values, get user activation and escape file paths.
+- **Unit tests (40):** colour maths, median cut, motion maths, easing fits (named, bezier, spring), every exporter, generated-code safety, and the Figma importer against a recording stand-in for Figma's API.
+- **Browser tests (33):** the core in a real page; the full extension capturing the fixture; every export opened the way its tool would (SVG pixel-compared to the screenshot, PSD parsed, Lottie played in lottie-web, the After Effects script parsed); generated CSS replayed and compared to the original curve; the Firefox/Safari code path run inside Chromium; the CLI's batch capture, diff and HLS download; and a hostile page that tries to inject scripts, steal typed values, get user activation and escape file paths.
 
 Run `npx playwright install chromium` once. The Firefox build is checked with `npx web-ext lint --source-dir apps/extension/.output/firefox-mv3` (0 errors) and the Safari app with `xcodebuild`.
 
 ## Real-site results
 
-Captured with the real extension through the CLI (`specimen capture`, headless Chromium, 1440px desktop) on 2026-11-19. "SVG match" is the share of pixels in each section's SVG export, opened from the bundle, that match the section's real screenshot.
+Captured with the real extension through the CLI (`specimen capture`, headless Chromium, 1440px desktop) and scored with `specimen check` on 2026-11-20. "SVG match" is the share of pixels in each section's SVG export, opened from the bundle, that match the section's real screenshot.
 
-| Site | Time | Sections | Stack detected | Hover effects | Animations | SVG match (per section) |
-|---|---|---|---|---|---|---|
-| stripe.com | 198s | 12 | React, Next.js 14.2.32, Three.js 178 | 27 | 12 | 79–100%, 10 of 12 above 85% |
-| linear.app | 160s | 9 | React, Next.js, styled-components | 23 | 12 | 94–99% |
-| vercel.com | 79s | 6 | React, Next.js 16.5 canary, Tailwind | 20 | – | 86–99% |
-| framer.com | 114s | 4 | React, Framer | 12 | 3 | 86–99% |
-| gsap.com | 84s | 8 | GSAP 3.15 + ScrollTrigger (200 tweens read) | 15 | – | 49–99%, 7 of 8 above 90% |
-| tailwindcss.com | 95s | 7 | React, Next.js 16.2, Tailwind | 12 | 1 | 44–99%, 5 of 7 above 80% |
+| Site | Time | Sections | Stack detected | Hover effects | SVG match (per section) |
+|---|---|---|---|---|---|
+| linear.app | 166s | 9 | React, Next.js, styled-components | 25 | 94–99% |
+| tailwindcss.com | 85s | 7 | React, Next.js 16.2, Tailwind | 12 | 93–99% |
+| vercel.com | 80s | 6 | React, Next.js 16.5 canary, Tailwind | 20 | 86–99% |
+| framer.com | 116s | 4 | React, Framer | 12 | 84–99% |
+| gsap.com | 87s | 8 | GSAP 3.15 + ScrollTrigger | 15 | 80–97% |
+| stripe.com | 196s | 12 | React, Next.js 14.2.32, Three.js 178 | 13 | 85–98%; header 54% |
 
-The lowest scores are sections whose content animates on its own (a notification ticker, a code editor that types): the screenshot and the editable layers are read a moment apart. Real-site runs found and fixed these bugs: colour values that crashed the parser (apple.com), scroll-driven animations that crashed frame stepping (stripe.com), lazy content moving sections after measurement, hundreds of unused fonts copied into exports (framer.com), section names losing spaces at line breaks, oversized wrapper blocks (tailwindcss.com), and poorly fitted effects written as code (now left out below an 80% match).
+Each section is scrolled through so its reveals play, one-off animations finish, and the page is frozen (CSS animations and the page's own timers) while its screenshot, HTML and layout are read. Stripe's header is transparent and its animated hero shows through it, which the header's own layers can't reproduce.
+
+Testing on real sites found and fixed: colour values that crashed the parser (apple.com); scroll-driven animations that crashed frame stepping, lazy content moving sections, pinned sections, a dialog left open over later screenshots, uncached fonts, and page-styled inline SVGs turning black (stripe.com); hundreds of unused fonts in exports (framer.com); section names losing spaces (linear.app); oversized wrapper blocks, doubled text over pixel layers and shadows repainting translucent backgrounds (tailwindcss.com); and poorly fitted effects written as code.
 
 ## Limits
 
@@ -236,6 +243,7 @@ The lowest scores are sections whose content animates on its own (a notification
 - JavaScript animation loops (requestAnimationFrame) are recorded as video and traced, not rebuilt as code; WebGL and canvas effects are recorded only.
 - Content inside cross-origin iframes isn't captured. DRM video can't be captured, and Specimen doesn't get past CAPTCHAs or logins.
 - Section HTML and design exports reproduce the widest breakpoint's layout exactly; they aren't responsive.
+- Transparent elements show whatever is behind them in the screenshot (another section's animation, say); their own layers can't reproduce that.
 - Figma, Photoshop and After Effects imports are tested against their file formats and APIs, not inside those apps.
 
 ## Privacy and security

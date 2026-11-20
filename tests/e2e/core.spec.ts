@@ -202,3 +202,48 @@ test('section HTML only carries the fonts the section uses', async ({ page }) =>
   expect(html.match(/@font-face/g)).toHaveLength(1);
   expect(html).toContain('brand.woff2');
 });
+
+test('freezing holds JS and CSS animation, and releasing resumes it', async ({ page }) => {
+  // As in deep mode: the hooks run before the page's own scripts.
+  await page.addInitScript({ path: CORE_SCRIPT });
+  await page.addInitScript(() => (window as unknown as { __specimenCore: { installHooks(): void } }).__specimenCore.installHooks());
+  await page.goto('/ticker.html');
+  await page.waitForTimeout(200);
+  const read = () => page.evaluate(() => [document.getElementById('count')!.textContent, document.getElementById('box')!.style.left, getComputedStyle(document.getElementById('css')!).transform]);
+  // Freeze as the extension does: CSS through Web Animations, scripts in the page's own world.
+  await page.evaluate(() => {
+    window.__specimenCore.pauseAllAnimations();
+    return window.__specimenCore.freezePageScripts(true);
+  });
+  await page.waitForTimeout(100);
+  const frozen = await read();
+  await page.waitForTimeout(500);
+  expect(await read()).toEqual(frozen);
+  expect(await page.evaluate(() => {
+    window.__specimenCore.resumeAllAnimations();
+    return window.__specimenCore.freezePageScripts(false);
+  })).toBeGreaterThan(0);
+  await page.waitForTimeout(300);
+  const after = await read();
+  expect(after[0]).not.toBe(frozen[0]);
+  expect(after[1]).not.toBe(frozen[1]);
+  expect(after[2]).not.toBe(frozen[2]);
+});
+
+test('inline SVGs keep the colours page CSS gives them, with unique ids', async ({ page }) => {
+  await page.setContent(`<style>.mask rect { fill: white; } .mask text { fill: black; font-size: 14px; }</style>
+    <section id="s" style="height:100px"><svg class="mask" width="80" height="30"><defs><mask id="cut"><rect width="100%" height="100%"/><text x="10" y="20">Sign in</text></mask></defs><rect width="80" height="30" mask="url(#cut)" style="fill:#533afd"/></svg>
+    <svg class="mask" width="80" height="30"><defs><mask id="cut"><rect width="100%" height="100%"/></mask></defs><rect width="80" height="30" mask="url(#cut)"/></svg></section>`);
+  await page.addScriptTag({ path: CORE_SCRIPT });
+  const svgs = await page.evaluate(() => {
+    const out: string[] = [];
+    const walk = (n: { svg: string | null; children: unknown[] }) => (n.svg && out.push(n.svg), n.children.forEach((c) => walk(c as typeof n)));
+    walk(window.__specimenCore.layoutTree('#s').root);
+    return out;
+  });
+  expect(svgs).toHaveLength(2);
+  expect(svgs[0]).toMatch(/<rect[^>]*style="fill:rgb\(255, 255, 255\)/);
+  const ids = svgs.map((s) => s.match(/id="([^"]+)"/)![1]);
+  expect(new Set(ids).size).toBe(2);
+  expect(svgs[0]).toContain(`mask="url(#${ids[0]})"`);
+});

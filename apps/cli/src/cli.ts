@@ -8,6 +8,7 @@ import { access, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 import { captureUrl, launch } from './capture.ts';
+import { checkBundle } from './check.ts';
 import { diffBundles, diffHtml } from './diff.ts';
 import { downloadMedia } from './media.ts';
 
@@ -20,6 +21,10 @@ const HELP = `Specimen CLI
 
   specimen diff <before.zip> <after.zip> [--out dir]
       Compare two captures: sections, screenshots (pixel diff), colours, variables, tech stack, motion.
+
+  specimen check <bundle.zip...>
+      Report a capture's errors, sections, stack and motion, and how closely each SVG export matches
+      the section's screenshot.
 
   specimen media <bundle.zip> [--out dir]
       Download the original videos a capture references; HLS/DASH streams need ffmpeg.
@@ -94,6 +99,25 @@ async function main() {
       await writeFile(join(out, 'index.html'), diffHtml(report));
       const changed = report.sections.filter((s) => s.status !== 'same');
       console.log(`${changed.length} of ${report.sections.length} sections differ · colours +${report.colors.added.length} −${report.colors.removed.length} · ${join(out, 'index.html')}`);
+    } finally {
+      await browser.close();
+    }
+    return;
+  }
+
+  if (command === 'check') {
+    if (!args.length) throw new Error('Usage: specimen check <bundle.zip...>');
+    const browser = await chromium.launch({ channel: 'chromium' });
+    try {
+      for (const file of args) {
+        const r = await checkBundle(new Uint8Array(await readFile(file)), browser);
+        console.log(`\n${r.url}`);
+        console.log(`  errors: ${r.errors.length ? r.errors.join(' | ') : 'none'}`);
+        console.log(`  stack: ${r.stack.join(', ') || 'none detected'}`);
+        if (r.motion) console.log(`  motion: ${Object.entries(r.motion).map(([k, v]) => `${k} ${v}`).join(' · ')}`);
+        console.log(`  exports: ${Object.entries(r.exports).map(([k, v]) => `${k} ${v}`).join(' · ')}`);
+        for (const s of r.sections) console.log(`  ${s.svgMatch === null ? '   –' : `${Math.round(s.svgMatch * 100).toString().padStart(3)}%`}  ${s.name}`);
+      }
     } finally {
       await browser.close();
     }

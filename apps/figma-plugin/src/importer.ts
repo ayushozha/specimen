@@ -177,7 +177,7 @@ export async function importDocument(figma: PluginAPI, doc: FigmaDocument, files
   let current: FigmaSection | null = null;
   function rasterFill(n: LayoutNode): ImagePaint | null {
     if (!n.raster || !current) return null;
-    const hash = image(current.screenshot);
+    const hash = image(current.background ?? current.screenshot);
     if (!hash) return null;
     const W = current.tree.width;
     const H = current.tree.height;

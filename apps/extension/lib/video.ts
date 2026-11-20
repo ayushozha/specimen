@@ -12,6 +12,8 @@ export interface EncodedVideo {
  * play back at their real speed.
  */
 export async function encodeFrames(frames: Pick<ScreencastFrame, 'data' | 'type' | 'time'>[], fallbackFps = 30): Promise<EncodedVideo | null> {
+  // Screencast frames can arrive out of order or with repeated times; encoders need increasing times.
+  frames = [...frames].sort((a, b) => a.time - b.time).filter((f, i, all) => i === 0 || f.time > all[i - 1].time);
   if (frames.length < 2) return null;
   const first = await decode(frames[0]);
   // H.264 needs even dimensions.

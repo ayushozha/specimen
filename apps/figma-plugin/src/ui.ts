@@ -16,6 +16,7 @@ document.getElementById('file')!.addEventListener('change', async (e) => {
     const wanted = new Set<string>(Object.values(doc.assets));
     for (const s of doc.sections) {
       wanted.add(s.screenshot);
+      if (s.background) wanted.add(s.background);
       for (const v of s.variants) wanted.add(v.defaultImage).add(v.hoverImage);
     }
     const files: Record<string, Uint8Array> = {};

@@ -332,24 +332,98 @@ function nodeName(el: Element): string {
   return `${el.localName}${el.id ? `#${el.id}` : ''}${cls ? `.${cls}` : ''}`.slice(0, 60);
 }
 
-/** Inline SVG without scripts, event handlers or javascript: links. */
+/** Presentation properties an inline SVG may get from the page's CSS (classes, inheritance). */
+const SVG_STYLE_PROPS = [
+  'fill', 'fill-opacity', 'fill-rule', 'stroke', 'stroke-width', 'stroke-opacity', 'stroke-dasharray', 'stroke-dashoffset',
+  'stroke-linecap', 'stroke-linejoin', 'opacity', 'visibility', 'font-family', 'font-size', 'font-weight', 'text-anchor',
+  'dominant-baseline', 'stop-color', 'stop-opacity', 'color',
+];
+let svgCount = 0;
+
+/**
+ * Inline SVG as a standalone file: page CSS that styled it is written onto each element, ids are made
+ * unique (pages reuse ids like "mask" across icons), and scripts, event handlers and script URLs are
+ * removed.
+ */
 export function sanitizeSvg(svg: SVGSVGElement): string {
   const copy = svg.cloneNode(true) as SVGSVGElement;
+  const originals = [svg, ...Array.from(svg.querySelectorAll('*'))];
+  const copies = [copy, ...Array.from(copy.querySelectorAll('*'))];
+  originals.forEach((orig, i) => {
+    const el = copies[i];
+    const cs = getComputedStyle(orig);
+    const decl = SVG_STYLE_PROPS.map((p) => [p, cs.getPropertyValue(p)] as const).filter(([, v]) => v && v !== 'normal');
+    if (cs.display === 'none') decl.push(['display', 'none']);
+    el.setAttribute('style', decl.map(([p, v]) => `${p}:${v}`).join(';'));
+  });
   copy.querySelectorAll('script, foreignObject').forEach((n) => n.remove());
+  const prefix = `s${++svgCount}-`;
+  const ids = new Set(Array.from(copy.querySelectorAll('[id]'), (el) => el.id));
   for (const el of [copy, ...Array.from(copy.querySelectorAll('*'))]) {
     for (const attr of Array.from(el.attributes)) {
-      if (attr.name.toLowerCase().startsWith('on') || isScriptUrl(attr.value)) el.removeAttribute(attr.name);
+      if (attr.name.toLowerCase().startsWith('on') || isScriptUrl(attr.value)) {
+        el.removeAttribute(attr.name);
+        continue;
+      }
+      if (attr.name === 'id' && ids.has(attr.value)) el.setAttribute('id', prefix + attr.value);
+      else if (attr.value.includes('#')) {
+        const v = attr.value.replace(/url\(\s*['"]?#([^'")\s]+)['"]?\s*\)/g, (m, id: string) => (ids.has(id) ? `url(#${prefix}${id})` : m)).replace(/^#(.+)$/, (m, id: string) => (ids.has(id) ? `#${prefix}${id}` : m));
+        if (v !== attr.value) el.setAttribute(attr.name, v);
+      }
     }
   }
   const r = svg.getBoundingClientRect();
   if (!copy.getAttribute('width')) copy.setAttribute('width', String(round(r.width)));
   if (!copy.getAttribute('height')) copy.setAttribute('height', String(round(r.height)));
-  const fill = getComputedStyle(svg).color;
-  if (!copy.getAttribute('color')) copy.setAttribute('color', fill);
   copy.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
   return new XMLSerializer().serializeToString(copy);
 }
 
 function round(n: number): number {
   return Math.round(n * 100) / 100;
+}
+
+const PLATE_ATTR = 'data-specimen-plate';
+
+/**
+ * "Background plate" mode for a section: text becomes transparent and images/SVGs that are exported
+ * as their own layers are hidden, so a screenshot shows only painted backgrounds. Design exports use
+ * it for boxes drawn from pixels, so the editable text and images on top aren't doubled. Inline
+ * styles (CSSOM) are used, which page CSP doesn't block. `false` restores everything.
+ */
+export function plateMode(selector: string, on: boolean): number {
+  if (!on) {
+    const marked = Array.from(document.querySelectorAll<HTMLElement | SVGElement>(`[${PLATE_ATTR}]`));
+    for (const el of marked) {
+      const prev = el.getAttribute(PLATE_ATTR)!;
+      if (prev === '\u0000') el.removeAttribute('style');
+      else el.setAttribute('style', prev);
+      el.removeAttribute(PLATE_ATTR);
+    }
+    return marked.length;
+  }
+  const root = document.querySelector(selector);
+  if (!root) return 0;
+  let n = 0;
+  for (const el of [root, ...Array.from(root.querySelectorAll('*'))] as (HTMLElement | SVGElement)[]) {
+    if (!el.style) continue;
+    const tag = el.localName.toLowerCase();
+    if (el.closest('svg') && tag !== 'svg') continue;
+    el.setAttribute(PLATE_ATTR, el.getAttribute('style') ?? '\u0000');
+    if (tag === 'img' || tag === 'svg' || tag === 'picture') el.style.setProperty('visibility', 'hidden', 'important');
+    else {
+      el.style.setProperty('color', 'transparent', 'important');
+      el.style.setProperty('-webkit-text-fill-color', 'transparent', 'important');
+      el.style.setProperty('text-shadow', 'none', 'important');
+      el.style.setProperty('text-decoration-color', 'transparent', 'important');
+      el.style.setProperty('caret-color', 'transparent', 'important');
+    }
+    n++;
+  }
+  return n;
+}
+
+/** Whether any box in the tree is drawn from pixels. */
+export function hasRaster(node: LayoutNode): boolean {
+  return node.raster || node.children.some(hasRaster);
 }

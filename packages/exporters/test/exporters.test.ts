@@ -118,3 +118,15 @@ describe('SVG', () => {
     expect(svg).toContain('clip-path="url(#');
   });
 });
+
+describe('SVG shadows', () => {
+  it('draws each shadow once, outside the box, and the translucent fill once', () => {
+    const node = (over: object) => ({ type: 'frame', name: 'panel', x: 0, y: 0, width: 100, height: 50, opacity: 1, fill: '#ffffff1a', gradient: null, radius: [8, 8, 8, 8], border: null, shadows: [], clips: false, image: null, imageFit: 'fill', raster: false, svg: null, text: null, layout: null, children: [], ...over }) as any;
+    const shadows = [1, 2, 3].map((i) => ({ x: 0, y: i, blur: 2 * i, spread: 1, color: '#00000033', inset: false }));
+    const svg = toSvg({ width: 100, height: 50, background: '#030712', fonts: [], images: [], root: node({ shadows }) }, () => null);
+    expect(svg.match(/fill-opacity="0.102"/g)).toHaveLength(1);
+    expect(svg.match(/operator="out"/g)).toHaveLength(3);
+    expect(svg.match(/<feMergeNode in="s\d"\/>/g)).toHaveLength(3);
+    expect(svg).not.toContain('SourceGraphic');
+  });
+});

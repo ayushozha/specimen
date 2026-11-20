@@ -327,3 +327,85 @@ export function probeMotionLibraries(): LibraryMotion {
   }
   return result;
 }
+
+/**
+ * Holds the page's JavaScript animation (requestAnimationFrame, setTimeout, setInterval) so a section
+ * can be read at one instant: GSAP tickers, typing effects and Lottie stop advancing. `false`
+ * releases everything that was held, in order. Runs in the page's MAIN world; self-contained.
+ * Pair with pauseAllAnimations()/resumeAllAnimations() for CSS animations.
+ */
+export function freezePageScripts(on: boolean): number {
+  type Held = { raf: [FrameRequestCallback, number][]; timers: [() => void, number, boolean][]; orig: { raf: typeof requestAnimationFrame; caf: typeof cancelAnimationFrame; st: typeof setTimeout; si: typeof setInterval } };
+  const w = window as unknown as Record<string, unknown>;
+  // Deep mode installed a gate on every timer and frame before the page's scripts ran: use it.
+  const hooks = w.__specimenHooks as { setFrozen?: (on: boolean) => void } | undefined;
+  if (hooks?.setFrozen) {
+    hooks.setFrozen(on);
+    return 1;
+  }
+  // Otherwise hold new frames and timers (intervals started earlier keep running).
+  const KEY = '__specimenFrozen';
+  const held = w[KEY] as Held | undefined;
+  if (on) {
+    if (held) return 0;
+    const state: Held = { raf: [], timers: [], orig: { raf: window.requestAnimationFrame, caf: window.cancelAnimationFrame, st: window.setTimeout, si: window.setInterval } };
+    let id = -1;
+    window.requestAnimationFrame = (cb: FrameRequestCallback) => {
+      state.raf.push([cb, id]);
+      return id--;
+    };
+    window.cancelAnimationFrame = (handle: number) => {
+      state.raf = state.raf.filter(([, h]) => h !== handle);
+      state.orig.caf.call(window, handle);
+    };
+    window.setTimeout = ((cb: () => void, ms = 0) => {
+      if (typeof cb === 'function') state.timers.push([cb, ms, false]);
+      return id--;
+    }) as typeof setTimeout;
+    window.setInterval = ((cb: () => void, ms = 0) => {
+      if (typeof cb === 'function') state.timers.push([cb, ms, true]);
+      return id--;
+    }) as typeof setInterval;
+    Object.defineProperty(w, KEY, { value: state, configurable: true, enumerable: false });
+    return 1;
+  }
+  if (!held) return 0;
+  window.requestAnimationFrame = held.orig.raf;
+  window.cancelAnimationFrame = held.orig.caf;
+  window.setTimeout = held.orig.st;
+  window.setInterval = held.orig.si;
+  delete w[KEY];
+  // Release what was held: frame callbacks on the next frame, timers with their own delays.
+  for (const [cb] of held.raf) held.orig.raf.call(window, cb);
+  for (const [cb, ms, repeat] of held.timers) (repeat ? held.orig.si : held.orig.st).call(window, cb, ms);
+  return held.raf.length + held.timers.length;
+}
+
+/**
+ * Lets a section settle as a visitor would see it: scrolls through it a screen at a time so
+ * scroll-driven and on-enter reveals play, waits for one-off animations at each stop (within
+ * `timeoutMs` overall), then returns to the section's top. Endless animations are left to the freeze.
+ */
+export async function settleSection(selector: string | null, timeoutMs: number): Promise<number> {
+  const el = selector ? document.querySelector(selector) : null;
+  if (!el) return 0;
+  const deadline = performance.now() + timeoutMs;
+  const top = el.getBoundingClientRect().top + window.scrollY;
+  const height = el.getBoundingClientRect().height;
+  let waited = 0;
+  for (let y = top; y < top + Math.max(1, height); y += window.innerHeight) {
+    window.scrollTo(0, y);
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    const finite = document.getAnimations().filter((a) => {
+      if (a.playState !== 'running' || !(a.timeline instanceof DocumentTimeline)) return false;
+      return Number.isFinite(Number((a.effect as KeyframeEffect | null)?.getComputedTiming().endTime));
+    });
+    waited += finite.length;
+    const left = deadline - performance.now();
+    if (left <= 0) break;
+    await Promise.race([Promise.all(finite.map((a) => a.finished.catch(() => undefined))), sleep(left)]);
+  }
+  window.scrollTo(0, top);
+  await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+  return waited;
+}
