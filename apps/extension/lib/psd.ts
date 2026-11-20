@@ -6,12 +6,13 @@ import { writePsdUint8Array, type Layer } from 'ag-psd';
  * images and icons as exact pixel crops of the screenshot, and editable text layers (with the
  * screenshot pixels as their preview until edited). The full screenshot is a hidden reference layer.
  */
-export async function toPsd(tree: LayoutTree, screenshotPng: Uint8Array, scale: number): Promise<Uint8Array> {
+export async function toPsd(tree: LayoutTree, screenshotPng: Uint8Array, scale: number, backgroundPng?: Uint8Array): Promise<Uint8Array> {
   const shot = await createImageBitmap(new Blob([screenshotPng as BlobPart], { type: 'image/png' }));
+  const plate = backgroundPng ? await createImageBitmap(new Blob([backgroundPng as BlobPart], { type: 'image/png' })) : shot;
   try {
-    const crop = (r: Rect): HTMLCanvasElement => {
+    const crop = (r: Rect, from: ImageBitmap = shot): HTMLCanvasElement => {
       const c = canvas(r.width * scale, r.height * scale);
-      c.getContext('2d')!.drawImage(shot, r.x * scale, r.y * scale, r.width * scale, r.height * scale, 0, 0, c.width, c.height);
+      c.getContext('2d')!.drawImage(from, r.x * scale, r.y * scale, r.width * scale, r.height * scale, 0, 0, c.width, c.height);
       return c;
     };
 
@@ -40,7 +41,7 @@ export async function toPsd(tree: LayoutTree, screenshotPng: Uint8Array, scale: 
       if (n.type === 'image' || n.type === 'svg') return { name: n.name, ...pos, canvas: crop(n) };
 
       const children: Layer[] = [];
-      if (n.raster) children.push({ name: 'Background (pixels)', ...pos, canvas: crop(n) });
+      if (n.raster) children.push({ name: 'Background (pixels)', ...pos, canvas: crop(n, plate) });
       else {
         const fill = fillLayer(n, scale);
         if (fill) children.push({ name: 'Background', ...pos, canvas: fill });
@@ -67,6 +68,7 @@ export async function toPsd(tree: LayoutTree, screenshotPng: Uint8Array, scale: 
     );
   } finally {
     shot.close();
+    if (plate !== shot) plate.close();
   }
 }
 

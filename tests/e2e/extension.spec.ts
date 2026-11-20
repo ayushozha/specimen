@@ -125,3 +125,17 @@ test('page code never gets user activation from the extension', async () => {
     await context.close();
   }
 });
+
+test('a hostile page cannot make Specimen fetch addresses the page never loaded', async () => {
+  test.setTimeout(180_000);
+  const hits: string[] = [];
+  const server = (await import('node:http')).createServer((q, r) => (hits.push(q.url ?? ''), r.end('secret'))).listen(4398);
+  try {
+    const { captureBundle } = await import('./helpers');
+    const files = await captureBundle('http://localhost:4321/hostile.html');
+    expect(Object.keys(files).some((k) => k.startsWith('sections/'))).toBe(true);
+    expect(hits).toEqual([]);
+  } finally {
+    server.close();
+  }
+});

@@ -44,15 +44,18 @@ export function toSvg(tree: LayoutTree, href: (url: string) => string | null, op
       parts.push(
         `<svg x="${x}" y="${y}" width="${n.width}" height="${n.height}" viewBox="${x} ${y} ${n.width} ${n.height}" overflow="hidden"><image href="${esc(options.screenshot)}" width="${tree.width}" height="${tree.height}"/></svg>`,
       );
-    } else if (n.shadows.length) {
+    } else if (n.shadows.some((sh) => !sh.inset)) {
+      // CSS box-shadow: every shadow once, behind the box and only outside it (not under a translucent
+      // background), whatever the box's own opacity. Drawn from an opaque silhouette of the shape.
       const fid = `s${id++}`;
-      defs.push(
-        `<filter id="${fid}" x="-50%" y="-50%" width="200%" height="200%">${n.shadows
-          .filter((s) => !s.inset)
-          .map((s) => `<feDropShadow dx="${s.x}" dy="${s.y}" stdDeviation="${s.blur / 2}" flood-color="${s.color.slice(0, 7)}" flood-opacity="${s.color.length === 9 ? (parseInt(s.color.slice(7), 16) / 255).toFixed(3) : 1}"/>`)
-          .join('')}</filter>`,
-      );
-      if (n.fill || n.gradient) parts.push(`${shape} ${n.fill ? paint(n.fill) : 'fill="#000"'} filter="url(#${fid})"/>`);
+      const outer = n.shadows.filter((sh) => !sh.inset);
+      const prims = outer.map((sh, k) => {
+        const opacity = sh.color.length === 9 ? (parseInt(sh.color.slice(7), 16) / 255).toFixed(3) : '1';
+        const grow = sh.spread > 0 ? `<feMorphology in="SourceAlpha" operator="dilate" radius="${sh.spread}" result="g${k}"/>` : '';
+        return `${grow}<feOffset in="${sh.spread > 0 ? `g${k}` : 'SourceAlpha'}" dx="${sh.x}" dy="${sh.y}" result="o${k}"/><feGaussianBlur in="o${k}" stdDeviation="${sh.blur / 2}" result="b${k}"/><feFlood flood-color="${sh.color.slice(0, 7)}" flood-opacity="${opacity}"/><feComposite in2="b${k}" operator="in" result="c${k}"/><feComposite in="c${k}" in2="SourceAlpha" operator="out" result="s${k}"/>`;
+      });
+      defs.push(`<filter id="${fid}" x="-50%" y="-50%" width="200%" height="200%">${prims.join('')}<feMerge>${outer.map((_, k) => `<feMergeNode in="s${k}"/>`).join('')}</feMerge></filter>`);
+      parts.push(`${shape} fill="#000" filter="url(#${fid})"/>`);
     }
     if (n.raster && options.screenshot) {
       // Painted above.

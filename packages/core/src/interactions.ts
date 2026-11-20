@@ -266,3 +266,20 @@ export async function scrollToY(y: number): Promise<number> {
   await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
   return window.scrollY;
 }
+
+/**
+ * A fingerprint of everything clicking toggles can change: expanded/open states, open dialogs and
+ * modal layers. Compared before and after the toggle step to make sure the page was put back.
+ */
+export function interactiveState(): string {
+  const expanded = Array.from(document.querySelectorAll('[aria-expanded]'), (el) => el.getAttribute('aria-expanded')).join(',');
+  const open = Array.from(document.querySelectorAll('details'), (el) => (el as HTMLDetailsElement).open).join(',');
+  const dialogs = document.querySelectorAll('dialog[open], [aria-modal="true"], [role="dialog"]:not([hidden])').length;
+  return `${expanded}|${open}|${dialogs}|${document.body.style.overflow}`;
+}
+
+/** Closes what a click may have left open: presses Escape where focus is, as a person would. */
+export function pressEscape(): void {
+  const target = document.activeElement ?? document.body;
+  for (const type of ['keydown', 'keyup'] as const) target.dispatchEvent(new KeyboardEvent(type, { key: 'Escape', code: 'Escape', bubbles: true, cancelable: true }));
+}

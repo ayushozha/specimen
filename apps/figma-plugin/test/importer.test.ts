@@ -57,7 +57,7 @@ const doc: FigmaDocument = {
   assets: { 'https://example.com/a.png': 'assets/a.png' },
   sections: [
     {
-      id: '01-hero', name: 'Hero', screenshot: 'sections/01-hero/desktop.png', variants: [
+      id: '01-hero', name: 'Hero', screenshot: 'sections/01-hero/desktop.png', background: null, variants: [
         { name: 'Get started', x: 20, y: 60, width: 120, height: 40, defaultImage: 'states/d.png', hoverImage: 'states/h.png', durationMs: 200, easing: [0, 0, 0.58, 1] },
       ],
       tree: {

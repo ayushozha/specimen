@@ -187,14 +187,50 @@ export class ChromiumAdapter implements PageAdapter {
       const frameTree = await this.resourceTree;
       const found = findResource(frameTree, url);
       const frameId = found?.frameId ?? frameTree.frame.id;
-      const { content, base64Encoded } = await this.send<{ content: string; base64Encoded: boolean }>('Page.getResourceContent', { frameId, url });
-      return {
-        data: base64Encoded ? base64ToBytes(content) : new TextEncoder().encode(content),
-        mimeType: found?.mimeType ?? '',
-      };
+      try {
+        const { content, base64Encoded } = await this.send<{ content: string; base64Encoded: boolean }>('Page.getResourceContent', { frameId, url });
+        return { data: base64Encoded ? base64ToBytes(content) : new TextEncoder().encode(content), mimeType: found?.mimeType ?? '' };
+      } catch {
+        // Chrome doesn't keep every loaded file in memory (fonts often aren't): load it again through
+        // the page's own network context, as DevTools does for source maps. No cookies are sent, and
+        // only for files the page itself loaded: a page can't make Specimen fetch other addresses
+        // (an intranet, say) into a bundle.
+        return found ? await this.loadThroughPage(found.frameId, url, found.mimeType) : null;
+      }
     } catch {
       return null;
     }
+  }
+
+  private async loadThroughPage(frameId: string, url: string, mimeType: string): Promise<{ data: Uint8Array; mimeType: string } | null> {
+    if (!/^https?:/i.test(url)) return null;
+    const { resource } = await this.send<{ resource: { success: boolean; httpStatusCode?: number; stream?: string; headers?: Record<string, string> } }>(
+      'Network.loadNetworkResource',
+      { frameId, url, options: { disableCache: false, includeCredentials: false } },
+    );
+    if (!resource.success || !resource.stream) return null;
+    const chunks: Uint8Array[] = [];
+    let size = 0;
+    try {
+      for (;;) {
+        const { data, eof, base64Encoded } = await this.send<{ data: string; eof: boolean; base64Encoded?: boolean }>('IO.read', { handle: resource.stream, size: 1 << 20 });
+        const bytes = base64Encoded ? base64ToBytes(data) : new TextEncoder().encode(data);
+        chunks.push(bytes);
+        size += bytes.length;
+        if (size > CONFIG.maxAssetBytes) return null;
+        if (eof) break;
+      }
+    } finally {
+      await this.send('IO.close', { handle: resource.stream }).catch(() => {});
+    }
+    const out = new Uint8Array(size);
+    let at = 0;
+    for (const c of chunks) {
+      out.set(c, at);
+      at += c.length;
+    }
+    const type = Object.entries(resource.headers ?? {}).find(([k]) => k.toLowerCase() === 'content-type')?.[1]?.split(';')[0] ?? mimeType;
+    return { data: out, mimeType: type };
   }
 
   async mouseMove(x: number, y: number): Promise<void> {

@@ -43,16 +43,38 @@ export function installHooks(): void {
     return observe.call(this, target);
   };
 
+  // Timers and frames go through a gate so a capture can stop the page's clock for a moment, including
+  // intervals started long before (see freezePageScripts). Frames and timeouts wait; interval ticks
+  // are skipped, as if no time passed.
+  let frozen = false;
+  const waiting: (() => void)[] = [];
+  const gate = (cb: (...a: unknown[]) => unknown, skip: boolean) =>
+    function (this: unknown, ...args: unknown[]) {
+      if (!frozen) return cb.apply(this, args);
+      if (!skip) waiting.push(() => cb.apply(this, args));
+    };
   const raf = window.requestAnimationFrame;
   window.requestAnimationFrame = function (cb: FrameRequestCallback) {
     rafCalls++;
-    return raf.call(window, cb);
+    return raf.call(window, gate(cb as never, false) as FrameRequestCallback);
+  };
+  const st = window.setTimeout;
+  window.setTimeout = function (cb: unknown, ...rest: unknown[]) {
+    return (st as (...a: unknown[]) => number).call(window, typeof cb === 'function' ? gate(cb as never, false) : cb, ...rest);
+  } as typeof setTimeout;
+  const si = window.setInterval;
+  window.setInterval = function (cb: unknown, ...rest: unknown[]) {
+    return (si as (...a: unknown[]) => number).call(window, typeof cb === 'function' ? gate(cb as never, true) : cb, ...rest);
+  } as typeof setInterval;
+  const setFrozen = (on: boolean) => {
+    frozen = on;
+    if (!on) waiting.splice(0).forEach((run) => raf.call(window, () => run()));
   };
 
   Object.defineProperty(w, KEY, {
     configurable: false,
     enumerable: false,
-    value: { pointerTargets, observed, getGlobalPointer: () => globalPointer, rafStats: () => ({ rafCalls, started }) },
+    value: { pointerTargets, observed, getGlobalPointer: () => globalPointer, rafStats: () => ({ rafCalls, started }), setFrozen },
   });
 }
 

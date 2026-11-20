@@ -319,6 +319,7 @@ export async function captureMotion(ctx: MotionContext): Promise<{ summary: Moti
   });
 
   await ctx.step('Opening menus and accordions', async () => {
+    const before = await adapter.call('interactiveState');
     const toggles = await adapter.call('findToggles', m.maxToggles);
     const ids = await sectionOf(toggles.map((t) => t.selector));
     for (const [i, t] of toggles.entries()) {
@@ -335,6 +336,18 @@ export async function captureMotion(ctx: MotionContext): Promise<{ summary: Moti
       summary.toggles++;
       await adapter.call('clickToggle', t.selector);
       await sleep(m.settleMs);
+    }
+    // The rest of the capture needs the page as it was. A toggle can open something its own button
+    // can't close (stripe.com's expanding cards): try Escape, else reload the page as deep mode did.
+    if ((await adapter.call('interactiveState')) !== before) {
+      await adapter.call('pressEscape');
+      await sleep(m.settleMs);
+    }
+    if ((await adapter.call('interactiveState')) !== before) {
+      ctx.note('Opening menus and accordions', 'A menu or dialog stayed open after closing it; the page was reloaded before the screenshots.');
+      await adapter.reloadWithHooks(`(${installHooks.toString()})();`, m.loadTimeoutMs);
+      if (CONFIG.rejectCookies) await adapter.call('rejectCookieBanner');
+      await adapter.call('waitForFonts', 5000);
     }
   });
 

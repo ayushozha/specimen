@@ -28,6 +28,8 @@ export interface ExportContext {
   /** Desktop layout tree, screenshot and rect of each section. */
   trees: Map<string, LayoutTree>;
   shots: Map<string, Uint8Array>;
+  /** Screenshots without text and images, for boxes drawn from pixels (sections that have them). */
+  plates: Map<string, Uint8Array>;
   rects: Map<string, Rect>;
   /** Each section's @font-face rules with bundled font paths (relative to sections/<id>/). */
   fontCss: Map<string, string>;
@@ -82,14 +84,21 @@ export async function buildExports(ctx: ExportContext): Promise<ExportSummary> {
     await attempt('SVG', () =>
       ctx.put(
         `exports/svg/${section.id}.svg`,
-        strToU8(toSvg(tree, href('../../'), { screenshot: `../../sections/${section.id}/desktop.png`, fontCss: ctx.fontCss.get(section.id) })),
+        strToU8(toSvg(tree, href('../../'), { screenshot: `../../sections/${section.id}/${ctx.plates.has(section.id) ? 'desktop-background' : 'desktop'}.png`, fontCss: ctx.fontCss.get(section.id) })),
       ),
     );
-    await attempt('Photoshop file', async () => ctx.put(`exports/psd/${section.id}.psd`, await toPsd(tree, shot, ctx.scale)));
+    await attempt('Photoshop file', async () => ctx.put(`exports/psd/${section.id}.psd`, await toPsd(tree, shot, ctx.scale, ctx.plates.get(section.id))));
 
     const relative = (r: Rect): Rect => ({ x: r.x - rect.x, y: r.y - rect.y, width: r.width, height: r.height });
     const motion = ctx.motion?.[section.id];
-    const figmaSection: FigmaSection = { id: section.id, name: section.name, screenshot: `sections/${section.id}/desktop.png`, tree, variants: [] };
+    const figmaSection: FigmaSection = {
+      id: section.id,
+      name: section.name,
+      screenshot: `sections/${section.id}/desktop.png`,
+      background: ctx.plates.has(section.id) ? `sections/${section.id}/desktop-background.png` : null,
+      tree,
+      variants: [],
+    };
     for (const url of tree.images) if (ctx.assets.has(url)) figma.assets[url] = ctx.assets.get(url)!;
 
     const animated: { spec: AnimationSpec; rect: Rect }[] = [];

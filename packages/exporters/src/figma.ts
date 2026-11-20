@@ -20,6 +20,8 @@ export interface FigmaSection {
   name: string;
   /** Section screenshot path in the bundle, placed as a locked reference layer. */
   screenshot: string;
+  /** Screenshot without text and images, for boxes drawn from pixels; null when none are. */
+  background: string | null;
   tree: LayoutTree;
   variants: FigmaVariant[];
 }

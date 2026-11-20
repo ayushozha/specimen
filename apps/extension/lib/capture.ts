@@ -1,4 +1,6 @@
 import {
+  freezePageScripts,
+  hasRaster,
   globalPaths,
   probeGlobals,
   type Breakpoint,
@@ -121,6 +123,7 @@ export async function capture(
   const sectionHtml = new Map<string, string>();
   const trees = new Map<string, LayoutTree>();
   const shots = new Map<string, Uint8Array>();
+  const plates = new Map<string, Uint8Array>();
   const desktopRects = new Map<string, Rect>();
   const assetPaths = new Map<string, string>();
   const fontCss = new Map<string, string>();
@@ -184,34 +187,61 @@ export async function capture(
 
       for (const planned of measured) {
         await step(`${planned.name} at ${bp.name}`, async () => {
-          // Measured again right before the shot: lazy content above can move a section after the
-          // first measurement (stripe.com's moved ~1,160px).
+          // On screen first, so scroll-driven and on-enter reveals show their settled state (stripe.com's
+          // were half-faded at the top of the page), then measured again: lazy content above can move a
+          // section after the first measurement (stripe.com's moved ~1,160px).
+          // Reveals play once and stay played, so letting them settle at the widest breakpoint is enough.
+          if (bpIndex === 0) await adapter.call('settleSection', planned.selector, CONFIG.settleAnimationsMs);
           const [section] = await adapter.call('measureSections', [planned]);
           const visible = section.rect.width > 0 && section.rect.height > 0;
           rects[section.id][bp.name] = visible ? section.rect : null;
           if (!visible) return;
           await adapter.call('hideFixedOutside', analysis.fixed, section.selector);
+          // At the widest breakpoint the screenshot, HTML and layout tree must show the same instant:
+          // freeze CSS animations and the page's own animation scripts (tickers, typing effects).
+          const freeze = bpIndex === 0;
+          if (freeze) {
+            await adapter.call('pauseAllAnimations');
+            await adapter.evaluateMain(freezePageScripts, true).catch(() => 0);
+          }
           try {
             const path = `sections/${section.id}/${bp.name}.png`;
-            const png = await adapter.screenshot(section.rect);
+            const png = await shootAsSeen(adapter, section.rect, bp.height, scale);
             put(path, png, false);
             sectionFiles[section.id].push(path);
             if (bpIndex === 0) {
               shots.set(section.id, png);
               desktopRects.set(section.id, section.rect);
             }
+            // HTML is serialised once, at the first (widest) breakpoint, while still frozen.
+            if (freeze && section.selector) {
+              const { html, resources: used } = await adapter.call('serializeElement', section.selector, analysis.sheets);
+              used.forEach((u) => resources.add(u));
+              sectionHtml.set(section.id, html);
+              // The layout tree drives the design-tool exports (Figma, SVG, Photoshop).
+              const tree = await adapter.call('layoutTree', section.selector, CONFIG.maxLayoutNodes);
+              tree.images.forEach((u) => resources.add(u));
+              trees.set(section.id, tree);
+              // Boxes drawn from pixels get them from a screenshot without text and images, so the
+              // editable layers on top aren't doubled.
+              if (hasRaster(tree.root)) {
+                await adapter.call('plateMode', section.selector, true);
+                try {
+                  const platePath = `sections/${section.id}/desktop-background.png`;
+                  const plate = await shootAsSeen(adapter, section.rect, bp.height, scale);
+                  put(platePath, plate, false);
+                  plates.set(section.id, plate);
+                } finally {
+                  await adapter.call('plateMode', section.selector, false);
+                }
+              }
+            }
           } finally {
             await adapter.call('restoreHidden');
-          }
-          // HTML is serialised once, at the first (widest) breakpoint.
-          if (bpIndex === 0 && section.selector) {
-            const { html, resources: used } = await adapter.call('serializeElement', section.selector, analysis.sheets);
-            used.forEach((u) => resources.add(u));
-            sectionHtml.set(section.id, html);
-            // The layout tree drives the design-tool exports (Figma, SVG, Photoshop).
-            const tree = await adapter.call('layoutTree', section.selector, CONFIG.maxLayoutNodes);
-            tree.images.forEach((u) => resources.add(u));
-            trees.set(section.id, tree);
+            if (freeze) {
+              await adapter.evaluateMain(freezePageScripts, false).catch(() => 0);
+              await adapter.call('resumeAllAnimations');
+            }
           }
         });
       }
@@ -266,6 +296,7 @@ export async function capture(
         sections,
         trees,
         shots,
+        plates,
         rects: desktopRects,
         fontCss,
         motion: motionDetails,
@@ -306,6 +337,30 @@ export async function capture(
   onProgress({ step: 'Zipping', done: total, total });
 
   return { filename: bundleName(analysis.url), zip: zipSync(files), manifest };
+}
+
+/**
+ * A section as a visitor sees it: scrolled on screen and taken from the visible area, a screen at a
+ * time and stitched when it's taller than the viewport. (Rendering the whole page at once doesn't match
+ * pages that pin sections while scrolling, and leaves scroll-driven reveals unplayed.)
+ */
+async function shootAsSeen(adapter: PageAdapter, rect: Rect, viewportHeight: number, scale: number): Promise<Uint8Array> {
+  if (rect.height <= viewportHeight) {
+    await adapter.call('scrollToY', rect.y);
+    return adapter.screenshot(rect, { visible: true });
+  }
+  const canvas = new OffscreenCanvas(Math.round(rect.width * scale), Math.round(rect.height * scale));
+  const ctx = canvas.getContext('2d')!;
+  for (let y = rect.y; y < rect.y + rect.height; y += viewportHeight) {
+    const actual = await adapter.call('scrollToY', y);
+    // Near the bottom the page may stop short of y: the tile is still on screen, lower down.
+    const h = Math.min(viewportHeight - (y - actual), rect.y + rect.height - y);
+    const tile = await createImageBitmap(new Blob([(await adapter.screenshot({ x: rect.x, y, width: rect.width, height: h }, { visible: true })) as BlobPart], { type: 'image/png' }));
+    ctx.drawImage(tile, 0, Math.round((y - rect.y) * scale));
+    tile.close();
+  }
+  await adapter.call('scrollToY', rect.y);
+  return new Uint8Array(await (await canvas.convertToBlob({ type: 'image/png' })).arrayBuffer());
 }
 
 /** Full-page screenshot, split into tiles when the page is taller than the GPU texture limit. */
