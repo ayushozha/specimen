@@ -95,6 +95,28 @@ test('rejects cookie banners and finds fixed elements', async ({ page }) => {
   expect(await page.evaluate(() => (window as unknown as { __consent: string }).__consent)).toBe('rejected');
 });
 
+test('hidden fixed elements stay hidden even when a child sets visibility: visible, and restore exactly', async ({ page }) => {
+  // vercel.com's header buttons set visibility: visible, so hiding the header with visibility left them in every section.
+  await page.evaluate(() => {
+    const bar = document.createElement('div');
+    bar.id = 'bar';
+    bar.setAttribute('style', 'position:fixed;top:0;left:0;width:80px;height:80px;color:red');
+    bar.innerHTML = '<span style="visibility:visible;display:block;width:80px;height:80px;background:red"></span>';
+    document.body.append(bar);
+  });
+  const clip = { x: 0, y: 0, width: 80, height: 80 };
+  expect(await page.evaluate(() => window.__specimenCore.hideElements(['#bar']))).toBe(1);
+  const hidden = await page.screenshot({ clip });
+  await page.evaluate(() => (document.getElementById('bar')!.style.display = 'none'));
+  const gone = await page.screenshot({ clip });
+  await page.evaluate(() => document.getElementById('bar')!.style.removeProperty('display'));
+  expect(hidden.equals(gone), 'hidden bar looks the same as no bar').toBe(true);
+
+  await page.evaluate(() => window.__specimenCore.restoreHidden());
+  expect(await page.locator('#bar').getAttribute('style')).toBe('position:fixed;top:0;left:0;width:80px;height:80px;color:red');
+  expect(await page.locator('#bar').getAttribute('data-specimen-hidden')).toBeNull();
+});
+
 test('measures text on gradients against the gradient, and picks a readable muted text colour', async ({ page }) => {
   const palette = await page.evaluate(() => window.__specimenCore.extractPalette());
   const onGradient = palette.contrast.find((p) => p.fg === '#f8fafc');

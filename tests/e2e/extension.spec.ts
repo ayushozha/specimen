@@ -50,6 +50,10 @@ test('Capture everything produces a complete bundle', async () => {
     for (const path of ['index.html', 'palette.json', 'stack.json', 'design/palette.css', 'design/media-colors.json', 'page/page.mhtml']) {
       expect(files[path], path).toBeTruthy();
     }
+    // The 64px header strip is shown whole in the report; taller sections are cropped to fill their card.
+    const report = new TextDecoder().decode(files['index.html']);
+    expect(report).toContain('<img class="strip" src="sections/01-header/desktop.png"');
+    expect(report).toContain('<img src="sections/02-ship-exact-designs/desktop.png"');
     for (const bp of ['desktop', 'tablet', 'mobile']) {
       expect(files[`page/full-${bp}.png`], `full page at ${bp}`).toBeTruthy();
       expect(files[`sections/03-features/${bp}.png`], `features at ${bp}`).toBeTruthy();

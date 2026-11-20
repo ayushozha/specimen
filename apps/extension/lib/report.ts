@@ -15,6 +15,9 @@ export function renderPaletteCss(palette: Palette): string {
   return lines.join('\n');
 }
 
+/** Sections wider than this (width ÷ height) are shown whole: cropping a header strip leaves only empty space. */
+const STRIP_RATIO = 4;
+
 /** A browsable `index.html` for the bundle. Uses the extension's mono tokens. */
 export function renderReport(manifest: Manifest, analysis: Analysis): string {
   const { palette, stack } = analysis;
@@ -25,8 +28,10 @@ export function renderReport(manifest: Manifest, analysis: Analysis): string {
       const links = [...shots.map((f) => `<a href="${f}">${esc(f.split('/').pop()!.replace('.png', ''))}</a>`), html ? `<a href="${html}">HTML</a>` : '']
         .filter(Boolean)
         .join(' · ');
-      return `<article class="card">${shots[0] ? `<a href="${shots[0]}"><img src="${shots[0]}" alt="${esc(s.name)}" loading="lazy"></a>` : ''}
-<div class="row"><strong>${esc(s.name)}</strong><span class="muted">${size(s.rects[manifest.breakpoints[0].name] ?? s.rect)}</span></div>
+      const rect = s.rects[manifest.breakpoints[0].name] ?? s.rect;
+      const strip = rect.width > STRIP_RATIO * rect.height ? ' class="strip"' : '';
+      return `<article class="card">${shots[0] ? `<a href="${shots[0]}"><img${strip} src="${shots[0]}" alt="${esc(s.name)}" loading="lazy"></a>` : ''}
+<div class="row"><strong>${esc(s.name)}</strong><span class="muted">${size(rect)}</span></div>
 <div class="muted small">${links}</div></article>`;
     })
     .join('\n');
@@ -67,7 +72,8 @@ a{color:var(--text)}
 .muted{color:var(--text-muted)}.small{font-size:12px}.mono{font-family:var(--mono);font-size:12px}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
 .card{border:1px solid var(--border);border-radius:10px;padding:10px;background:var(--bg)}
-.card img{width:100%;height:160px;object-fit:cover;object-position:top;border-radius:6px;border:1px solid var(--border);display:block;margin-bottom:8px}
+.card img{width:100%;height:160px;object-fit:cover;object-position:top left;border-radius:6px;border:1px solid var(--border);display:block;margin-bottom:8px}
+.card img.strip{object-fit:contain;object-position:center}
 .row{display:flex;justify-content:space-between;gap:8px}
 .swatches{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}
 .swatch{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--border);border-radius:10px;padding:8px}

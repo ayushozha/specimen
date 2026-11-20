@@ -65,14 +65,19 @@ export function findFixedElements(): string[] {
 
 const HIDDEN_ATTR = 'data-specimen-hidden';
 
-/** Hides elements (keeping layout) so they don't repeat in section screenshots. */
+/**
+ * Hides elements (keeping layout) so they don't repeat in section screenshots. Uses opacity, not
+ * visibility: a child can undo `visibility: hidden` with `visibility: visible` (vercel.com's header
+ * buttons do), but not `opacity: 0`. Transitions are off so the element is gone at once.
+ */
 export function hideElements(selectors: string[]): number {
   let n = 0;
   for (const sel of selectors) {
     const el = document.querySelector<HTMLElement>(sel);
     if (!el || el.hasAttribute(HIDDEN_ATTR)) continue;
-    el.setAttribute(HIDDEN_ATTR, el.style.visibility);
-    el.style.visibility = 'hidden';
+    el.setAttribute(HIDDEN_ATTR, el.getAttribute('style') ?? '');
+    el.style.setProperty('opacity', '0', 'important');
+    el.style.setProperty('transition', 'none', 'important');
     n++;
   }
   return n;
@@ -91,7 +96,9 @@ export function hideFixedOutside(fixed: string[], sectionSelector: string | null
 
 export function restoreHidden(): void {
   for (const el of Array.from(document.querySelectorAll<HTMLElement>(`[${HIDDEN_ATTR}]`))) {
-    el.style.visibility = el.getAttribute(HIDDEN_ATTR) ?? '';
+    const style = el.getAttribute(HIDDEN_ATTR);
+    if (style) el.setAttribute('style', style);
+    else el.removeAttribute('style');
     el.removeAttribute(HIDDEN_ATTR);
   }
 }
