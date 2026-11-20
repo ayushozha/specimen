@@ -117,6 +117,54 @@ test('hidden fixed elements stay hidden even when a child sets visibility: visib
   expect(await page.locator('#bar').getAttribute('data-specimen-hidden')).toBeNull();
 });
 
+test('the picker shows the box model, picks on click without following links, and cancels', async ({ page }) => {
+  await page.evaluate(() => window.__specimenCore.startPick(5));
+  const card = page.locator('.features .card').first();
+  await card.hover({ position: { x: 8, y: 8 } }); // in the padding, so the card itself is under the pointer
+  await page.waitForTimeout(500); // the card lifts on hover (300ms) and the outline follows it
+  // Margin box (orange) around the padding and border band (green) around the content (blue), as in Inspect Element.
+  const overlay = await page.evaluate(() => {
+    const [margin, ring, label, hints] = Array.from(document.getElementById('__specimen-overlay')!.children) as HTMLElement[];
+    const padding = margin.firstElementChild as HTMLElement;
+    return { band: padding.style.borderWidth, rect: margin.getBoundingClientRect().toJSON(), ring: ring.getBoundingClientRect().toJSON(), label: label.textContent, hints: hints.textContent, hintsShown: getComputedStyle(hints).display };
+  });
+  const box = (await card.boundingBox())!;
+  expect(overlay.band).toBe('25px'); // 1px border + 24px padding
+  for (const r of [overlay.rect, overlay.ring]) expect(r).toMatchObject({ x: box.x, y: box.y, width: box.width, height: box.height });
+  expect(overlay.label).toBe(`div.card${Math.round(box.width)} × ${Math.round(box.height)}`);
+  expect(overlay.hintsShown).toBe('flex');
+  expect(overlay.hints).toBe('↑↓Parent / child↵CaptureEscCancel');
+
+  // ↑ selects the parent, ↓ walks back to the card, ↓ again steps into the child under the pointer.
+  const labelText = () => page.evaluate(() => document.getElementById('__specimen-overlay')!.children[2].firstElementChild!.textContent);
+  await page.keyboard.press('ArrowUp');
+  expect(await labelText()).toBe('section#features');
+  await page.keyboard.press('ArrowDown');
+  expect(await labelText()).toBe('div.card');
+  await page.keyboard.press('ArrowDown');
+  expect(await labelText()).toBe('img');
+  expect(await page.evaluate(() => window.__specimenCore.pickState().picking)).toBe(true);
+
+  // Clicking a link picks it and does not navigate.
+  await page.locator('a.btn').click();
+  const state = await page.evaluate(() => window.__specimenCore.pickState());
+  expect(state.picking).toBe(false);
+  expect(state.section).toMatchObject({ source: 'picked' });
+  expect(await page.evaluate((sel) => document.querySelector(sel)?.className, state.section!.selector!)).toBe('btn');
+  expect(page.url()).not.toContain('#pricing');
+  expect(await page.locator('#__specimen-overlay').isVisible()).toBe(false);
+
+  // ↵ picks the highlighted element.
+  await page.evaluate(() => window.__specimenCore.startPick(6));
+  await card.hover({ position: { x: 8, y: 8 } });
+  await page.keyboard.press('Enter');
+  expect((await page.evaluate(() => window.__specimenCore.pickState())).section).toMatchObject({ source: 'picked', rect: { width: Math.round(box.width) } }); // page rects are whole pixels
+
+  await page.evaluate(() => window.__specimenCore.startPick(7));
+  await page.evaluate(() => window.__specimenCore.cancelPick());
+  expect(await page.evaluate(() => window.__specimenCore.pickState())).toEqual({ picking: false, section: null });
+});
+
 test('measures text on gradients against the gradient, and picks a readable muted text colour', async ({ page }) => {
   const palette = await page.evaluate(() => window.__specimenCore.extractPalette());
   const onGradient = palette.contrast.find((p) => p.fg === '#f8fafc');

@@ -6,7 +6,7 @@ const GECKO_ID = '{14f92d4e-015f-446a-a14f-d61e317a400d}';
 export default defineConfig({
   modules: ['@wxt-dev/module-react'],
   hooks: {
-    // Safari has no side panel API: the panel opens in its own window from the toolbar button.
+    // Safari has no side panel API: the panel opens in a window docked beside the page (see background.ts).
     'build:manifestGenerated': (wxt, manifest) => {
       if (wxt.config.browser !== 'safari') return;
       delete (manifest as { side_panel?: unknown }).side_panel;
@@ -23,7 +23,7 @@ export default defineConfig({
       return {
         ...base,
         // Standard extension APIs only; site access is asked for when a capture starts.
-        permissions: ['scripting', 'activeTab', ...(browser === 'firefox' ? ['downloads'] : [])],
+        permissions: ['scripting', 'activeTab', ...(browser === 'firefox' ? ['downloads'] : ['storage'])],
         optional_host_permissions: ['<all_urls>'],
         ...(browser === 'firefox' && {
           // 140 is the first Firefox that reads data_collection_permissions (required for new add-ons).

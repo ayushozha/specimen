@@ -2,7 +2,7 @@ import { deltaE, parseColor, type PaletteColor, type Section } from '@specimen/c
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { analyse, capture, type Analysis, type CaptureResult, type Progress } from '../../lib/capture';
 import type { StyleSheetText } from '@specimen/core';
-import { Session, downloadBundle, explainError, targetTabId } from '../../lib/session';
+import { Session, downloadBundle, explainError, focusTabWindow, targetTabId } from '../../lib/session';
 import { toSvg } from '@specimen/exporters';
 
 type View = 'sections' | 'palette' | 'motion' | 'stack';
@@ -15,6 +15,8 @@ declare global {
 }
 
 const session = new Session();
+/** How often the panel asks the page whether an element was picked. */
+const PICK_POLL_MS = 150;
 
 export function App() {
   const [tabId, setTabId] = useState<number | null>(null);
@@ -115,16 +117,25 @@ export function App() {
 
   const pick = async () => {
     if (tabId === null || !analysis) return;
+    const adapter = await connect(tabId);
+    if (busyRef.current === 'pick') return void adapter.call('cancelPick');
     setBusy('pick');
+    const back = await focusTabWindow(tabId);
     try {
-      const adapter = await connect(tabId);
       // Section ids number from 01; a picked element takes the next free number.
       const next = Math.max(0, ...analysis.sections.map((s) => parseInt(s.id, 10) || 0));
-      const picked = await adapter.call('pickElement', next);
+      await adapter.call('startPick', next);
+      let state = await adapter.call('pickState');
+      while (state.picking) {
+        await new Promise((r) => setTimeout(r, PICK_POLL_MS));
+        state = await adapter.call('pickState');
+      }
+      const picked = state.section;
       if (picked) setAnalysis({ ...analysis, sections: [...analysis.sections, picked].sort((a, b) => a.rect.y - b.rect.y) });
     } catch (err) {
       setError(explainError(err));
     } finally {
+      await back();
       setBusy(null);
     }
   };
@@ -303,8 +314,8 @@ function SectionsView(props: {
       <div className="toolbar">
         <span className="muted small">{analysis.sections.length} sections</span>
         <div className="actions">
-          <button onClick={props.onPick} disabled={props.busy}>
-            {props.picking ? 'Click an element… (Esc to cancel)' : 'Pick element'}
+          <button onClick={props.onPick} disabled={props.busy && !props.picking}>
+            {props.picking ? 'Click an element… (Esc or here to cancel)' : 'Pick element'}
           </button>
           <button className="ghost" onClick={props.onRedetect} disabled={props.busy}>
             Detect again
