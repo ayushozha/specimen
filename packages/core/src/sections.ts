@@ -166,3 +166,22 @@ function clean(text: string): string {
   const t = text.replace(/\s+/g, ' ').trim();
   return t.length > 40 ? `${t.slice(0, 39)}…` : t;
 }
+
+/**
+ * Ids of sections that hold a canvas at least `minSize` CSS px on each side. Reads the element's
+ * size even while the site hides an off-screen canvas (WebGL heroes often pause that way).
+ */
+export function sectionsWithCanvas(sections: Section[], minSize: number): string[] {
+  return sections
+    .filter((s) => {
+      const root = s.selector ? document.querySelector(s.selector) : null;
+      if (!root) return false;
+      return Array.from(root.querySelectorAll('canvas')).some((c) => {
+        const r = c.getBoundingClientRect();
+        const w = Math.max(r.width, c.width / devicePixelRatio);
+        const h = Math.max(r.height, c.height / devicePixelRatio);
+        return w >= minSize && h >= minSize;
+      });
+    })
+    .map((s) => s.id);
+}

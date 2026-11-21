@@ -9,7 +9,7 @@
   <img alt="Safari" src="https://img.shields.io/badge/Safari-macOS-0A0A0A?logo=safari&logoColor=white">
   <img alt="Figma plugin" src="https://img.shields.io/badge/Figma-plugin-0A0A0A?logo=figma&logoColor=white">
   <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-6-3178C6?logo=typescript&logoColor=white">
-  <img alt="Tests" src="https://img.shields.io/badge/tests-81%20passing-2ea44f">
+  <img alt="Tests" src="https://img.shields.io/badge/tests-85%20passing-2ea44f">
   <img alt="License" src="https://img.shields.io/badge/license-none%20yet-lightgrey">
 </p>
 
@@ -37,7 +37,7 @@
 
 ## What it does
 
-Specimen opens in the browser's side panel and reads a page the way the browser renders it. Nothing runs until you ask: **Scan page** finds the sections, colours and stack; **Capture everything** (or **Capture** on one section) takes the screenshots, HTML and layers; motion is recorded only when **Record motion** is on. Each capture lands in the **Captures** tab with a preview and its outputs: a copy that pastes into Figma, Paper, Sketch, Penpot, Framer or Illustrator, design files, and a `DESIGN.md` folder for coding agents.
+Specimen opens in the browser's side panel and reads a page the way the browser renders it. Nothing runs until you ask: **Scan page** finds the sections, colours and stack; **Capture everything** (or **Capture** on one section) takes the screenshots, HTML and layers, and **Cancel** stops it and puts the page back; motion is recorded only when **Record motion** is on. Each capture lands in the **Captures** tab with a preview and its outputs: a copy that pastes into Figma, Paper, Sketch, Penpot, Framer or Illustrator, design files, and a `DESIGN.md` folder for coding agents.
 
 | | |
 |---|---|
@@ -46,7 +46,9 @@ Specimen opens in the browser's side panel and reads a page the way the browser 
 | **HTML** | Each section as a standalone `.html` file with its images and fonts, plus an MHTML snapshot of the page. |
 | **Exact colours** | Every colour as the site wrote it (`oklch(…)`, `color(display-p3 …)`, hex), its CSS variable, where it's used, roles, gradients, shadows, WCAG contrast for every text and background pair, colours from images and video, and an eyedropper. |
 | **Motion** | Page-load and scroll recordings, every CSS animation captured frame by frame, scroll reveals and parallax traced and classified, GSAP timelines, ScrollTrigger, Lottie and AOS settings read from the page. |
-| **Hover and interaction** | Every hover and focus effect, from CSS rules and JavaScript listeners: before and after styles, transition timing, a frame-exact clip and screenshots. Cursor followers, menus and accordions too. |
+| **Hover and interaction** | Every hover and focus effect, from CSS rules and JavaScript listeners: before and after styles, transition timing, a frame-exact clip and screenshots. Menus and accordions too. |
+| **Pointer effects** | A stroke drawn over each section with a canvas (and the hero when the page tracks the pointer) finds effects drawn into pixels, like ink, fluid and WebGL trails, and elements that follow the cursor. Each gets a clip and a filmstrip **with the cursor drawn in**, where the changes were and how long the trail takes to fade. |
+| **Record interaction** | You move the mouse over the page and Specimen records it, cursor drawn in, with the pointer path and an `INTERACTION.md` for agents. For effects a person drives best: ink, drag, scrubbing. Chrome and Edge. |
 | **Effect replication** | Every effect as CSS, GSAP and Motion (React) code. Effects read from the page are exact; effects with no readable source are fitted to the recorded motion (cubic-bezier or spring) with a match score, and a preview page replays them. |
 | **Tech stack** | 41 frameworks, site builders, CSS systems and animation libraries, with versions and evidence. |
 | **Outputs** | Copy and paste into Figma, Paper, Sketch, Penpot, Framer, Illustrator, Canva, Keynote; the Figma plugin; layered PSD; After Effects and Lottie; a `DESIGN.md` spec for Claude Code, Codex, Cursor and chat agents; the full `.specimen.zip`. See [Outputs](#outputs). |
@@ -232,7 +234,7 @@ pnpm test:e2e
 ```
 
 - **Unit tests (44):** colour maths, median cut, motion maths, easing fits (named, bezier, spring), every exporter including the agent DESIGN.md (callouts, tokens), generated-code safety, and the Figma importer against a recording stand-in for Figma's API.
-- **Browser tests (37):** the core in a real page, including the picker's box model and keys; the full extension capturing the fixture; nothing running before Scan page; a one-section capture and every output (SVG, HTML and image copies read back from the clipboard, the plugin file, the agent spec); every export opened the way its tool would (SVG pixel-compared to the screenshot, PSD parsed, Lottie played in lottie-web, the After Effects script parsed); generated CSS replayed and compared to the original curve; the Firefox/Safari code path run inside Chromium; the CLI's batch capture, diff and HLS download; and a hostile page that tries to inject scripts, steal typed values, get user activation and escape file paths.
+- **Browser tests (41):** the core in a real page, including the picker's box model and keys and scrolling against a smooth-scroll library; a canvas ink effect found, timed and recorded with the cursor; Record interaction; Cancel putting the page back; the full extension capturing the fixture; nothing running before Scan page; a one-section capture and every output (SVG, HTML and image copies read back from the clipboard, the plugin file, the agent spec); every export opened the way its tool would (SVG pixel-compared to the screenshot, PSD parsed, Lottie played in lottie-web, the After Effects script parsed); generated CSS replayed and compared to the original curve; the Firefox/Safari code path run inside Chromium; the CLI's batch capture, diff and HLS download; and a hostile page that tries to inject scripts, steal typed values, get user activation and escape file paths.
 
 Run `npx playwright install chromium` once. The Firefox build is checked with `npx web-ext lint --source-dir apps/extension/.output/firefox-mv3` (0 errors) and the Safari app with `xcodebuild`.
 

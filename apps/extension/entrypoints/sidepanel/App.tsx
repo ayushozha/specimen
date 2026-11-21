@@ -4,7 +4,8 @@ import { analyse, capture, type Analysis, type CaptureResult, type Progress } fr
 import type { StyleSheetText } from '@specimen/core';
 import { Session, explainError, focusTabWindow, targetTabId } from '../../lib/session';
 import { CONFIG } from '../../lib/config';
-import { CapturesView, type CaptureItem } from './Captures';
+import { CapturesView, type TrayItem } from './Captures';
+import { canRecordInteraction, startInteraction, stopInteraction, type RecordingSession } from '../../lib/interaction';
 
 type View = 'sections' | 'palette' | 'motion' | 'stack' | 'captures';
 type FullAnalysis = Analysis & { sheets: StyleSheetText[] };
@@ -27,9 +28,15 @@ export function App() {
   const [progress, setProgress] = useState<Progress | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<CaptureResult | null>(null);
-  const [captures, setCaptures] = useState<CaptureItem[]>([]);
+  const [captures, setCaptures] = useState<TrayItem[]>([]);
+  const [recording, setRecording] = useState<RecordingSession | null>(null);
+  const [elapsed, setElapsed] = useState(0);
+  const recordingRef = useRef<RecordingSession | null>(null);
   const [withMotion, setWithMotion] = useState(false);
   const [live, setLive] = useState<{ name: string; url: string } | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
+  const [cancelling, setCancelling] = useState(false);
   const [stale, setStale] = useState(false);
   const [excluded, setExcluded] = useState<Set<string>>(new Set());
   const tabIdRef = useRef<number | null>(null);
@@ -111,18 +118,24 @@ export function App() {
     await session.requestHostAccess();
     setBusy('capture');
     setError(null);
+    setNotice(null);
+    const abort = new AbortController();
+    abortRef.current = abort;
     try {
       const adapter = await connect(tabId);
       const ids = sectionIds ?? (excluded.size ? analysis.sections.filter((s) => !excluded.has(s.id)).map((s) => s.id) : undefined);
-      const r = await capture(adapter, analysis, { sectionIds: ids, motion: withMotion }, onProgress);
+      const r = await capture(adapter, analysis, { sectionIds: ids, motion: withMotion, signal: abort.signal }, onProgress);
       if (r.manifest.motion) setResult(r);
       setCaptures((list) => [{ key: Date.now(), result: r, stack: analysis.stack }, ...list]);
       setView('captures');
       // Lets automated tests (and future integrations) read the bundle.
       window.dispatchEvent(new CustomEvent('specimen:done', { detail: r }));
     } catch (err) {
-      setError(explainError(err));
+      if (abort.signal.aborted) setNotice('Capture cancelled. The page is back as it was.');
+      else setError(explainError(err));
     } finally {
+      abortRef.current = null;
+      setCancelling(false);
       setBusy(null);
       setProgress(null);
       setLive((prev) => {
@@ -131,6 +144,60 @@ export function App() {
       });
     }
   };
+
+  /** Record interaction: the user drives the pointer; the tab is recorded and the cursor drawn in. */
+  const startRecording = async () => {
+    if (tabId === null) return;
+    setError(null);
+    setNotice(null);
+    try {
+      const adapter = await connect(tabId);
+      if (!canRecordInteraction(adapter)) {
+        setError('Recording an interaction needs Chrome, Edge or another Chromium browser for now.');
+        return;
+      }
+      setBusy('record');
+      const session = await startInteraction(adapter);
+      recordingRef.current = session;
+      setRecording(session);
+      setElapsed(0);
+    } catch (err) {
+      setBusy(null);
+      setError(explainError(err));
+    }
+  };
+
+  const stopRecording = useCallback(async () => {
+    const session = recordingRef.current;
+    if (tabId === null || !session) return;
+    recordingRef.current = null;
+    setRecording(null);
+    setNotice('Encoding the recording…');
+    try {
+      const adapter = await connect(tabId);
+      const r = await stopInteraction(adapter, session);
+      setCaptures((list) => [{ key: Date.now(), recording: r }, ...list]);
+      setView('captures');
+      setNotice(null);
+      window.dispatchEvent(new CustomEvent('specimen:recorded', { detail: r }));
+    } catch (err) {
+      setNotice(null);
+      setError(explainError(err));
+    } finally {
+      setBusy(null);
+    }
+  }, [tabId, connect]);
+
+  // Timer, and a stop at the limit so a forgotten recording doesn't run on.
+  useEffect(() => {
+    if (!recording) return;
+    const timer = setInterval(() => {
+      const ms = Date.now() - recording.started;
+      setElapsed(ms);
+      if (ms >= CONFIG.motion.maxInteractionMs) void stopRecording();
+    }, 250);
+    return () => clearInterval(timer);
+  }, [recording, stopRecording]);
 
   const pick = async () => {
     if (tabId === null || !analysis) return;
@@ -192,6 +259,23 @@ export function App() {
         {capturing && progress ? `Capturing… ${progress.done}/${progress.total}` : excluded.size ? `Capture ${included} sections` : 'Capture everything'}
       </button>
 
+      {recording && (
+        <div className="recorder" role="status">
+          <span className="dot" aria-hidden="true" />
+          <span className="grow small">
+            Recording {Math.floor(elapsed / 1000)}s · move your mouse over the page
+          </span>
+          <button className="small" onClick={() => void stopRecording()}>
+            Stop
+          </button>
+        </div>
+      )}
+      {!busy && tabId !== null && (
+        <button className="secondary" onClick={startRecording}>
+          Record interaction <span className="muted small">· you move the mouse, Specimen records it with the cursor</span>
+        </button>
+      )}
+
       {analysis && !busy && (
         <div className="options">
           <label className="switch">
@@ -212,7 +296,21 @@ export function App() {
           <div className="bar">
             <span style={{ width: `${Math.round((progress.done / Math.max(1, progress.total)) * 100)}%` }} />
           </div>
-          <div className="muted small">{progress.step}</div>
+          <div className="progress-row">
+            <span className="muted small grow">{cancelling ? 'Cancelling… finishing the current step' : progress.step}</span>
+            {capturing && (
+              <button
+                className="small"
+                onClick={() => {
+                  setCancelling(true);
+                  abortRef.current?.abort(new DOMException('Cancelled', 'AbortError'));
+                }}
+                disabled={cancelling}
+              >
+                Cancel
+              </button>
+            )}
+          </div>
           {live && capturing && (
             <figure className="live">
               <img src={live.url} alt="" />
@@ -225,6 +323,11 @@ export function App() {
       {error && (
         <div className="notice error" role="alert">
           {error}
+        </div>
+      )}
+      {notice && !busy && (
+        <div className="notice" role="status">
+          {notice}
         </div>
       )}
       {stale && !busy && (
@@ -569,7 +672,7 @@ function MotionView({ result, sections }: { result: CaptureResult | null; sectio
             <li key={s.id} className="row">
               <span className="grow name">{s.name}</span>
               <span className="muted small">
-                {n.animations} anim · {n.interactions} hover · {n.scrollEffects} scroll
+                {n.animations} anim · {n.interactions} hover · {n.scrollEffects} scroll{n.pointer ? ` · ${n.pointer} pointer` : ''}
               </span>
             </li>
           ) : null;

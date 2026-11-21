@@ -38,6 +38,8 @@ export interface SpecSection {
   callouts: Callout[];
   motion: MotionCue[];
   video: string | null;
+  /** Images and clips that show the motion (filmstrips with the cursor drawn in, recordings). */
+  media?: { label: string; path: string }[];
 }
 
 export interface DesignSpecInput {
@@ -292,6 +294,7 @@ export function toDesignMarkdown(input: DesignSpecInput): string {
       out.push('Motion and interaction:', '');
       for (const m of s.motion) out.push(`- ${m.kind}: \`${m.target}\`: ${m.description}`);
       if (s.video) out.push(`- Recording: [${s.video}](${s.video})`);
+      for (const m of s.media ?? []) out.push(/\.(png|jpe?g|webp|gif)$/i.test(m.path) ? `- ${m.label}:\n\n  ![${m.label}](${m.path})` : `- ${m.label}: [${m.path}](${m.path})`);
       out.push('');
     } else if (!input.motionRecorded) {
       out.push('Motion was not recorded for this capture.', '');

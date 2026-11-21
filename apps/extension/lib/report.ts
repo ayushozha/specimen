@@ -24,13 +24,15 @@ export function renderReport(manifest: Manifest, analysis: Analysis): string {
   const sections = manifest.sections
     .map((s) => {
       const shots = s.files.filter((f) => f.endsWith('.png'));
+      // The thumbnail is the widest screenshot, not a motion or state image that happens to come first.
+      const thumb = manifest.breakpoints.map((b) => `sections/${s.id}/${b.name}.png`).find((f) => s.files.includes(f)) ?? shots[0];
       const html = s.files.find((f) => f.endsWith('.html'));
       const links = [...shots.map((f) => `<a href="${f}">${esc(f.split('/').pop()!.replace('.png', ''))}</a>`), html ? `<a href="${html}">HTML</a>` : '']
         .filter(Boolean)
         .join(' · ');
       const rect = s.rects[manifest.breakpoints[0].name] ?? s.rect;
       const strip = rect.width > STRIP_RATIO * rect.height ? ' class="strip"' : '';
-      return `<article class="card">${shots[0] ? `<a href="${shots[0]}"><img${strip} src="${shots[0]}" alt="${esc(s.name)}" loading="lazy"></a>` : ''}
+      return `<article class="card">${thumb ? `<a href="${thumb}"><img${strip} src="${thumb}" alt="${esc(s.name)}" loading="lazy"></a>` : ''}
 <div class="row"><strong>${esc(s.name)}</strong><span class="muted">${size(rect)}</span></div>
 <div class="muted small">${links}</div></article>`;
     })

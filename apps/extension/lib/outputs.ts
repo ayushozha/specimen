@@ -2,7 +2,7 @@ import type { LayoutTree, StackItem } from '@specimen/core';
 import { pickCallouts, toDesignMarkdown, tokensJson, type Callout, type FigmaDocument, type MotionCue, type SpecSection } from '@specimen/exporters';
 import { strFromU8, strToU8, zipSync } from 'fflate';
 import type { CaptureResult } from './capture';
-import type { CapturedAnimation, ClassifiedTrack, InteractionEffect } from './motion';
+import type { CapturedAnimation, ClassifiedTrack, InteractionEffect, PointerEffect } from './motion';
 
 /**
  * What a capture turns into: paste-ready copies for design tools, design files, and a DESIGN.md
@@ -165,6 +165,18 @@ export function motionCues(result: CaptureResult, id: string): MotionCue[] {
     const how = { 'scroll-reveal': 'plays once as it scrolls into view', 'scroll-linked': 'follows the scroll position', pointer: 'follows the pointer', time: 'changes over time' }[t.kind];
     cues.push({ kind, target: t.selector, description: `${t.prop} ${first ?? ''} → ${last ?? ''}, ${how}${t.observed ? ' (IntersectionObserver)' : ''}` });
   }
+  const pointer = json<PointerEffect & { tracks: ClassifiedTrack[] }>(result, `sections/${id}/pointer.json`);
+  if (pointer && pointer.kind !== 'dom') {
+    const where = pointer.kind === 'canvas' ? 'paints into a <canvas> (WebGL or 2D)' : 'changes the pixels under it';
+    const fade = pointer.fadeMs == null ? 'the trail stays after the pointer stops' : `the trail fades about ${pointer.fadeMs}ms after the pointer stops`;
+    const region = pointer.region ? `, over ${pointer.region.width}×${pointer.region.height} at ${pointer.region.x},${pointer.region.y} of the viewport` : '';
+    cues.push({ kind: 'pointer', target: pointer.kind === 'canvas' ? 'canvas' : 'section', description: `moving the pointer ${where}${region}; ${fade}. It listens to pointermove on the whole window, not on an element; see the filmstrip and clip (cursor drawn in).` });
+  }
+  for (const t of pointer?.tracks ?? []) {
+    const first = t.samples[0]?.[2];
+    const last = t.samples[t.samples.length - 1]?.[2];
+    cues.push({ kind: 'pointer', target: t.selector, description: `${t.prop} follows the pointer (${first ?? ''} → ${last ?? ''})` });
+  }
   for (const e of interactions) {
     const changes = e.changes.slice(0, 4).map((c) => `${c.prop} ${c.from} → ${c.to}`).join('; ');
     const timing = e.transitions.length ? e.transitions.slice(0, 2).map((t) => `${t.property} ${ms(t.duration)} ${t.easing}${t.delay ? ` +${ms(t.delay)}` : ''}`).join(', ') : 'instant';
@@ -250,8 +262,21 @@ export async function agentSpec(result: CaptureResult, stack: StackItem[], ids?:
     }
     const video = result.files[`sections/${s.id}/scroll.mp4`] ? `motion/${s.id}.mp4` : null;
     if (video) files[video] = result.files[`sections/${s.id}/scroll.mp4`];
+    const media: { label: string; path: string }[] = [];
+    const strip = result.files[`sections/${s.id}/pointer-strip.png`];
+    if (strip) {
+      files[`motion/${s.id}-pointer-strip.png`] = strip;
+      media.push({ label: 'Pointer stroke, frame by frame (cursor drawn in)', path: `motion/${s.id}-pointer-strip.png` });
+    }
+    const clip = Object.keys(result.files).find((p) => p.startsWith(`sections/${s.id}/pointer.`) && /\.(mp4|webm)$/.test(p));
+    if (clip) {
+      const out = `motion/${s.id}-pointer.${clip.split('.').pop()}`;
+      files[out] = result.files[clip];
+      media.push({ label: 'Pointer stroke clip', path: out });
+      preview.videos++;
+    }
     const motion = motionCues(result, s.id);
-    sections.push({ id: s.id, name: s.name, width: s.width, height: s.height, tree, screenshots: shots, highlights, callouts, motion, video });
+    sections.push({ id: s.id, name: s.name, width: s.width, height: s.height, tree, screenshots: shots, highlights, callouts, motion, video, media });
     preview.sections++;
     preview.screenshots += 1 + (shots.tablet ? 1 : 0) + (shots.mobile ? 1 : 0);
     preview.highlights += highlights ? 1 : 0;

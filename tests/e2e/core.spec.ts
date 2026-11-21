@@ -165,6 +165,22 @@ test('the picker shows the box model, picks on click without following links, an
   expect(await page.evaluate(() => window.__specimenCore.pickState())).toEqual({ picking: false, section: null });
 });
 
+test('scrollToY holds its position while a smooth-scroll library is still animating', async ({ page }) => {
+  // Like Lenis finishing an earlier smooth scroll: for 500ms it writes its own position every frame.
+  await page.evaluate(() => {
+    const until = performance.now() + 500;
+    const fight = () => {
+      if (performance.now() > until) return;
+      window.scrollTo(0, 1200);
+      requestAnimationFrame(fight);
+    };
+    requestAnimationFrame(fight);
+  });
+  expect(await page.evaluate(() => window.__specimenCore.scrollToY(0))).toBe(0);
+  await page.waitForTimeout(200);
+  expect(await page.evaluate(() => scrollY)).toBe(0);
+});
+
 test('measures text on gradients against the gradient, and picks a readable muted text colour', async ({ page }) => {
   const palette = await page.evaluate(() => window.__specimenCore.extractPalette());
   const onGradient = palette.contrast.find((p) => p.fg === '#f8fafc');

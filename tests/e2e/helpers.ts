@@ -21,6 +21,23 @@ export async function scan(panel: Page, options: { motion?: boolean } = {}): Pro
   if (options.motion) await panel.getByLabel(/Record motion/).check();
 }
 
+/**
+ * Opens the site in a tab and the panel in its own window (as beside a real side panel), so the site
+ * stays visible: background tabs don't paint, and canvas effects need painting.
+ */
+export async function openSiteAndPanel(context: BrowserContext, extensionId: string, url: string, viewport = { width: 1200, height: 800 }): Promise<{ site: Page; panel: Page }> {
+  const site = context.pages()[0] ?? (await context.newPage());
+  await site.setViewportSize(viewport);
+  await site.goto(url);
+  const worker = context.serviceWorkers()[0];
+  const [tab] = await worker.evaluate(() => chrome.tabs.query({}));
+  const opened = context.waitForEvent('page');
+  await worker.evaluate(([u]) => chrome.windows.create({ url: u, type: 'popup', width: 420, height: 900 }), [`chrome-extension://${extensionId}/sidepanel.html?tabId=${tab.id}`] as const);
+  const panel = await opened;
+  await panel.waitForLoadState();
+  return { site, panel };
+}
+
 /** Width and height from a PNG's IHDR chunk. */
 export function pngSize(bytes: Uint8Array): { width: number; height: number } {
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);

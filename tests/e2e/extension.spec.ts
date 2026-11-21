@@ -84,7 +84,7 @@ test('Capture everything produces a complete bundle', async () => {
 
     // Phase 2: motion and interactions.
     const video = (base: string) => Object.keys(files).find((k) => k.startsWith(base) && /\.(mp4|webm)$/.test(k));
-    for (const base of ['page/intro', 'page/scroll-desktop', 'page/pointer', 'sections/02-ship-exact-designs/motion/pulse-', 'sections/02-ship-exact-designs/states/get-started-1--hover']) {
+    for (const base of ['page/intro', 'page/scroll-desktop', 'sections/02-ship-exact-designs/pointer', 'sections/02-ship-exact-designs/motion/pulse-', 'sections/02-ship-exact-designs/states/get-started-1--hover']) {
       expect(video(base), base).toBeTruthy();
     }
     const heroHover = JSON.parse(strFromU8(files['sections/02-ship-exact-designs/interactions.json']));

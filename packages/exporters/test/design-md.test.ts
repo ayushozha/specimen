@@ -74,6 +74,10 @@ describe('design tokens and DESIGN.md', () => {
           callouts: pickCallouts(tree),
           motion: [{ kind: 'hover', target: 'a.btn', description: 'transform none → translateY(-2px), 200ms ease-out' }],
           video: null,
+          media: [
+            { label: 'Pointer stroke, frame by frame (cursor drawn in)', path: 'motion/01-hero-pointer-strip.png' },
+            { label: 'Pointer stroke clip', path: 'motion/01-hero-pointer.mp4' },
+          ],
         },
       ],
       motionRecorded: true,
@@ -88,6 +92,8 @@ describe('design tokens and DESIGN.md', () => {
     expect(md).toContain('3. **Button “Get started”** at 32,230');
     expect(md).toContain('- hover: `a.btn`: transform none → translateY(-2px), 200ms ease-out');
     expect(md).toContain('Next.js 15.0.0');
+    expect(md).toContain('![Pointer stroke, frame by frame (cursor drawn in)](motion/01-hero-pointer-strip.png)');
+    expect(md).toContain('- Pointer stroke clip: [motion/01-hero-pointer.mp4](motion/01-hero-pointer.mp4)');
     expect(md).toContain('Claude Code, Codex, Cursor');
   });
 });

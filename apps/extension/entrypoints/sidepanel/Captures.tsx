@@ -17,12 +17,20 @@ import {
   type SpecPreview,
 } from '../../lib/outputs';
 import { zipSync } from 'fflate';
+import { interactionFiles, type InteractionRecording } from '../../lib/interaction';
 
 export interface CaptureItem {
   key: number;
   result: CaptureResult;
   stack: StackItem[];
 }
+
+export interface RecordingItem {
+  key: number;
+  recording: InteractionRecording;
+}
+
+export type TrayItem = CaptureItem | RecordingItem;
 
 /** Object URLs for PNG bytes, revoked when the component goes away. */
 function useImageUrls(files: Record<string, Uint8Array>, paths: string[]): Record<string, string> {
@@ -31,7 +39,7 @@ function useImageUrls(files: Record<string, Uint8Array>, paths: string[]): Recor
   return urls;
 }
 
-export function CapturesView({ items, onRemove, onError }: { items: CaptureItem[]; onRemove: (key: number) => void; onError: (message: string) => void }) {
+export function CapturesView({ items, onRemove, onError }: { items: TrayItem[]; onRemove: (key: number) => void; onError: (message: string) => void }) {
   if (!items.length) {
     return (
       <p className="panel muted">
@@ -42,9 +50,13 @@ export function CapturesView({ items, onRemove, onError }: { items: CaptureItem[
   }
   return (
     <section className="panel">
-      {items.map((item) => (
-        <CaptureCard key={item.key} item={item} onRemove={() => onRemove(item.key)} onError={onError} />
-      ))}
+      {items.map((item) =>
+        'recording' in item ? (
+          <RecordingCard key={item.key} item={item} onRemove={() => onRemove(item.key)} onError={onError} />
+        ) : (
+          <CaptureCard key={item.key} item={item} onRemove={() => onRemove(item.key)} onError={onError} />
+        ),
+      )}
     </section>
   );
 }
@@ -130,6 +142,8 @@ function CaptureCard({ item, onRemove, onError }: { item: CaptureItem; onRemove:
           {flash}
         </div>
       )}
+
+      <PointerPreview result={result} ids={ids} onSave={(label, fn) => run(label, fn)} />
 
       <h4>Design tools</h4>
       <ul className="list tools">
@@ -259,4 +273,111 @@ function Tool({ name, hint, children }: { name: string; hint: string; children: 
 
 function fail(message = 'This capture has no file for that export'): never {
   throw new Error(message);
+}
+
+/** Pointer effects found in the selected sections: the filmstrip with the cursor drawn in, and the clip. */
+function PointerPreview({ result, ids, onSave }: { result: CaptureResult; ids: string[]; onSave: (label: string, fn: () => unknown) => void }) {
+  const found = ids.filter((id) => result.files[`sections/${id}/pointer-strip.png`]);
+  const urls = useImageUrls(result.files, found.map((id) => `sections/${id}/pointer-strip.png`));
+  if (!found.length) return null;
+  return (
+    <>
+      <h4>Pointer effects</h4>
+      {found.map((id) => {
+        const clip = Object.keys(result.files).find((p) => p.startsWith(`sections/${id}/pointer.`) && /\.(mp4|webm)$/.test(p));
+        const info = result.files[`sections/${id}/pointer.json`] ? (JSON.parse(new TextDecoder().decode(result.files[`sections/${id}/pointer.json`])) as { kind: string; fadeMs: number | null }) : null;
+        return (
+          <div key={id} className="spec">
+            <img className="spec-shot strip" src={urls[`sections/${id}/pointer-strip.png`]} alt="Pointer stroke, frame by frame" />
+            <div className="small">
+              {info?.kind === 'canvas' ? 'The pointer paints into a canvas' : info?.kind === 'pixels' ? 'The pointer changes the pixels under it' : 'Elements follow the pointer'}
+              {info?.fadeMs != null ? `; the trail fades in about ${info.fadeMs}ms` : info && info.kind !== 'dom' ? '; the trail stays' : ''}. Included in DESIGN.md.
+            </div>
+            {clip && (
+              <div className="actions">
+                <button className="small" onClick={() => onSave('Saved the clip', () => downloadFile(`${baseName(result, id)}-pointer.${clip.split('.').pop()}`, result.files[clip]))}>
+                  Clip with cursor
+                </button>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </>
+  );
+}
+
+function RecordingCard({ item, onRemove, onError }: { item: RecordingItem; onRemove: () => void; onError: (message: string) => void }) {
+  const r = item.recording;
+  const [flash, setFlash] = useState<string | null>(null);
+  const video = useMemo(() => (r.video ? URL.createObjectURL(new Blob([r.video.data as BlobPart], { type: r.video.ext === 'mp4' ? 'video/mp4' : 'video/webm' })) : null), [r]);
+  useEffect(() => () => void (video && URL.revokeObjectURL(video)), [video]);
+  const host = (() => {
+    try {
+      return new URL(r.url).hostname.replace(/^www\./, '');
+    } catch {
+      return 'page';
+    }
+  })();
+  const stamp = r.at.replace(/[:.]/g, '-').slice(0, 19);
+  const run = async (label: string, fn: () => Promise<unknown> | unknown) => {
+    try {
+      const out = await fn();
+      setFlash(typeof out === 'string' ? out : label);
+      setTimeout(() => setFlash(null), 2500);
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') return;
+      onError(err instanceof Error ? err.message : String(err));
+    }
+  };
+  const files = () => interactionFiles(r);
+  return (
+    <article className="capture">
+      <header className="capture-head">
+        <div className="grow">
+          <div className="name">Interaction · {host}</div>
+          <div className="muted small">
+            {(r.durationMs / 1000).toFixed(1)}s · {r.samples.length} pointer samples · {new Date(r.at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+          </div>
+        </div>
+        <button className="ghost small icon" onClick={onRemove} aria-label="Remove recording">
+          ×
+        </button>
+      </header>
+      {video ? <video className="recording" src={video} controls muted loop playsInline /> : <p className="muted small">This browser couldn't encode the clip; the filmstrip and pointer path are still saved.</p>}
+      {flash && (
+        <div className="flash small" role="status">
+          {flash}
+        </div>
+      )}
+      <div className="actions wrap">
+        {r.video && (
+          <button className="small" onClick={() => run('Saved the clip', () => downloadFile(`${host}-interaction-${stamp}.${r.video!.ext}`, r.video!.data))}>
+            Clip with cursor
+          </button>
+        )}
+        {r.strip && (
+          <button className="small" onClick={() => run('Filmstrip copied', () => copyImage(r.strip!))}>
+            Copy filmstrip
+          </button>
+        )}
+        <button
+          className="small"
+          onClick={() =>
+            run('Saved', async () => {
+              const where = await writeToFolder(files(), `interaction-${stamp}`);
+              if (where) return `Saved to ${where}`;
+              downloadFile(`${host}-interaction-${stamp}.zip`, zipSync(Object.fromEntries(Object.entries(files()).map(([p, d]) => [`interaction-${stamp}/${p}`, d]))));
+              return 'Saved the interaction zip';
+            })
+          }
+        >
+          Save for agents
+        </button>
+        <button className="small" onClick={() => run('Copied. Paste into your agent and attach the filmstrip', () => navigator.clipboard.writeText(new TextDecoder().decode(files()['INTERACTION.md'])))}>
+          Copy prompt
+        </button>
+      </div>
+    </article>
+  );
 }

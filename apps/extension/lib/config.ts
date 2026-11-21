@@ -32,6 +32,8 @@ export const CONFIG = {
   mainWorldTimeoutMs: 5000,
   motion: {
     fps: 30,
+    /** Longest side of a recorded clip in pixels; hardware encoders refuse much larger frames. */
+    maxVideoSide: 1920,
     /** Page-load recording after the deep-mode reload. */
     introMs: 3000,
     loadTimeoutMs: 15000,
@@ -48,6 +50,18 @@ export const CONFIG = {
     perSignature: 2,
     maxToggles: 10,
     pointerSweepMs: 2000,
+    /** Longest Record interaction before it stops by itself. */
+    maxInteractionMs: 30_000,
+    /** Recorded before the stroke, to tell the page's own motion from the pointer's. */
+    pointerIdleMs: 600,
+    /** Recorded after the stroke, to see how long a trail takes to fade. */
+    pointerFadeMs: 2000,
+    /** Sections that get a pointer stroke (with a canvas, or the hero when the page tracks the pointer). */
+    maxPointerSections: 3,
+    /** Smallest canvas, in CSS px per side, worth a stroke. */
+    pointerMinCanvas: 200,
+    /** Share of the viewport a stroke must change to count as a painted pointer effect. */
+    pointerMinChange: 0.01,
     settleMs: 250,
     clipPadding: 12,
   },
