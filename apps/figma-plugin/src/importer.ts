@@ -108,6 +108,7 @@ export async function importDocument(figma: PluginAPI, doc: FigmaDocument, files
       node.textAlignHorizontal = t.align === 'center' ? 'CENTER' : t.align === 'right' ? 'RIGHT' : t.align === 'justify' ? 'JUSTIFIED' : 'LEFT';
       if (t.transform === 'uppercase') node.textCase = 'UPPER';
       if (t.transform === 'lowercase') node.textCase = 'LOWER';
+      if (t.transform === 'capitalize') node.textCase = 'TITLE';
       if (t.decoration.includes('underline')) node.textDecoration = 'UNDERLINE';
       if (t.decoration.includes('line-through')) node.textDecoration = 'STRIKETHROUGH';
       node.textAutoResize = 'WIDTH_AND_HEIGHT';

@@ -5,14 +5,15 @@
  */
 import { chromium } from '@playwright/test';
 import { access, mkdir, readFile, writeFile } from 'node:fs/promises';
-import { dirname, join, resolve } from 'node:path';
+import { join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 import { captureUrl, launch } from './capture.ts';
 import { checkBundle } from './check.ts';
 import { diffBundles, diffHtml } from './diff.ts';
 import { downloadMedia } from './media.ts';
 
-const DEFAULT_EXTENSION = resolve(dirname(new URL(import.meta.url).pathname), '../../extension/.output/chrome-mv3');
+// import.meta.dirname is a real path; URL.pathname would keep spaces as %20.
+const DEFAULT_EXTENSION = resolve(import.meta.dirname, '../../extension/.output/chrome-mv3');
 
 const HELP = `Specimen CLI
 

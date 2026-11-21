@@ -9,7 +9,7 @@
   <img alt="Safari" src="https://img.shields.io/badge/Safari-macOS-0A0A0A?logo=safari&logoColor=white">
   <img alt="Figma plugin" src="https://img.shields.io/badge/Figma-plugin-0A0A0A?logo=figma&logoColor=white">
   <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-6-3178C6?logo=typescript&logoColor=white">
-  <img alt="Tests" src="https://img.shields.io/badge/tests-80%20passing-2ea44f">
+  <img alt="Tests" src="https://img.shields.io/badge/tests-81%20passing-2ea44f">
   <img alt="License" src="https://img.shields.io/badge/license-none%20yet-lightgrey">
 </p>
 
@@ -231,7 +231,7 @@ pnpm test
 pnpm test:e2e
 ```
 
-- **Unit tests (43):** colour maths, median cut, motion maths, easing fits (named, bezier, spring), every exporter including the agent DESIGN.md (callouts, tokens), generated-code safety, and the Figma importer against a recording stand-in for Figma's API.
+- **Unit tests (44):** colour maths, median cut, motion maths, easing fits (named, bezier, spring), every exporter including the agent DESIGN.md (callouts, tokens), generated-code safety, and the Figma importer against a recording stand-in for Figma's API.
 - **Browser tests (37):** the core in a real page, including the picker's box model and keys; the full extension capturing the fixture; nothing running before Scan page; a one-section capture and every output (SVG, HTML and image copies read back from the clipboard, the plugin file, the agent spec); every export opened the way its tool would (SVG pixel-compared to the screenshot, PSD parsed, Lottie played in lottie-web, the After Effects script parsed); generated CSS replayed and compared to the original curve; the Firefox/Safari code path run inside Chromium; the CLI's batch capture, diff and HLS download; and a hostile page that tries to inject scripts, steal typed values, get user activation and escape file paths.
 
 Run `npx playwright install chromium` once. The Firefox build is checked with `npx web-ext lint --source-dir apps/extension/.output/firefox-mv3` (0 errors) and the Safari app with `xcodebuild`.

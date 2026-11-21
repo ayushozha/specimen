@@ -28,6 +28,14 @@ export interface SvgOptions {
   fontCss?: string;
 }
 
+/** CSS text-transform, which an SVG viewer won't apply to text it didn't style. */
+export function textTransform(text: string, transform: string): string {
+  if (transform === 'uppercase') return text.toUpperCase();
+  if (transform === 'lowercase') return text.toLowerCase();
+  if (transform === 'capitalize') return text.replace(/(^|[\s\-(“"'])(\p{L})/gu, (_m, before: string, letter: string) => before + letter.toUpperCase());
+  return text;
+}
+
 export function toSvg(tree: LayoutTree, href: (url: string) => string | null, options: SvgOptions = {}): string {
   const defs: string[] = [];
   let id = 0;
@@ -81,7 +89,7 @@ export function toSvg(tree: LayoutTree, href: (url: string) => string | null, op
       const lines = t.lines
         .map((l) => {
           const baseline = round(oy + l.y + (l.height - t.fontSize) / 2 + t.fontSize * 0.8);
-          return `<tspan x="${round(ox + l.x)}" y="${baseline}">${esc(t.transform === 'uppercase' ? l.text.toUpperCase() : l.text)}</tspan>`;
+          return `<tspan x="${round(ox + l.x)}" y="${baseline}">${esc(textTransform(l.text, t.transform))}</tspan>`;
         })
         .join('');
       parts.push(
