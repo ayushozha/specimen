@@ -146,6 +146,14 @@ export async function captureMotion(ctx: MotionContext): Promise<{ summary: Moti
     const start = Date.now();
     return () => Date.now() - start > m.stepBudgetMs;
   };
+  const snapshot = async (clip: Rect, visible: boolean | undefined, undo: () => Promise<unknown>) => {
+    try {
+      return await adapter.screenshot(clip, { visible });
+    } catch (error) {
+      if (adapter.captureTargetChanged) await undo().catch(() => {});
+      throw error;
+    }
+  };
 
   await adapter.setViewport(desktop, scale).catch(() => null);
 
@@ -288,7 +296,7 @@ export async function captureMotion(ctx: MotionContext): Promise<{ summary: Moti
         const changes = diffSnapshots(before, after);
         if (changes.length) {
           const png = `${base}--hover.png`;
-          ctx.put(png, await adapter.screenshot(clip, { visible }), false);
+          ctx.put(png, await snapshot(clip, visible, () => adapter.hover(c.selector, box.viewport, false)), false);
           files.push(png);
           effects.push({
             selector: c.selector,
@@ -311,7 +319,7 @@ export async function captureMotion(ctx: MotionContext): Promise<{ summary: Moti
           const changes = diffSnapshots(before, await adapter.call('snapshotStyles', c.selector, 40));
           if (changes.length) {
             const png = `${base}--focus.png`;
-            ctx.put(png, await adapter.screenshot(clip, { visible }), false);
+            ctx.put(png, await snapshot(clip, visible, () => adapter.call('blurActive')), false);
             effects.push({ selector: c.selector, rect: box.page, label: c.label, trigger: 'focus', sources: c.sources, changes, transitions: [], files: [png] });
           }
           await adapter.call('blurActive');
@@ -440,7 +448,10 @@ export async function captureMotion(ctx: MotionContext): Promise<{ summary: Moti
       await sleep(m.settleMs * 2);
       const [measured] = await adapter.call('measureSections', [section]);
       const path = `sections/${sid}/states/${slug(t.label)}-${i + 1}--open.png`;
-      ctx.put(path, await adapter.screenshot(measured.rect), false);
+      ctx.put(path, await snapshot(measured.rect, undefined, async () => {
+        await adapter.call('clickToggle', t.selector);
+        if ((await adapter.call('interactiveState')) !== before) await adapter.call('pressEscape');
+      }), false);
       ctx.addSectionFile(sid!, path);
       summary.toggles++;
       await adapter.call('clickToggle', t.selector);
