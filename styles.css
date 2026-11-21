@@ -507,3 +507,16 @@ kbd {
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important; }
 }
+
+.policy-header {
+  display: flex;
+  min-height: 64px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.policy { max-width: 740px; }
+.policy h1 { margin-bottom: 12px; font-size: clamp(2.7rem, 7vw, 5.1rem); }
+.policy h2 { margin-top: 36px; margin-bottom: 8px; font-size: 1.5rem; letter-spacing: -0.04em; }
+.policy p + p { margin-top: 12px; }
