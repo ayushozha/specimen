@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Ink fixture</title>
+<style>
+  body { margin: 0; font: 16px/1.5 system-ui, sans-serif; color: #0a0a0a; }
+  #hero { position: relative; height: 100vh; background: #f4f0ff; }
+  #hero canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+  #hero h1 { position: relative; margin: 0; padding: 120px 64px 0; font-size: 56px; pointer-events: none; }
+  #notes { height: 900px; padding: 64px; background: #ffffff; }
+</style>
+</head>
+<body>
+<section id="hero"><canvas></canvas><h1>Ink follows the pointer</h1></section>
+<section id="notes"><h2>Notes</h2><p>Below the hero, nothing reacts to the pointer.</p></section>
+<script>
+  // Like trajectory.ai: the whole window feeds a canvas trail that fades.
+  const canvas = document.querySelector('#hero canvas');
+  const ctx = canvas.getContext('2d');
+  const size = () => { canvas.width = innerWidth; canvas.height = innerHeight; };
+  size();
+  addEventListener('resize', size);
+  addEventListener('pointermove', (e) => {
+    const r = canvas.getBoundingClientRect();
+    ctx.fillStyle = 'rgba(236, 72, 153, 0.85)';
+    ctx.beginPath();
+    ctx.arc(e.clientX - r.left, e.clientY - r.top, 40, 0, Math.PI * 2);
+    ctx.fill();
+  });
+  const fade = () => {
+    ctx.fillStyle = 'rgba(244, 240, 255, 0.1)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    requestAnimationFrame(fade);
+  };
+  requestAnimationFrame(fade);
+</script>
+</body>
+</html>

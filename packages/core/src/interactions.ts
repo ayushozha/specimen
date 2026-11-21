@@ -261,9 +261,22 @@ export function viewportSize(): { width: number; height: number; scrollY: number
 }
 
 /** Scrolls the page to `y` and resolves after a frame; returns where it actually ended up. */
-export async function scrollToY(y: number): Promise<number> {
-  window.scrollTo(0, y);
-  await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+export async function scrollToY(y: number, timeoutMs = 2000): Promise<number> {
+  const frame = () => new Promise((r) => requestAnimationFrame(() => r(null)));
+  const target = Math.max(0, Math.min(y, document.documentElement.scrollHeight - window.innerHeight));
+  // Smooth-scroll libraries (Lenis, Locomotive) finish their own animation over a native scroll, so
+  // keep setting the position until it has held for a few frames.
+  const deadline = Date.now() + timeoutMs;
+  let held = 0;
+  window.scrollTo({ top: target, left: 0, behavior: 'instant' as ScrollBehavior });
+  while (held < 3 && Date.now() < deadline) {
+    await frame();
+    if (Math.abs(window.scrollY - target) <= 1) held++;
+    else {
+      held = 0;
+      window.scrollTo({ top: target, left: 0, behavior: 'instant' as ScrollBehavior });
+    }
+  }
   return window.scrollY;
 }
 
@@ -282,4 +295,39 @@ export function interactiveState(): string {
 export function pressEscape(): void {
   const target = document.activeElement ?? document.body;
   for (const type of ['keydown', 'keyup'] as const) target.dispatchEvent(new KeyboardEvent(type, { key: 'Escape', code: 'Escape', bubbles: true, cancelable: true }));
+}
+
+/** One pointer sample from the page: wall-clock seconds and viewport CSS px. */
+export interface PointerLogSample {
+  t: number;
+  x: number;
+  y: number;
+  down: boolean;
+}
+
+const POINTER_LOG = '__specimenPointerLog';
+type PointerLogGlobal = { [POINTER_LOG]?: { samples: PointerLogSample[]; stop: () => void } };
+
+/**
+ * Logs the real pointer while the user records an interaction, so the recording can show the
+ * cursor (screen recordings leave it out). Listens without affecting the page.
+ */
+export function startPointerLog(maxSamples = 20_000): void {
+  stopPointerLog();
+  const samples: PointerLogSample[] = [];
+  const onEvent = (e: PointerEvent) => {
+    if (samples.length < maxSamples) samples.push({ t: Date.now() / 1000, x: e.clientX, y: e.clientY, down: e.buttons > 0 });
+  };
+  const types = ['pointermove', 'pointerdown', 'pointerup'] as const;
+  for (const type of types) window.addEventListener(type, onEvent, { capture: true, passive: true });
+  (globalThis as PointerLogGlobal)[POINTER_LOG] = { samples, stop: () => types.forEach((type) => window.removeEventListener(type, onEvent, { capture: true })) };
+}
+
+/** Stops logging and returns the samples (empty when nothing was logged). */
+export function stopPointerLog(): PointerLogSample[] {
+  const log = (globalThis as PointerLogGlobal)[POINTER_LOG];
+  if (!log) return [];
+  log.stop();
+  delete (globalThis as PointerLogGlobal)[POINTER_LOG];
+  return log.samples;
 }

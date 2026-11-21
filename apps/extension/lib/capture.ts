@@ -77,6 +77,8 @@ export interface CaptureRequest {
    * menus. Off unless asked for: it reloads the page and moves the pointer over it.
    */
   motion?: boolean;
+  /** Aborting it stops the capture between steps and puts the page back as it was. */
+  signal?: AbortSignal;
 }
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -145,11 +147,15 @@ export async function capture(
   let motion: MotionSummary | null = null;
   const total = breakpoints.length * (sections.length + 1) + (wholePage ? 4 : 2) + 1 + (withMotion ? MOTION_STEPS : 0);
   let done = 0;
+  const signal = request.signal;
   const step = async (name: string, fn: () => Promise<void>) => {
+    signal?.throwIfAborted();
     onProgress({ step: name, done, total });
     try {
       await fn();
     } catch (err) {
+      // A cancel ends the capture; any other failure is recorded and the capture goes on.
+      if (signal?.aborted) throw signal.reason;
       errors.push({ step: name, message: err instanceof Error ? err.message : String(err) });
     }
     done++;
@@ -171,6 +177,7 @@ export async function capture(
         step,
         addSectionFile: (id, path) => sectionFiles[id]?.push(path),
         note: (stepName, message) => errors.push({ step: stepName, message }),
+        signal,
       }));
     }
 
@@ -324,6 +331,13 @@ export async function capture(
     });
   } finally {
     await adapter.setViewport(null, 1).catch(() => {});
+    if (signal?.aborted) {
+      // Cancelled mid-step: undo what a section step may have left on the page.
+      await adapter.call('restoreHidden').catch(() => {});
+      await adapter.evaluateMain(freezePageScripts, false).catch(() => 0);
+      await adapter.call('resumeAllAnimations').catch(() => {});
+      await adapter.call('cancelPick').catch(() => {});
+    }
   }
 
   const manifest: Manifest = {

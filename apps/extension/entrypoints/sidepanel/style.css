@@ -109,3 +109,11 @@ h3 { font-size: 12px; font-weight: 600; margin: 18px 0 6px; }
 .spec { border: 1px solid var(--border); border-radius: 9px; padding: 8px; display: flex; flex-direction: column; gap: 6px; }
 .spec-shot { width: 100%; max-height: 160px; object-fit: cover; object-position: top left; border-radius: 6px; border: 1px solid var(--border); }
 .actions.wrap { flex-wrap: wrap; }
+.progress-row { display: flex; align-items: center; gap: 8px; }
+.spec-shot.strip { max-height: none; object-fit: contain; }
+.recording { width: 100%; border-radius: 7px; border: 1px solid var(--border); background: #000; }
+.recorder { display: flex; align-items: center; gap: 8px; border: 1px solid var(--border-strong); border-radius: 9px; padding: 8px 10px; }
+.recorder .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--rec); flex: none; animation: rec-pulse 1.2s ease-in-out infinite; }
+@keyframes rec-pulse { 50% { opacity: 0.35; } }
+@media (prefers-reduced-motion: reduce) { .recorder .dot { animation: none; } }
+.secondary { text-align: left; padding: 8px 10px; border-radius: 9px; }
