@@ -40,7 +40,52 @@ export interface ExportContext {
   scale: number;
   source: { url: string; title: string };
   put(path: string, data: Uint8Array, compress?: boolean): void;
+  /** Bytes of a file already in the bundle (assets, fonts), or null. */
+  read(path: string): Uint8Array | null;
   errors: StepError[];
+}
+
+/** Media types for files inlined into SVGs, by extension. */
+const MIME: Record<string, string> = {
+  png: 'image/png',
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  webp: 'image/webp',
+  gif: 'image/gif',
+  avif: 'image/avif',
+  svg: 'image/svg+xml',
+  woff2: 'font/woff2',
+  woff: 'font/woff',
+  ttf: 'font/ttf',
+  otf: 'font/otf',
+};
+
+function dataUrl(bytes: Uint8Array, path: string): string {
+  let bin = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  const ext = path.split('.').pop()!.toLowerCase();
+  return `data:${MIME[ext] ?? 'application/octet-stream'};base64,${btoa(bin)}`;
+}
+
+/**
+ * The section's @font-face rules with each bundled font inlined, once per rule. Figma, Illustrator
+ * and image viewers open an SVG on its own, so it can't point at other files in the bundle.
+ */
+function inlineFonts(css: string | undefined, read: (path: string) => Uint8Array | null): string | undefined {
+  if (!css) return css;
+  const seen = new Set<string>();
+  return (css.match(/@font-face\s*\{[^}]*\}/g) ?? [])
+    .filter((rule) => {
+      const key = rule.replace(/\s+/g, '');
+      return !seen.has(key) && seen.add(key);
+    })
+    .map((rule) =>
+      rule.replace(/url\(\s*["']?\.\.\/\.\.\/([^"')]+)["']?\s*\)/g, (m, path: string) => {
+        const bytes = read(path);
+        return bytes ? `url("${dataUrl(bytes, path)}")` : m;
+      }),
+    )
+    .join('\n');
 }
 
 const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'item';
@@ -79,12 +124,18 @@ export async function buildExports(ctx: ExportContext): Promise<ExportSummary> {
       }
     };
 
-    // Images point at the bundled copy when there is one, else at the live URL.
-    const href = (prefix: string) => (url: string) => (ctx.assets.has(url) ? prefix + ctx.assets.get(url) : /^https?:/.test(url) ? url : null);
+    // Everything inline: images, the pixel background and fonts travel inside the one SVG file, so it
+    // opens the same when dropped into Figma or Illustrator. Images not in the bundle keep their live URL.
+    const inline = (url: string) => {
+      const path = ctx.assets.get(url);
+      const bytes = path ? ctx.read(path) : null;
+      return bytes ? dataUrl(bytes, path!) : /^https?:/.test(url) ? url : null;
+    };
+    const background = ctx.plates.get(section.id) ?? shot;
     await attempt('SVG', () =>
       ctx.put(
         `exports/svg/${section.id}.svg`,
-        strToU8(toSvg(tree, href('../../'), { screenshot: `../../sections/${section.id}/${ctx.plates.has(section.id) ? 'desktop-background' : 'desktop'}.png`, fontCss: ctx.fontCss.get(section.id) })),
+        strToU8(toSvg(tree, inline, { screenshot: dataUrl(background, 'background.png'), fontCss: inlineFonts(ctx.fontCss.get(section.id), ctx.read) })),
       ),
     );
     await attempt('Photoshop file', async () => ctx.put(`exports/psd/${section.id}.psd`, await toPsd(tree, shot, ctx.scale, ctx.plates.get(section.id))));

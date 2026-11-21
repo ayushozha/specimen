@@ -26,10 +26,11 @@ test('writes every export', () => {
   expect(json('manifest.json').errors).toEqual([]);
 });
 
-test('SVG export looks like the screenshot', async ({ page }) => {
-  // Inline the bundled images the way a design tool would resolve them.
-  let svg = strFromU8(files['exports/svg/03-features.svg']);
-  svg = svg.replace(/href="\.\.\/\.\.\/(assets\/[^"]+)"/g, (_m, p: string) => `href="${dataUrl(files[p], p.endsWith('.svg') ? 'image/svg+xml' : 'image/png')}"`);
+test('SVG export is one self-contained file that looks like the screenshot', async ({ page }) => {
+  // Figma and Illustrator open the SVG on its own: it must not point at other files in the bundle.
+  const svg = strFromU8(files['exports/svg/03-features.svg']);
+  expect(svg).not.toMatch(/(href=|url\()["']?\.\.\//);
+  expect(svg).toContain('href="data:image/');
   const shot = dataUrl(files['sections/03-features/desktop.png'], 'image/png');
   const svgUrl = dataUrl(new TextEncoder().encode(svg), 'image/svg+xml');
   const similarity = await page.evaluate(

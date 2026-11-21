@@ -1,4 +1,4 @@
-import { chromium, type BrowserContext } from '@playwright/test';
+import { chromium, expect, type BrowserContext, type Page } from '@playwright/test';
 import { join } from 'node:path';
 
 export const EXTENSION_DIR = join(import.meta.dirname, '../../apps/extension/.output/chrome-mv3-e2e');
@@ -12,6 +12,13 @@ export async function launchWithExtension(): Promise<{ context: BrowserContext; 
   });
   const worker = context.serviceWorkers()[0] ?? (await context.waitForEvent('serviceworker'));
   return { context, extensionId: new URL(worker.url()).host };
+}
+
+/** Scans the page from the panel (nothing runs before this) and turns on motion when asked. */
+export async function scan(panel: Page, options: { motion?: boolean } = {}): Promise<void> {
+  await panel.getByRole('button', { name: 'Scan page' }).click();
+  await expect(panel.getByRole('button', { name: 'Capture everything' })).toBeEnabled({ timeout: 60_000 });
+  if (options.motion) await panel.getByLabel(/Record motion/).check();
 }
 
 /** Width and height from a PNG's IHDR chunk. */
@@ -28,7 +35,7 @@ export async function captureBundle(url: string): Promise<Record<string, Uint8Ar
     const [tab] = await context.serviceWorkers()[0].evaluate(() => chrome.tabs.query({}));
     const panel = await context.newPage();
     await panel.goto(`chrome-extension://${extensionId}/sidepanel.html?tabId=${tab.id}`);
-    await panel.waitForFunction(() => document.querySelector('.primary') && !document.querySelector('.primary')?.hasAttribute('disabled'), null, { timeout: 60_000 });
+    await scan(panel, { motion: true });
     const zip = panel.evaluate(
       () =>
         new Promise<string>((resolve) =>

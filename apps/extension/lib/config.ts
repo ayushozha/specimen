@@ -31,8 +31,6 @@ export const CONFIG = {
   /** Time limit for code run in the page's own JS world (page getters can run during it). */
   mainWorldTimeoutMs: 5000,
   motion: {
-    /** Record load, scroll, animations, hover/focus and toggles during "Capture everything". */
-    enabled: true,
     fps: 30,
     /** Page-load recording after the deep-mode reload. */
     introMs: 3000,
