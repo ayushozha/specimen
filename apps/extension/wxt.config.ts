@@ -23,7 +23,7 @@ export default defineConfig({
       return {
         ...base,
         // Standard extension APIs only; site access is asked for when a capture starts.
-        permissions: ['scripting', 'activeTab', ...(browser === 'firefox' ? ['downloads'] : ['storage'])],
+        permissions: ['scripting', 'activeTab', ...(browser === 'safari' ? ['storage'] : [])],
         optional_host_permissions: ['<all_urls>'],
         ...(browser === 'firefox' && {
           // 140 is the first Firefox that reads data_collection_permissions (required for new add-ons).
@@ -38,7 +38,7 @@ export default defineConfig({
       ...base,
       // `debugger` drives the page through the Chrome DevTools Protocol (screenshots, viewports,
       // stylesheets, resources); no host permissions are needed on top of it.
-      permissions: ['debugger', 'sidePanel', 'downloads', ...(mode === 'e2e' ? ['scripting', 'activeTab'] : [])],
+      permissions: ['debugger', 'sidePanel', ...(mode === 'e2e' ? ['scripting', 'activeTab'] : [])],
       // Test builds only: lets the tests run the Firefox/Safari code path inside Chromium.
       ...(mode === 'e2e' && { host_permissions: ['<all_urls>'] }),
     };

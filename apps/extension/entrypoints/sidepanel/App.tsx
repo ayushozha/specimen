@@ -244,6 +244,7 @@ export function App() {
         <img className="logo" src="/icon/96.png" alt="" />
         <span className="title">Specimen</span>
         <span className="host" title={analysis?.url}>{host}</span>
+        <a className="privacy-link small" href="https://specimen.ayushojha.com/privacy.html" target="_blank" rel="noreferrer">Privacy</a>
       </header>
 
       <div className="segmented" role="tablist">
@@ -340,7 +341,7 @@ export function App() {
       )}
       {!analysis && !busy && !error && tabId !== null && view !== 'captures' && (
         <div className="empty">
-          <p>Scan this page to find its sections, colours and tech stack. Scanning scrolls the page once to load lazy content; nothing is captured yet.</p>
+          <p>Scan this page to find its sections, colours and tech stack. Specimen processes the selected page on this device and scrolls once to load content. Use Capture to save page content.</p>
           <button onClick={() => runAnalyse(tabId)}>Scan page</button>
         </div>
       )}
