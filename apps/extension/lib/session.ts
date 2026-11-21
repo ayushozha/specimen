@@ -1,5 +1,4 @@
 import type { PageAdapter } from './adapter';
-import type { CaptureResult } from './capture';
 import { ExtensionAdapter } from './extension-adapter';
 
 /**
@@ -82,22 +81,6 @@ export async function focusTabWindow(tabId: number): Promise<() => Promise<void>
     return async () => void (await chrome.windows.update(panel.id!, { focused: true }).catch(() => undefined));
   } catch {
     return none;
-  }
-}
-
-export async function downloadBundle(result: CaptureResult): Promise<void> {
-  const url = URL.createObjectURL(new Blob([result.zip as BlobPart], { type: 'application/zip' }));
-  try {
-    if (chrome.downloads) await chrome.downloads.download({ url, filename: result.filename, saveAs: false });
-    else {
-      // Safari has no downloads API; a link download from the panel works everywhere.
-      const a = Object.assign(document.createElement('a'), { href: url, download: result.filename });
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-    }
-  } finally {
-    setTimeout(() => URL.revokeObjectURL(url), 60_000);
   }
 }
 

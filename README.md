@@ -266,14 +266,14 @@ Testing on real sites found and fixed: colour values that crashed the parser (ap
 
 ## Privacy and security
 
-- Everything runs locally. No server, no account, no analytics; bundles go to your downloads folder.
+- The extension processes captures locally, without an account, analytics, or a Specimen server. Read the [privacy policy](https://specimen.ayushojha.com/privacy.html).
 - **Chromium** uses the `debugger` permission (the DevTools Protocol) on the tab you capture, only while the panel is open on it. No host permissions.
 - **Firefox and Safari** ask for access to sites when you start a capture, to read cross-origin stylesheets and assets the page already uses.
 - Generated files are treated as untrusted page content:
-  - Every generated HTML file has a Content-Security-Policy that blocks all scripts.
+  - Generated section HTML has a Content Security Policy that blocks scripts in that document. Embedded frames can still load their own content.
   - Scripts, event handlers and `javascript:` links (including ones split by tabs or newlines) are removed.
   - Page text in generated code stays inside comments and strings.
-  - Typed form values and password fields are never saved.
+  - The section HTML serializer does not read live input values directly. Markup, screenshots, recordings, and browser-generated MHTML may still contain sensitive page content.
 - Page code never gets user activation from Specimen, and code run in the page's own world has a time limit.
 - The CLI only downloads http(s) media, limits ffmpeg to network protocols, and never writes outside its output folder, even for bundles from someone else.
 - Use it on your own sites or sites you have permission to copy. Captured content belongs to its owners.
