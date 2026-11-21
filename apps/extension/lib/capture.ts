@@ -18,6 +18,7 @@ import { sampleMediaColors, type MediaColors, type Tile } from './media';
 import { buildExports, type ExportSummary } from './exports';
 import { MOTION_STEPS, captureMotion, type MotionSummary, type SectionMotion } from './motion';
 import { renderPaletteCss, renderReport } from './report';
+import { CaptureTargetChangedError } from './safari-screenshot';
 
 export interface Analysis {
   url: string;
@@ -148,13 +149,18 @@ export async function capture(
   const total = breakpoints.length * (sections.length + 1) + (wholePage ? 4 : 2) + 1 + (withMotion ? MOTION_STEPS : 0);
   let done = 0;
   const signal = request.signal;
+  const checkTarget = () => {
+    if (adapter.captureTargetChanged) throw new CaptureTargetChangedError();
+  };
   const step = async (name: string, fn: () => Promise<void>) => {
+    checkTarget();
     signal?.throwIfAborted();
     onProgress({ step: name, done, total });
     try {
       await fn();
     } catch (err) {
-      // A cancel ends the capture; any other failure is recorded and the capture goes on.
+      // A cancel or target change ends the capture. Other failures produce a partial result.
+      checkTarget();
       if (signal?.aborted) throw signal.reason;
       errors.push({ step: name, message: err instanceof Error ? err.message : String(err) });
     }
@@ -165,6 +171,7 @@ export async function capture(
   };
 
   try {
+    await adapter.startCapture?.(analysis.url);
     if (withMotion) {
       // Motion first: it reloads the page in deep mode, and the screenshots below then see the settled page.
       ({ summary: motion, sections: motionDetails } = await captureMotion({
@@ -331,15 +338,17 @@ export async function capture(
     });
   } finally {
     await adapter.setViewport(null, 1).catch(() => {});
-    if (signal?.aborted) {
+    if (signal?.aborted || adapter.captureTargetChanged) {
       // Cancelled mid-step: undo what a section step may have left on the page.
       await adapter.call('restoreHidden').catch(() => {});
       await adapter.evaluateMain(freezePageScripts, false).catch(() => 0);
       await adapter.call('resumeAllAnimations').catch(() => {});
       await adapter.call('cancelPick').catch(() => {});
     }
+    adapter.stopCapture?.();
   }
 
+  checkTarget();
   const manifest: Manifest = {
     tool: 'specimen',
     version: 1,

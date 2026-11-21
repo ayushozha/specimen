@@ -15,6 +15,7 @@ function useDevTools(): boolean {
 function browserName(): 'firefox' | 'safari' | 'chromium' {
   if (import.meta.env.FIREFOX) return 'firefox';
   if (import.meta.env.SAFARI) return 'safari';
+  if (import.meta.env.MODE === 'e2e' && new URLSearchParams(location.search).get('testBrowser') === 'safari') return 'safari';
   return 'chromium';
 }
 

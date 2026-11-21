@@ -6,6 +6,7 @@ import { Session, explainError, focusTabWindow, targetTabId } from '../../lib/se
 import { CONFIG } from '../../lib/config';
 import { CapturesView, type TrayItem } from './Captures';
 import { canRecordInteraction, startInteraction, stopInteraction, type RecordingSession } from '../../lib/interaction';
+import { CaptureTargetChangedError } from '../../lib/safari-screenshot';
 
 type View = 'sections' | 'palette' | 'motion' | 'stack' | 'captures';
 type FullAnalysis = Analysis & { sheets: StyleSheetText[] };
@@ -88,7 +89,10 @@ export function App() {
       });
     };
     const onUpdated = (id: number, change: chrome.tabs.OnUpdatedInfo) => {
-      if (change.status === 'loading' && id === tabIdRef.current && busyRef.current !== 'capture') setStale(true);
+      if (id === tabIdRef.current && busyRef.current !== 'capture' && (change.status === 'loading' || (import.meta.env.SAFARI && change.url))) {
+        setStale(true);
+        if (import.meta.env.SAFARI) setAnalysis(null);
+      }
     };
     chrome.tabs.onActivated.addListener(onActivated);
     chrome.tabs.onUpdated.addListener(onUpdated);
@@ -113,15 +117,15 @@ export function App() {
   }, []);
 
   const runCapture = async (sectionIds?: string[]) => {
-    if (tabId === null || !analysis) return;
-    // Must be the first await: browsers only show the permission prompt during the click.
-    await session.requestHostAccess();
+    if (tabId === null || !analysis || abortRef.current) return;
+    const abort = new AbortController();
+    abortRef.current = abort;
     setBusy('capture');
     setError(null);
     setNotice(null);
-    const abort = new AbortController();
-    abortRef.current = abort;
     try {
+      // Must be the first await: browsers only show the permission prompt during the click.
+      await session.requestHostAccess();
       const adapter = await connect(tabId);
       const ids = sectionIds ?? (excluded.size ? analysis.sections.filter((s) => !excluded.has(s.id)).map((s) => s.id) : undefined);
       const r = await capture(adapter, analysis, { sectionIds: ids, motion: withMotion, signal: abort.signal }, onProgress);
@@ -131,6 +135,11 @@ export function App() {
       // Lets automated tests (and future integrations) read the bundle.
       window.dispatchEvent(new CustomEvent('specimen:done', { detail: r }));
     } catch (err) {
+      if (err instanceof CaptureTargetChangedError) {
+        await session.disconnect();
+        setAnalysis(null);
+        setStale(true);
+      }
       if (abort.signal.aborted) setNotice('Capture cancelled. The page is back as it was.');
       else setError(explainError(err));
     } finally {

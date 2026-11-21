@@ -2,6 +2,7 @@ import type * as Core from '@specimen/core';
 import type { Breakpoint, Rect, StyleSheetText } from '@specimen/core';
 import type { Capabilities, CoreFn, PageAdapter, ScreencastFrame } from './adapter';
 import { CONFIG } from './config';
+import { SafariCaptureTarget } from './safari-screenshot';
 
 const CORE_SCRIPT = '/core.js';
 const HOOKS_SCRIPT = '/hooks.js';
@@ -28,12 +29,16 @@ export class ExtensionAdapter implements PageAdapter {
   private sheetTexts: string[] = [];
   private captureTab = (api.tabs as unknown as { captureTab?: (tabId: number, options: object) => Promise<string> }).captureTab;
   private lastVisibleCapture = 0;
+  private safariTarget: SafariCaptureTarget | undefined;
+  private scannedDocumentId: string | undefined;
+  private captureDocumentId: string | undefined;
 
   constructor(
     private tabId: number,
     browser: 'firefox' | 'safari' | 'chromium',
   ) {
     this.browser = browser;
+    if (browser === 'safari') this.safariTarget = new SafariCaptureTarget(api.tabs, tabId);
     this.capabilities = {
       exactFullPage: !!this.captureTab,
       mhtml: false,
@@ -55,15 +60,49 @@ export class ExtensionAdapter implements PageAdapter {
     this.detachListeners.push(listener);
   }
 
-  private async exec<T>(func: (...args: never[]) => T, args: unknown[] = [], world: 'ISOLATED' | 'MAIN' = 'ISOLATED'): Promise<Awaited<T>> {
-    const [res] = await api.scripting.executeScript({ target: { tabId: this.tabId }, func: func as never, args: args as never[], world } as chrome.scripting.ScriptInjection<unknown[], T>);
+  get captureTargetChanged(): boolean {
+    return this.safariTarget?.changed ?? false;
+  }
+
+  async startCapture(url: string): Promise<void> {
+    if (!this.safariTarget) return;
+    this.windowId = await this.safariTarget.start(url);
+    await this.refreshCaptureDocument(this.safariTarget, this.scannedDocumentId);
+  }
+
+  stopCapture(): void {
+    this.safariTarget?.stop();
+    this.captureDocumentId = undefined;
+  }
+
+  private async refreshCaptureDocument(target: SafariCaptureTarget, expectedDocumentId?: string): Promise<void> {
+    const results = await api.scripting.executeScript({ target: { tabId: this.tabId }, func: () => location.href }).catch(() => []);
+    const [page] = results;
+    target.checkDocument(!expectedDocumentId || page?.documentId === expectedDocumentId ? page?.result : undefined);
+    this.captureDocumentId = page?.documentId;
+  }
+
+  private scriptTarget(): chrome.scripting.InjectionTarget {
+    if (this.captureDocumentId) return { tabId: this.tabId, documentIds: [this.captureDocumentId] };
+    // Without a document ID, a stale tab must not receive any page cleanup scripts.
+    if (this.safariTarget?.changed) this.safariTarget.checkDocument(undefined);
+    return { tabId: this.tabId };
+  }
+
+  private async executeScript<T>(func: (...args: never[]) => T, args: unknown[] = [], world: 'ISOLATED' | 'MAIN' = 'ISOLATED') {
+    const [res] = await api.scripting.executeScript({ target: this.scriptTarget(), func: func as never, args: args as never[], world } as chrome.scripting.ScriptInjection<unknown[], T>);
     if ((res as { error?: unknown }).error) throw new Error(String((res as { error?: unknown }).error));
+    return res;
+  }
+
+  private async exec<T>(func: (...args: never[]) => T, args: unknown[] = [], world: 'ISOLATED' | 'MAIN' = 'ISOLATED'): Promise<Awaited<T>> {
+    const res = await this.executeScript(func, args, world);
     return res.result as Awaited<T>;
   }
 
   private async ensureCore(): Promise<void> {
     const loaded = await this.exec(() => !!(globalThis as unknown as { __specimenCore?: unknown }).__specimenCore);
-    if (!loaded) await api.scripting.executeScript({ target: { tabId: this.tabId }, files: [CORE_SCRIPT] });
+    if (!loaded) await api.scripting.executeScript({ target: this.scriptTarget(), files: [CORE_SCRIPT] });
   }
 
   async call<K extends CoreFn>(fn: K, ...args: Parameters<(typeof Core)[K]>): Promise<Awaited<ReturnType<(typeof Core)[K]>>> {
@@ -85,7 +124,9 @@ export class ExtensionAdapter implements PageAdapter {
   }
 
   async pageInfo(): Promise<{ url: string; title: string }> {
-    return this.exec(() => ({ url: location.href, title: document.title }));
+    const res = await this.executeScript(() => ({ url: location.href, title: document.title }));
+    if (this.safariTarget && !this.safariTarget.watching) this.scannedDocumentId = res.documentId;
+    return res.result as { url: string; title: string };
   }
 
   /**
@@ -143,7 +184,14 @@ export class ExtensionAdapter implements PageAdapter {
         // Chromium allows two captureVisibleTab calls a second.
         await sleep(Math.max(0, 550 - (Date.now() - this.lastVisibleCapture)));
         this.lastVisibleCapture = Date.now();
-        const bitmap = await createImageBitmap(new Blob([dataUrlBytes(await api.tabs.captureVisibleTab(this.windowId ?? (await api.tabs.get(this.tabId)).windowId, { format: 'png' })) as BlobPart]));
+        const url = this.safariTarget
+          ? await this.safariTarget.snapshot()
+          : await api.tabs.captureVisibleTab(this.windowId ?? (await api.tabs.get(this.tabId)).windowId, { format: 'png' });
+        if (this.safariTarget) {
+          const pageUrl = await this.exec(() => location.href).catch(() => undefined);
+          this.safariTarget.checkDocument(pageUrl);
+        }
+        const bitmap = await createImageBitmap(new Blob([dataUrlBytes(url) as BlobPart]));
         const offset = y - actual; // the page may stop scrolling before y near the bottom
         const rows = Math.min(vp.height - offset, clip.y + clip.height - y);
         ctx.drawImage(bitmap, clip.x * dpr, offset * dpr, clip.width * dpr, rows * dpr, 0, (y - clip.y) * dpr, clip.width * dpr, rows * dpr);
@@ -206,7 +254,7 @@ export class ExtensionAdapter implements PageAdapter {
     await api.scripting.registerContentScripts([
       { id: HOOKS_ID, matches: [`${new URL(url).origin}/*`], js: [HOOKS_SCRIPT], runAt: 'document_start', world: 'MAIN', persistAcrossSessions: false },
     ]);
-    try {
+    const reload = async () => {
       const loaded = new Promise<void>((resolve) => {
         const listener = (id: number, info: chrome.tabs.OnUpdatedInfo) => {
           if (id === this.tabId && info.status === 'complete') {
@@ -219,6 +267,13 @@ export class ExtensionAdapter implements PageAdapter {
       });
       await api.tabs.reload(this.tabId);
       await loaded;
+    };
+    try {
+      if (this.safariTarget) {
+        await this.safariTarget.reload(reload);
+        await this.refreshCaptureDocument(this.safariTarget);
+        this.scannedDocumentId = this.captureDocumentId;
+      } else await reload();
     } finally {
       await api.scripting.unregisterContentScripts({ ids: [HOOKS_ID] }).catch(() => {});
     }

@@ -39,6 +39,11 @@ export interface ScreencastFrame {
 export interface PageAdapter {
   readonly browser: 'chromium' | 'firefox' | 'safari';
   readonly capabilities: Capabilities;
+  /** A window-scoped screenshot lost its selected tab. The whole capture must be discarded. */
+  readonly captureTargetChanged?: boolean;
+  /** Monitor the scanned page throughout a window-scoped capture. */
+  startCapture?(url: string): Promise<void>;
+  stopCapture?(): void;
   /** Calls a function from `@specimen/core` inside the page, in an isolated world. */
   call<K extends CoreFn>(fn: K, ...args: Parameters<(typeof Core)[K]>): Promise<Awaited<ReturnType<(typeof Core)[K]>>>;
   /** Runs a self-contained function in the page's own JS world (to read page globals). */

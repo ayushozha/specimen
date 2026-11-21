@@ -93,7 +93,7 @@ pnpm build:all
 
 **Firefox 140+:** open `about:debugging#/runtime/this-firefox`, **Load Temporary Add-on** and pick `apps/extension/.output/firefox-mv3/manifest.json`. The button opens the sidebar.
 
-**Safari (macOS):** `pnpm safari:project`, open `apps/safari/Specimen/Specimen.xcodeproj` in Xcode and run it, then turn on Specimen in Safari → Settings → Extensions (enable **Allow unsigned extensions** in the Develop menu for local builds). The button opens the panel in a window docked beside the page.
+**Safari (macOS):** `pnpm safari:project`, open `apps/safari/Specimen/Specimen.xcodeproj` in Xcode and run it, then turn on Specimen in Safari → Settings → Extensions (enable **Allow unsigned extensions** in the Develop menu for local builds). The button opens the panel in a window docked beside the page. Keep the selected tab active while capturing. If you switch tabs or navigate during capture, return to the page and select **Scan page** again.
 
 **Figma plugin (optional):** in Figma desktop, **Plugins → Development → Import plugin from manifest** and pick `apps/figma-plugin/manifest.json`. In Specimen, use **Figma → Plugin file**, run the plugin and drop the file on it. Paste (**Figma → Copy**, then ⌘V) needs no plugin.
 
