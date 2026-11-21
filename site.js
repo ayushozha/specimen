@@ -55,12 +55,47 @@ if (navigator.clipboard?.writeText) {
   });
 }
 
-const bannerToggle = document.querySelector('.banner-toggle');
-const banner = document.getElementById(bannerToggle.getAttribute('aria-controls'));
+const heroToggle = document.querySelector('.hero-toggle');
+const heroVideo = document.getElementById(heroToggle.getAttribute('aria-controls'));
+const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
-bannerToggle.hidden = false;
-bannerToggle.addEventListener('click', () => {
-  const playing = banner.getAttribute('src') === 'assets/banner.webp';
-  banner.src = playing ? 'assets/banner-still.webp' : 'assets/banner.webp';
-  bannerToggle.textContent = playing ? 'Play banner animation' : 'Stop banner animation';
-});
+if (heroVideo.canPlayType('video/mp4; codecs="avc1.64001f"')) {
+  const playHero = () => {
+    heroVideo.play().catch(() => {
+      heroToggle.textContent = 'Play animation';
+    });
+  };
+
+  heroVideo.addEventListener('play', () => {
+    heroToggle.textContent = 'Pause animation';
+  });
+  heroVideo.addEventListener('pause', () => {
+    heroToggle.textContent = 'Play animation';
+  });
+  heroVideo.addEventListener('error', () => {
+    heroToggle.hidden = true;
+  });
+
+  heroToggle.hidden = false;
+  heroToggle.addEventListener('click', () => {
+    if (heroVideo.paused) playHero();
+    else heroVideo.pause();
+  });
+  reducedMotion.addEventListener('change', () => {
+    if (reducedMotion.matches) heroVideo.pause();
+  });
+
+  if (!reducedMotion.matches) playHero();
+}
+
+if (!reducedMotion.matches && 'IntersectionObserver' in window) {
+  const reveal = new IntersectionObserver((entries, observer) => {
+    for (const entry of entries) {
+      if (!entry.isIntersecting) continue;
+      entry.target.classList.add('section-reveal');
+      observer.unobserve(entry.target);
+    }
+  }, { rootMargin: '0px 0px 48px 0px' });
+
+  document.querySelectorAll('.section-heading, .motion-copy').forEach(heading => reveal.observe(heading));
+}

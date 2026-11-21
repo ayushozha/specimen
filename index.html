@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Specimen — Capture the web in editable detail</title>
   <meta name="description" content="Capture websites section by section. Export editable design layers, record motion, and give coding agents a DESIGN.md grounded in the page.">
-  <meta name="theme-color" content="#f7f7f5">
+  <meta name="theme-color" content="#fff8f2">
   <meta property="og:type" content="website">
   <meta property="og:title" content="Specimen — Capture the web in editable detail">
   <meta property="og:description" content="A browser extension for editable design files, motion recordings, and agent-ready specs.">
@@ -13,7 +13,7 @@
   <meta property="og:url" content="https://ayushozha.github.io/specimen/">
   <link rel="canonical" href="https://ayushozha.github.io/specimen/">
   <link rel="icon" href="assets/icon.png" type="image/png">
-  <link rel="preload" href="assets/geist-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="assets/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="styles.css">
   <script src="site.js" defer></script>
 </head>
@@ -38,34 +38,29 @@
   </header>
 
   <main id="main">
-    <section class="wrap hero" aria-labelledby="page-title">
-      <div class="hero-copy">
-        <p class="eyebrow"><span class="capture-mark" aria-hidden="true"></span> Browser extension</p>
-        <h1 id="page-title">Capture the web<br class="desktop-break"> in editable detail.</h1>
-        <p class="hero-description">Scan a page or pick one section. Take its editable layers, motion, and exact design specs into your design tool or coding agent.</p>
-        <div class="actions">
-          <a class="button button-dark" href="#install">Install Specimen</a>
-          <a class="button button-outline" href="https://github.com/ayushozha/specimen">View on GitHub</a>
+    <section class="hero-shell" aria-labelledby="page-title">
+      <div class="wrap hero">
+        <div class="hero-copy">
+          <p class="eyebrow hero-kicker"><span class="capture-mark" aria-hidden="true"></span> Browser extension</p>
+          <h1 id="page-title">Capture websites,<br class="desktop-break"> section by section.</h1>
+          <p class="hero-description">Take the web into your design tool or coding agent with editable layers, recorded motion, and exact design specs.</p>
+          <div class="actions">
+            <a class="button button-dark" href="#install">Install Specimen</a>
+            <a class="button button-outline" href="https://github.com/ayushozha/specimen">View on GitHub</a>
+          </div>
+          <p class="hero-note">Runs locally in your browser. No server or account.</p>
         </div>
-        <p class="hero-note">Runs locally in your browser. No server or account.</p>
-      </div>
 
-      <figure class="hero-art">
-        <div class="hero-surface">
-          <div class="device page-device">
-            <div class="device-bar">
-              <span class="device-dots" aria-hidden="true"><i></i><i></i><i></i></span>
-              <span>vercel.com</span>
-            </div>
-            <img src="assets/picker.png" width="1600" height="1000" alt="Specimen's element picker highlights a button on a live website." fetchpriority="high">
+        <figure class="hero-art">
+          <div class="hero-surface">
+            <video id="hero-motion" width="574" height="360" poster="assets/hero-poster.webp" preload="none" muted loop playsinline aria-hidden="true">
+              <source src="assets/hero-motion.mp4" type="video/mp4">
+            </video>
+            <button class="hero-toggle" type="button" aria-controls="hero-motion" hidden>Play animation</button>
           </div>
-          <div class="device panel-device">
-            <div class="device-bar"><span>Specimen side panel</span></div>
-            <img src="assets/live-preview.png" width="420" height="900" alt="Specimen side panel shows a live capture preview and a list of page sections.">
-          </div>
-        </div>
-        <figcaption>Element picker and live capture preview</figcaption>
-      </figure>
+          <figcaption class="visually-hidden">Specimen’s banner illustration shows a mountain landscape framed in a web capture.</figcaption>
+        </figure>
+      </div>
     </section>
 
     <div class="browser-strip">
@@ -98,9 +93,12 @@
             <p>The picker outlines the element and its box model as you hover. Use <kbd>↑</kbd> and <kbd>↓</kbd> for parent and child, then <kbd>Enter</kbd> or click to add it to the capture list.</p>
             <p>Turn on <strong>Record motion</strong> when you need animation. Use <strong>Cancel</strong> to stop a run in progress.</p>
           </div>
-          <figure class="showcase-visual picker-visual">
-            <a href="assets/picker.png" aria-label="Open the full element picker screenshot">
-              <img src="assets/picker.png" width="1600" height="1000" loading="lazy" alt="A highlight box and element information appear over a button on Vercel's page.">
+          <figure class="showcase-visual pair-visual scan-visual">
+            <a href="assets/idle.png" aria-label="Open the full screenshot before scanning">
+              <img src="assets/idle.png" width="420" height="900" loading="lazy" alt="Specimen waits for you to select Scan page.">
+            </a>
+            <a href="assets/scanned.png" aria-label="Open the full screenshot after scanning">
+              <img src="assets/scanned.png" width="420" height="900" loading="lazy" alt="The Sections tab shows detected sections, Pick element, and Record motion.">
             </a>
           </figure>
         </article>
@@ -261,7 +259,6 @@ pnpm build:all</code></pre>
 
     <div class="wrap brand-banner">
       <img id="project-banner" src="assets/banner-still.webp" width="1080" height="360" loading="lazy" alt="Specimen banner showing a web page framed by the element picker.">
-      <button class="banner-toggle" type="button" aria-controls="project-banner" hidden>Play banner animation</button>
     </div>
   </main>
 
