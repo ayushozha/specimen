@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Specimen — Capture the web in editable detail</title>
+  <meta name="description" content="Capture websites section by section. Export editable design layers, record motion, and give coding agents a DESIGN.md grounded in the page.">
+  <meta name="theme-color" content="#f7f7f5">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Specimen — Capture the web in editable detail">
+  <meta property="og:description" content="A browser extension for editable design files, motion recordings, and agent-ready specs.">
+  <meta property="og:image" content="https://ayushozha.github.io/specimen/assets/banner-still.webp">
+  <meta property="og:url" content="https://ayushozha.github.io/specimen/">
+  <link rel="canonical" href="https://ayushozha.github.io/specimen/">
+  <link rel="icon" href="assets/icon.png" type="image/png">
+  <link rel="preload" href="assets/geist-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="styles.css">
+  <script src="site.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header">
+    <div class="wrap header-inner">
+      <a class="brand" href="./">
+        <img src="assets/icon.png" width="28" height="28" alt="">
+        <span>Specimen</span>
+      </a>
+      <nav aria-label="Main navigation">
+        <a href="#workflow">Workflow</a>
+        <a href="#exports">Exports</a>
+        <a href="#motion">Motion</a>
+      </nav>
+      <div class="header-actions">
+        <a class="repo-link" href="https://github.com/ayushozha/specimen">GitHub</a>
+        <a class="button button-dark button-small" href="#install">Install</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="wrap hero" aria-labelledby="page-title">
+      <div class="hero-copy">
+        <p class="eyebrow"><span class="capture-mark" aria-hidden="true"></span> Browser extension</p>
+        <h1 id="page-title">Capture the web<br class="desktop-break"> in editable detail.</h1>
+        <p class="hero-description">Scan a page or pick one section. Take its editable layers, motion, and exact design specs into your design tool or coding agent.</p>
+        <div class="actions">
+          <a class="button button-dark" href="#install">Install Specimen</a>
+          <a class="button button-outline" href="https://github.com/ayushozha/specimen">View on GitHub</a>
+        </div>
+        <p class="hero-note">Runs locally in your browser. No server or account.</p>
+      </div>
+
+      <figure class="hero-art">
+        <div class="hero-surface">
+          <div class="device page-device">
+            <div class="device-bar">
+              <span class="device-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+              <span>vercel.com</span>
+            </div>
+            <img src="assets/picker.png" width="1600" height="1000" alt="Specimen's element picker highlights a button on a live website." fetchpriority="high">
+          </div>
+          <div class="device panel-device">
+            <div class="device-bar"><span>Specimen side panel</span></div>
+            <img src="assets/live-preview.png" width="420" height="900" alt="Specimen side panel shows a live capture preview and a list of page sections.">
+          </div>
+        </div>
+        <figcaption>Element picker and live capture preview</figcaption>
+      </figure>
+    </section>
+
+    <div class="browser-strip">
+      <div class="wrap browser-strip-inner">
+        <span class="eyebrow">Desktop browser support</span>
+        <span><strong>Chrome · Edge · Brave · Arc</strong> <small>Chromium side panel</small></span>
+        <span><strong>Firefox</strong> <small>Sidebar</small></span>
+        <span><strong>Safari</strong> <small>Docked window on macOS</small></span>
+      </div>
+    </div>
+
+    <section class="wrap section" id="workflow" aria-labelledby="workflow-title">
+      <div class="section-heading split-heading">
+        <div>
+          <p class="eyebrow">Workflow</p>
+          <h2 id="workflow-title">From page to capture.</h2>
+        </div>
+        <p>Scanning starts only when you select <strong>Scan page</strong>. Capture the whole page, run one section, or use the element picker to frame exactly what you want.</p>
+      </div>
+
+      <div class="showcase" data-showcase>
+        <div class="showcase-tabs" role="tablist" aria-label="Capture examples" hidden>
+          <button type="button" role="tab" id="tab-pick" aria-controls="example-pick" aria-selected="true">Pick a section</button>
+          <button type="button" role="tab" id="tab-review" aria-controls="example-review" aria-selected="false" tabindex="-1">Review captures</button>
+          <button type="button" role="tab" id="tab-styles" aria-controls="example-styles" aria-selected="false" tabindex="-1">Inspect styles</button>
+        </div>
+        <article class="showcase-panel" id="example-pick">
+          <div class="showcase-text">
+            <h3>Point to any element.</h3>
+            <p>The picker outlines the element and its box model as you hover. Use <kbd>↑</kbd> and <kbd>↓</kbd> for parent and child, then <kbd>Enter</kbd> or click to add it to the capture list.</p>
+            <p>Turn on <strong>Record motion</strong> when you need animation. Use <strong>Cancel</strong> to stop a run in progress.</p>
+          </div>
+          <figure class="showcase-visual picker-visual">
+            <a href="assets/picker.png" aria-label="Open the full element picker screenshot">
+              <img src="assets/picker.png" width="1600" height="1000" loading="lazy" alt="A highlight box and element information appear over a button on Vercel's page.">
+            </a>
+          </figure>
+        </article>
+        <article class="showcase-panel" id="example-review">
+          <div class="showcase-text">
+            <h3>Review before you export.</h3>
+            <p>Each capture goes into the <strong>Captures</strong> tab. Inspect the live preview and use the export that fits your next step.</p>
+            <p>Keep a browsable report with page and section screenshots, portable HTML, exact colours, and the detected tech stack.</p>
+          </div>
+          <figure class="showcase-visual pair-visual">
+            <a href="assets/captures.png" aria-label="Open the full Captures tab screenshot">
+              <img src="assets/captures.png" width="420" height="1068" loading="lazy" alt="Specimen Captures tab with a captured section and its export options.">
+            </a>
+            <a href="assets/report.png" aria-label="Open the full bundle report screenshot">
+              <img src="assets/report.png" width="1200" height="800" loading="lazy" alt="A browsable capture report with section thumbnails.">
+            </a>
+          </figure>
+        </article>
+        <article class="showcase-panel" id="example-styles">
+          <div class="showcase-text">
+            <h3>Read the design as rendered.</h3>
+            <p>Find CSS variables, exact <code>oklch()</code> and Display P3 values, and WCAG contrast checks for text and backgrounds.</p>
+            <p>See evidence for detected technologies across 41 frameworks and libraries.</p>
+          </div>
+          <figure class="showcase-visual pair-visual style-visual">
+            <a href="assets/sections.png" aria-label="Open the full Sections tab screenshot">
+              <img src="assets/sections.png" width="380" height="700" loading="lazy" alt="Sections tab with individual capture controls.">
+            </a>
+            <a href="assets/palette.png" aria-label="Open the full Palette tab screenshot">
+              <img src="assets/palette.png" width="380" height="700" loading="lazy" alt="Palette tab with swatches, source values, and token roles.">
+            </a>
+          </figure>
+        </article>
+      </div>
+    </section>
+
+    <section class="exports-section" id="exports" aria-labelledby="exports-title">
+      <div class="wrap section">
+        <div class="section-heading split-heading">
+          <div>
+            <p class="eyebrow">Exports</p>
+            <h2 id="exports-title">Keep working from the capture.</h2>
+          </div>
+          <p>Use the same section in a design file, a motion project, or a spec your coding agent can follow.</p>
+        </div>
+        <div class="exports-layout">
+          <div class="formats">
+            <article>
+              <h3>Editable layers</h3>
+              <p>Copy self-contained SVG or HTML into Figma, Paper, Sketch, Penpot, Framer, and Illustrator. The Figma plugin imports auto layout, colour variables, and hover variants where supported.</p>
+            </article>
+            <article>
+              <h3>Image and motion files</h3>
+              <p>Export a layered Photoshop PSD, After Effects scripts, or Lottie JSON. Copy an image to Canva, Keynote, Google Slides, or Notion.</p>
+            </article>
+            <article>
+              <h3>Batch capture</h3>
+              <p>Use the CLI to capture multiple URLs, compare bundles, and run checks. <a href="https://github.com/ayushozha/specimen/blob/main/README.md#command-line">View CLI commands</a></p>
+            </article>
+          </div>
+
+          <article class="spec-card">
+            <p class="eyebrow">Coding agents</p>
+            <h3>The page, spelled out in DESIGN.md.</h3>
+            <p>Save a spec folder in Chrome or Edge, or download it as a ZIP for Claude Code, Codex, or Cursor. Copy a prompt for Claude, ChatGPT, Grok, or Gemini.</p>
+            <div class="file-card">
+              <div class="file-title"><span>design-spec/</span><strong>DESIGN.md</strong></div>
+              <dl>
+                <div><dt>Design tokens</dt><dd>Colours, type scale, spacing, radii, shadows</dd></div>
+                <div><dt>Breakpoints</dt><dd>1440 px · 768 px · 390 px</dd></div>
+                <div><dt>Reference images</dt><dd>Screenshots and numbered element callouts</dd></div>
+                <div><dt>Behaviour</dt><dd>Hover, focus, scroll, and motion timings</dd></div>
+                <div><dt>Stack</dt><dd>Detected frameworks and libraries</dd></div>
+              </dl>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="motion-section" id="motion" aria-labelledby="motion-title">
+      <div class="wrap section motion-inner">
+        <div class="motion-copy">
+          <p class="eyebrow">Motion recording</p>
+          <h2 id="motion-title">Capture what moves.</h2>
+          <p>Record page load and scroll, step through CSS animations frame by frame, inspect GSAP timelines, and capture hover, focus, and scroll reveals with their timings.</p>
+          <p>Canvas and WebGL pointer effects show up as clips and filmstrips with the cursor drawn in. In Chrome and Edge, <strong>Record interaction</strong> also captures your own mouse movement.</p>
+          <div class="motion-detail">
+            <strong>Take the timing with you.</strong>
+            <p>Export supported effects as CSS, GSAP, or Motion code.</p>
+          </div>
+        </div>
+        <figure class="motion-visual">
+          <div class="motion-screens">
+            <a href="assets/recording.png" aria-label="Open the full interaction recording screenshot">
+              <img src="assets/recording.png" width="420" height="1000" loading="lazy" alt="Specimen recording panel with a replay of a pointer effect.">
+            </a>
+            <a href="assets/motion.png" aria-label="Open the full Motion tab screenshot">
+              <img src="assets/motion.png" width="380" height="700" loading="lazy" alt="Motion tab listing animations, hover and focus effects, and pointer effects.">
+            </a>
+          </div>
+          <a class="filmstrip" href="assets/ink-strip.png" aria-label="Open the full recorded pointer-effect filmstrip">
+            <img src="assets/ink-strip.png" width="2200" height="207" loading="lazy" alt="Six frames showing the ink trail and cursor position over time.">
+          </a>
+          <figcaption>Interaction recording, motion report, and cursor filmstrip</figcaption>
+        </figure>
+        <p class="motion-support">Video support varies by browser. Chromium supports load, scroll, pointer, and frame-stepped clips. Firefox supports frame-stepped clips. Safari captures screenshots.</p>
+      </div>
+    </section>
+
+    <section class="wrap section install-section" id="install" aria-labelledby="install-title">
+      <div class="section-heading split-heading">
+        <div>
+          <p class="eyebrow">Local install</p>
+          <h2 id="install-title">Install Specimen.</h2>
+        </div>
+        <p>Install a local build from GitHub. You’ll need <strong>Node.js 23+</strong>, <strong>pnpm</strong>, and Git.</p>
+      </div>
+      <div class="install-layout">
+        <div class="build-card">
+          <div class="code-toolbar">
+            <h3>Build from source</h3>
+            <button class="copy-button" type="button" data-copy="build-commands" hidden>Copy commands</button>
+          </div>
+          <pre tabindex="0"><code id="build-commands">git clone https://github.com/ayushozha/specimen.git
+cd specimen
+pnpm install
+pnpm build:all</code></pre>
+          <p class="copy-status" aria-live="polite"></p>
+        </div>
+        <div class="install-options">
+          <details open>
+            <summary>Chrome, Edge, and other Chromium browsers</summary>
+            <ol>
+              <li>Open <code>chrome://extensions</code>, <code>edge://extensions</code>, or your browser’s extensions page.</li>
+              <li>Enable <strong>Developer mode</strong> and select <strong>Load unpacked</strong>.</li>
+              <li>Choose <code>apps/extension/.output/chrome-mv3</code>.</li>
+            </ol>
+          </details>
+          <details>
+            <summary>Firefox 140+</summary>
+            <ol>
+              <li>Open <code>about:debugging#/runtime/this-firefox</code>.</li>
+              <li>Select <strong>Load Temporary Add-on</strong> and choose <code>apps/extension/.output/firefox-mv3/manifest.json</code>.</li>
+            </ol>
+          </details>
+          <details>
+            <summary>Safari on macOS</summary>
+            <ol>
+              <li>Run <code>pnpm safari:project</code>, then open and run <code>apps/safari/Specimen/Specimen.xcodeproj</code> in Xcode.</li>
+              <li>Enable <strong>Allow unsigned extensions</strong> in Safari’s Develop menu and turn on Specimen under <strong>Settings → Extensions</strong>.</li>
+            </ol>
+          </details>
+          <p class="install-next">Open a website, click Specimen in the toolbar, then select <strong>Scan page</strong>.</p>
+        </div>
+      </div>
+    </section>
+
+    <div class="wrap brand-banner">
+      <img id="project-banner" src="assets/banner-still.webp" width="1080" height="360" loading="lazy" alt="Specimen banner showing a web page framed by the element picker.">
+      <button class="banner-toggle" type="button" aria-controls="project-banner" hidden>Play banner animation</button>
+    </div>
+  </main>
+
+  <footer class="wrap site-footer">
+    <a class="brand" href="./">
+      <img src="assets/icon.png" width="25" height="25" alt="">
+      <span>Specimen</span>
+    </a>
+    <p>TypeScript · React · WXT · WebCodecs · Chrome DevTools Protocol</p>
+    <div class="footer-links">
+      <a href="https://github.com/ayushozha/specimen">GitHub</a>
+      <a href="https://github.com/ayushozha/specimen/issues">Report an issue</a>
+    </div>
+  </footer>
+</body>
+</html>
