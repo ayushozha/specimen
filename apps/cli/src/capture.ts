@@ -9,6 +9,8 @@ export interface CaptureOptions {
   /** Run a visible browser instead of headless. */
   headed?: boolean;
   timeoutMs?: number;
+  /** Record motion too (load and scroll video, animations, hover, menus). Default on: the CLI is an explicit request. */
+  motion?: boolean;
   onProgress?: (url: string, step: string) => void;
 }
 
@@ -37,12 +39,15 @@ export async function captureUrl(context: BrowserContext, extensionId: string, u
     await site.goto(url, { waitUntil: 'load', timeout: options.timeoutMs ?? 60_000 });
     await panel.goto(`chrome-extension://${extensionId}/sidepanel.html?tabId=${tabId}`);
     const button = panel.locator('.primary');
+    // The panel waits for a person to start scanning; so does the CLI, one step at a time.
+    await panel.getByRole('button', { name: 'Scan page' }).click({ timeout: options.timeoutMs ?? 60_000 });
     await panel.waitForFunction(() => {
       const b = document.querySelector('.primary');
       return (b && !b.hasAttribute('disabled')) || document.querySelector('.notice.error');
     }, null, { timeout: options.timeoutMs ?? 120_000 });
     const failed = await panel.locator('.notice.error').textContent().catch(() => null);
     if (failed) throw new Error(failed);
+    if (options.motion ?? true) await panel.getByLabel(/Record motion/).check();
 
     const result = panel.evaluate(
       () =>

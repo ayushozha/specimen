@@ -130,3 +130,13 @@ describe('SVG shadows', () => {
     expect(svg).not.toContain('SourceGraphic');
   });
 });
+
+describe('text-transform in SVG text', () => {
+  it('applies uppercase, lowercase and capitalize like the browser', async () => {
+    const { textTransform } = await import('../src/svg');
+    expect(textTransform('The platform for continual learning', 'capitalize')).toBe('The Platform For Continual Learning');
+    expect(textTransform('Sign up', 'uppercase')).toBe('SIGN UP');
+    expect(textTransform('Sign Up', 'lowercase')).toBe('sign up');
+    expect(textTransform('as written', 'none')).toBe('as written');
+  });
+});

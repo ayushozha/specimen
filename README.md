@@ -9,7 +9,7 @@
   <img alt="Safari" src="https://img.shields.io/badge/Safari-macOS-0A0A0A?logo=safari&logoColor=white">
   <img alt="Figma plugin" src="https://img.shields.io/badge/Figma-plugin-0A0A0A?logo=figma&logoColor=white">
   <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-6-3178C6?logo=typescript&logoColor=white">
-  <img alt="Tests" src="https://img.shields.io/badge/tests-73%20passing-2ea44f">
+  <img alt="Tests" src="https://img.shields.io/badge/tests-81%20passing-2ea44f">
   <img alt="License" src="https://img.shields.io/badge/license-none%20yet-lightgrey">
 </p>
 
@@ -23,7 +23,7 @@
 - [Screenshots](#screenshots)
 - [Quick start](#quick-start)
 - [What's in a bundle](#whats-in-a-bundle)
-- [Exports](#exports)
+- [Outputs](#outputs)
 - [Command line](#command-line)
 - [How it works](#how-it-works)
 - [Browser support](#browser-support)
@@ -37,11 +37,11 @@
 
 ## What it does
 
-Specimen opens in the browser's side panel and reads a page the way the browser renders it. **Capture everything** records all of the below into one `.specimen.zip`.
+Specimen opens in the browser's side panel and reads a page the way the browser renders it. Nothing runs until you ask: **Scan page** finds the sections, colours and stack; **Capture everything** (or **Capture** on one section) takes the screenshots, HTML and layers; motion is recorded only when **Record motion** is on. Each capture lands in the **Captures** tab with a preview and its outputs: a copy that pastes into Figma, Paper, Sketch, Penpot, Framer or Illustrator, design files, and a `DESIGN.md` folder for coding agents.
 
 | | |
 |---|---|
-| **Sections** | Finds the page's sections by their HTML tags, then by layout. Untick, remove or capture one, **Pick element** to add any element, **Copy** a section as HTML (for Paper) or SVG (for Figma and Illustrator). |
+| **Sections** | Finds the page's sections by their HTML tags, then by layout. Untick, remove or capture one, or **Pick element** to add any element: hover to see its box model, ↑ ↓ for parent or child, ↵ or click to add it. |
 | **Screenshots** | Full page and every section at desktop (1440px), tablet (768px) and mobile (390px). Sticky headers are hidden in other sections' shots. |
 | **HTML** | Each section as a standalone `.html` file with its images and fonts, plus an MHTML snapshot of the page. |
 | **Exact colours** | Every colour as the site wrote it (`oklch(…)`, `color(display-p3 …)`, hex), its CSS variable, where it's used, roles, gradients, shadows, WCAG contrast for every text and background pair, colours from images and video, and an eyedropper. |
@@ -49,7 +49,7 @@ Specimen opens in the browser's side panel and reads a page the way the browser 
 | **Hover and interaction** | Every hover and focus effect, from CSS rules and JavaScript listeners: before and after styles, transition timing, a frame-exact clip and screenshots. Cursor followers, menus and accordions too. |
 | **Effect replication** | Every effect as CSS, GSAP and Motion (React) code. Effects read from the page are exact; effects with no readable source are fitted to the recorded motion (cubic-bezier or spring) with a match score, and a preview page replays them. |
 | **Tech stack** | 41 frameworks, site builders, CSS systems and animation libraries, with versions and evidence. |
-| **Exports** | Figma plugin, Paper, SVG (Illustrator), layered PSD (Photoshop), After Effects script, Lottie, Adobe swatches, design tokens and Tailwind. See [Exports](#exports). |
+| **Outputs** | Copy and paste into Figma, Paper, Sketch, Penpot, Framer, Illustrator, Canva, Keynote; the Figma plugin; layered PSD; After Effects and Lottie; a `DESIGN.md` spec for Claude Code, Codex, Cursor and chat agents; the full `.specimen.zip`. See [Outputs](#outputs). |
 
 ## Screenshots
 
@@ -87,13 +87,13 @@ pnpm install
 pnpm build:all
 ```
 
-**Chrome, Brave, Edge, Arc, Opera, Vivaldi:** open `chrome://extensions`, turn on **Developer mode**, **Load unpacked** and choose `apps/extension/.output/chrome-mv3`. Click the Specimen button: the side panel opens and analyses the page. While it's connected, the browser shows a "started debugging this browser" bar (see [Privacy and security](#privacy-and-security)).
+**Chrome, Brave, Edge, Arc, Opera, Vivaldi:** open `chrome://extensions`, turn on **Developer mode**, **Load unpacked** and choose `apps/extension/.output/chrome-mv3`. Click the Specimen button: the side panel opens; click **Scan page** to start. While it's connected, the browser shows a "started debugging this browser" bar (see [Privacy and security](#privacy-and-security)).
 
 **Firefox 140+:** open `about:debugging#/runtime/this-firefox`, **Load Temporary Add-on** and pick `apps/extension/.output/firefox-mv3/manifest.json`. The button opens the sidebar.
 
-**Safari (macOS):** `pnpm safari:project`, open `apps/safari/Specimen/Specimen.xcodeproj` in Xcode and run it, then turn on Specimen in Safari → Settings → Extensions (enable **Allow unsigned extensions** in the Develop menu for local builds). The button opens the panel in a small window.
+**Safari (macOS):** `pnpm safari:project`, open `apps/safari/Specimen/Specimen.xcodeproj` in Xcode and run it, then turn on Specimen in Safari → Settings → Extensions (enable **Allow unsigned extensions** in the Develop menu for local builds). The button opens the panel in a window docked beside the page.
 
-**Figma:** in Figma, **Plugins → Development → Import plugin from manifest** and pick `apps/figma-plugin/manifest.json`. Run **Specimen** and choose a `.specimen.zip`.
+**Figma plugin (optional):** in Figma desktop, **Plugins → Development → Import plugin from manifest** and pick `apps/figma-plugin/manifest.json`. In Specimen, use **Figma → Plugin file**, run the plugin and drop the file on it. Paste (**Figma → Copy**, then ⌘V) needs no plugin.
 
 ## What's in a bundle
 
@@ -117,13 +117,29 @@ example.com-pricing_2026-11-18T14-02-11.specimen.zip
   assets/                  images and fonts used by the section HTML
 ```
 
-## Exports
+## Outputs
+
+Every capture in the **Captures** tab has these, for all its sections or the one you select:
+
+| Where | How | What you get |
+|---|---|---|
+| **Figma** | **Copy**, then ⌘V in Figma | The section as editable layers: frames, text, images, gradients, borders and shadows. Several sections paste as frames stacked with a gap. |
+| **Figma (plugin)** | **Plugin file**, dropped on the Specimen plugin | Everything in the Figma row below: auto layout, colour variables, hover variants. |
+| **Paper** | **Copy**, then ⌘V in Paper | The section as HTML with its images inline; Paper turns it into layers. |
+| **Sketch, Penpot, Framer, Illustrator** | **Copy SVG**, or **.svg** | One self-contained SVG: images, the background and fonts are inside the file. |
+| **Photoshop** | **.psd** | The layered PSD below. |
+| **Canva, Keynote, Slides, Notion** | **Copy image** | The section's screenshot. |
+| **After Effects, Lottie** | **.jsx**, **Lottie** (when motion was recorded) | The animation exports below. |
+| **Claude Code, Codex, Cursor** | **Save to folder** (Chrome, Edge; a zip elsewhere) | `design-spec/`: `DESIGN.md` with exact colours, type scale, radii, shadows, spacing and stack; per section a screenshot at each width, a highlight image with numbered callouts (headings, buttons, cards, images) and their exact styles, and motion and hover cues with timings; `tokens.json`; recordings. |
+| **Claude, ChatGPT, Grok, Gemini** | **Copy prompt**, **Copy screenshot** | The same `DESIGN.md` text to paste into a chat, with the screenshot to attach. |
+| **Everything** | **Download everything (.zip)** | The full bundle described above. |
+
+### Inside the bundle
 
 | Target | File | What you get |
 |---|---|---|
 | **Figma** | `exports/figma.json` + the plugin | One frame per section with real frames, text, images and vectors; auto layout where it reproduces the page exactly; colour **variables** and styles; hover states as **component variants** wired with Smart Animate using the captured duration and easing; the screenshot as a hidden reference layer. |
-| **Paper** | Copy → HTML in the panel | The section as HTML with inlined styles, pasted into Paper. |
-| **Illustrator, Figma, Sketch** | `exports/svg/<section>.svg` or Copy → SVG | Editable SVG: boxes, gradients, borders, shadows, images and live text placed line by line. Matches the screenshot on more than 97% of pixels in the tests. |
+| **SVG** | `exports/svg/<section>.svg` | Self-contained, editable SVG: boxes, gradients, borders, shadows, images and live text placed line by line, with images and fonts inline. Matches the screenshot on more than 97% of pixels in the tests. |
 | **Photoshop** | `exports/psd/<section>.psd` | A group per box, backgrounds as layers, images as exact crops, editable text layers, the screenshot as a hidden reference. |
 | **After Effects** | `exports/after-effects/specimen.jsx` | Run it (File → Scripts → Run Script File): a comp per section with each animated element as a layer and keyframes with easing; endless animations loop. |
 | **Lottie** | `exports/lottie/*.json` | Each animation and hover effect, playable in lottie-web, After Effects (LottieFiles), Figma and Rive. |
@@ -150,7 +166,7 @@ node apps/cli/src/cli.ts check captures/*.specimen.zip
 node apps/cli/src/cli.ts media captures/example.com_2026-11-18T14-02-11.specimen.zip --out media
 ```
 
-- `capture` takes URLs or `--urls file.txt`, runs **Capture everything** for each and never overwrites a file.
+- `capture` takes URLs or `--urls file.txt`, runs **Scan page** and **Capture everything** for each (with motion unless `--no-motion`) and never overwrites a file.
 - `diff` reports added and removed sections, a pixel diff of every section with highlighted images, colour and CSS variable changes, tech-stack changes and motion totals (`diff/index.html`, `diff/diff.json`).
 - `check` reports a bundle's errors, stack and motion, and how closely each SVG export matches its screenshot. Bundles from others are opened with scripts off and no network.
 - `media` downloads the original videos a capture references; HLS and DASH streams go through `ffmpeg`.
@@ -171,7 +187,7 @@ Run `npx playwright install chromium` once before the first capture.
           ◄── zip (fflate) with a report
 ```
 
-- **Deep mode.** Capture everything reloads the page with small hooks installed before the site's own scripts, to record which elements react to the pointer and which are watched for scrolling into view. The reload is recorded as the page-load video.
+- **Deep mode.** With **Record motion** on, capture reloads the page with small hooks installed before the site's own scripts, to record which elements react to the pointer and which are watched for scrolling into view. The reload is recorded as the page-load video.
 - **Frame-exact motion.** CSS animations and hover transitions are paused and stepped frame by frame through the Web Animations API, with one screenshot per frame, so clips are smooth at any frame rate.
 - **Exact colours.** Colours come from computed CSS, not pixels. Pixels are sampled only for images and video.
 - **Replication.** Effects read from the page (CSS keyframes, transitions, GSAP settings) are copied exactly. Motion with no readable source is fitted to a named easing, a cubic-bezier or a spring, scored against the recording, and replayed in a browser by the tests.
@@ -215,8 +231,8 @@ pnpm test
 pnpm test:e2e
 ```
 
-- **Unit tests (40):** colour maths, median cut, motion maths, easing fits (named, bezier, spring), every exporter, generated-code safety, and the Figma importer against a recording stand-in for Figma's API.
-- **Browser tests (33):** the core in a real page; the full extension capturing the fixture; every export opened the way its tool would (SVG pixel-compared to the screenshot, PSD parsed, Lottie played in lottie-web, the After Effects script parsed); generated CSS replayed and compared to the original curve; the Firefox/Safari code path run inside Chromium; the CLI's batch capture, diff and HLS download; and a hostile page that tries to inject scripts, steal typed values, get user activation and escape file paths.
+- **Unit tests (44):** colour maths, median cut, motion maths, easing fits (named, bezier, spring), every exporter including the agent DESIGN.md (callouts, tokens), generated-code safety, and the Figma importer against a recording stand-in for Figma's API.
+- **Browser tests (37):** the core in a real page, including the picker's box model and keys; the full extension capturing the fixture; nothing running before Scan page; a one-section capture and every output (SVG, HTML and image copies read back from the clipboard, the plugin file, the agent spec); every export opened the way its tool would (SVG pixel-compared to the screenshot, PSD parsed, Lottie played in lottie-web, the After Effects script parsed); generated CSS replayed and compared to the original curve; the Firefox/Safari code path run inside Chromium; the CLI's batch capture, diff and HLS download; and a hostile page that tries to inject scripts, steal typed values, get user activation and escape file paths.
 
 Run `npx playwright install chromium` once. The Firefox build is checked with `npx web-ext lint --source-dir apps/extension/.output/firefox-mv3` (0 errors) and the Safari app with `xcodebuild`.
 

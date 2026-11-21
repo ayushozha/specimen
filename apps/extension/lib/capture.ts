@@ -33,6 +33,8 @@ export interface Progress {
   step: string;
   done: number;
   total: number;
+  /** The section just captured at the widest breakpoint, for a live preview. */
+  latest?: { name: string; png: Uint8Array };
 }
 
 export interface StepError {
@@ -61,6 +63,8 @@ export interface Manifest {
 export interface CaptureResult {
   filename: string;
   zip: Uint8Array;
+  /** The bundle's files by path, for building outputs without unzipping. */
+  files: Record<string, Uint8Array>;
   manifest: Manifest;
 }
 
@@ -68,6 +72,11 @@ export interface CaptureRequest {
   /** Sections to capture; all of `analysis.sections` when omitted ("Capture everything"). */
   sectionIds?: string[];
   breakpoints?: Breakpoint[];
+  /**
+   * Also record motion: load and scroll video, animations frame by frame, hover and focus states,
+   * menus. Off unless asked for: it reloads the page and moves the pointer over it.
+   */
+  motion?: boolean;
 }
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -132,7 +141,7 @@ export async function capture(
   const actualWidths: Record<string, number> = {};
   let desktopTiles: Tile[] = [];
 
-  const withMotion = CONFIG.motion.enabled;
+  const withMotion = request.motion ?? false;
   let motion: MotionSummary | null = null;
   const total = breakpoints.length * (sections.length + 1) + (wholePage ? 4 : 2) + 1 + (withMotion ? MOTION_STEPS : 0);
   let done = 0;
@@ -212,6 +221,7 @@ export async function capture(
             if (bpIndex === 0) {
               shots.set(section.id, png);
               desktopRects.set(section.id, section.rect);
+              onProgress({ step: `${planned.name} at ${bp.name}`, done, total, latest: { name: planned.name, png } });
             }
             // HTML is serialised once, at the first (widest) breakpoint, while still frozen.
             if (freeze && section.selector) {
@@ -305,6 +315,10 @@ export async function capture(
         scale,
         source: { url: analysis.url, title: analysis.title },
         put,
+        read: (path) => {
+          const file = files[path];
+          return file instanceof Uint8Array ? file : Array.isArray(file) && file[0] instanceof Uint8Array ? file[0] : null;
+        },
         errors,
       });
     });
@@ -336,7 +350,8 @@ export async function capture(
   put('manifest.json', json(manifest));
   onProgress({ step: 'Zipping', done: total, total });
 
-  return { filename: bundleName(analysis.url), zip: zipSync(files), manifest };
+  const flat = Object.fromEntries(Object.entries(files).map(([path, f]) => [path, (Array.isArray(f) ? f[0] : f) as Uint8Array]));
+  return { filename: bundleName(analysis.url), zip: zipSync(files), files: flat, manifest };
 }
 
 /**

@@ -2,10 +2,11 @@ import { deltaE, parseColor, type PaletteColor, type Section } from '@specimen/c
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { analyse, capture, type Analysis, type CaptureResult, type Progress } from '../../lib/capture';
 import type { StyleSheetText } from '@specimen/core';
-import { Session, downloadBundle, explainError, focusTabWindow, targetTabId } from '../../lib/session';
-import { toSvg } from '@specimen/exporters';
+import { Session, explainError, focusTabWindow, targetTabId } from '../../lib/session';
+import { CONFIG } from '../../lib/config';
+import { CapturesView, type CaptureItem } from './Captures';
 
-type View = 'sections' | 'palette' | 'motion' | 'stack';
+type View = 'sections' | 'palette' | 'motion' | 'stack' | 'captures';
 type FullAnalysis = Analysis & { sheets: StyleSheetText[] };
 
 declare global {
@@ -26,6 +27,9 @@ export function App() {
   const [progress, setProgress] = useState<Progress | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<CaptureResult | null>(null);
+  const [captures, setCaptures] = useState<CaptureItem[]>([]);
+  const [withMotion, setWithMotion] = useState(false);
+  const [live, setLive] = useState<{ name: string; url: string } | null>(null);
   const [stale, setStale] = useState(false);
   const [excluded, setExcluded] = useState<Set<string>>(new Set());
   const tabIdRef = useRef<number | null>(null);
@@ -63,10 +67,8 @@ export function App() {
   );
 
   useEffect(() => {
-    targetTabId().then((id) => {
-      setTabId(id);
-      if (id !== null) void runAnalyse(id);
-    });
+    // Nothing runs until asked: scanning scrolls the page and may dismiss a cookie banner.
+    targetTabId().then(setTabId);
     const onActivated = (info: chrome.tabs.OnActivatedInfo) => {
       if (new URLSearchParams(location.search).has('tabId')) return;
       chrome.windows.getCurrent().then((w) => {
@@ -92,26 +94,41 @@ export function App() {
     };
   }, [runAnalyse]);
 
+  const onProgress = useCallback((p: Progress) => {
+    setProgress(p);
+    if (p.latest) {
+      const url = URL.createObjectURL(new Blob([p.latest.png as BlobPart], { type: 'image/png' }));
+      setLive((prev) => {
+        if (prev) URL.revokeObjectURL(prev.url);
+        return { name: p.latest!.name, url };
+      });
+    }
+  }, []);
+
   const runCapture = async (sectionIds?: string[]) => {
     if (tabId === null || !analysis) return;
     // Must be the first await: browsers only show the permission prompt during the click.
     await session.requestHostAccess();
     setBusy('capture');
     setError(null);
-    setResult(null);
     try {
       const adapter = await connect(tabId);
       const ids = sectionIds ?? (excluded.size ? analysis.sections.filter((s) => !excluded.has(s.id)).map((s) => s.id) : undefined);
-      const r = await capture(adapter, analysis, { sectionIds: ids }, setProgress);
-      setResult(r);
-      // Lets automated tests (and future integrations) read the bundle without the download.
+      const r = await capture(adapter, analysis, { sectionIds: ids, motion: withMotion }, onProgress);
+      if (r.manifest.motion) setResult(r);
+      setCaptures((list) => [{ key: Date.now(), result: r, stack: analysis.stack }, ...list]);
+      setView('captures');
+      // Lets automated tests (and future integrations) read the bundle.
       window.dispatchEvent(new CustomEvent('specimen:done', { detail: r }));
-      await downloadBundle(r);
     } catch (err) {
       setError(explainError(err));
     } finally {
       setBusy(null);
       setProgress(null);
+      setLive((prev) => {
+        if (prev) URL.revokeObjectURL(prev.url);
+        return null;
+      });
     }
   };
 
@@ -140,25 +157,6 @@ export function App() {
     }
   };
 
-  /** Copies a section for pasting into design tools: HTML for Paper, SVG for Figma and Illustrator. */
-  const copySection = async (section: Section, format: 'html' | 'svg') => {
-    if (tabId === null || !analysis || !section.selector) return;
-    try {
-      const adapter = await connect(tabId);
-      if (format === 'html') {
-        const { html } = await adapter.call('serializeElement', section.selector, analysis.sheets);
-        await navigator.clipboard.write([
-          new ClipboardItem({ 'text/html': new Blob([html], { type: 'text/html' }), 'text/plain': new Blob([html], { type: 'text/plain' }) }),
-        ]);
-      } else {
-        const tree = await adapter.call('layoutTree', section.selector, 1500);
-        await navigator.clipboard.writeText(toSvg(tree, (url) => url));
-      }
-    } catch (err) {
-      setError(explainError(err));
-    }
-  };
-
   const highlight = useCallback(
     (section: Section | null) => {
       if (tabId === null || busy) return;
@@ -182,9 +180,10 @@ export function App() {
       </header>
 
       <div className="segmented" role="tablist">
-        {(['sections', 'palette', 'motion', 'stack'] as View[]).map((v) => (
+        {(['sections', 'palette', 'motion', 'stack', 'captures'] as View[]).map((v) => (
           <button key={v} role="tab" aria-selected={view === v} className={view === v ? 'on' : ''} onClick={() => setView(v)}>
             {VIEW_LABEL[v]}
+            {v === 'captures' && captures.length > 0 && <span className="count">{captures.length}</span>}
           </button>
         ))}
       </div>
@@ -193,12 +192,33 @@ export function App() {
         {capturing && progress ? `Capturing… ${progress.done}/${progress.total}` : excluded.size ? `Capture ${included} sections` : 'Capture everything'}
       </button>
 
+      {analysis && !busy && (
+        <div className="options">
+          <label className="switch">
+            <input type="checkbox" checked={withMotion} onChange={(e) => setWithMotion(e.target.checked)} />
+            <span>
+              Record motion <span className="muted small">· reloads the page, hovers and opens menus</span>
+            </span>
+          </label>
+          <div className="muted small">
+            You'll get: {excluded.size ? included : analysis.sections.length} section screenshots at {CONFIG.breakpoints.map((b) => b.width).join(' / ')}px, editable
+            layers for Figma, Paper, Sketch and more, a Photoshop file and a DESIGN.md for agents{withMotion ? ', plus animations, hover states and recordings' : ''}.
+          </div>
+        </div>
+      )}
+
       {progress && (
         <div className="progress" aria-live="polite">
           <div className="bar">
             <span style={{ width: `${Math.round((progress.done / Math.max(1, progress.total)) * 100)}%` }} />
           </div>
           <div className="muted small">{progress.step}</div>
+          {live && capturing && (
+            <figure className="live">
+              <img src={live.url} alt="" />
+              <figcaption className="muted small">Captured: {live.name}</figcaption>
+            </figure>
+          )}
         </div>
       )}
 
@@ -211,18 +231,16 @@ export function App() {
         <div className="notice">
           The page changed.{' '}
           <button className="link" onClick={() => tabId !== null && runAnalyse(tabId)}>
-            Analyse again
+            Scan again
           </button>
         </div>
       )}
-      {!analysis && !busy && !error && tabId !== null && (
+      {!analysis && !busy && !error && tabId !== null && view !== 'captures' && (
         <div className="empty">
-          <p>Analyse this page to find its sections, colours and tech stack.</p>
-          <button onClick={() => runAnalyse(tabId)}>Analyse page</button>
+          <p>Scan this page to find its sections, colours and tech stack. Scanning scrolls the page once to load lazy content; nothing is captured yet.</p>
+          <button onClick={() => runAnalyse(tabId)}>Scan page</button>
         </div>
       )}
-
-      {result && !busy && <Done result={result} />}
 
       {analysis && view === 'sections' && (
         <SectionsView
@@ -231,7 +249,6 @@ export function App() {
           setExcluded={setExcluded}
           busy={!!busy}
           onCapture={(id) => runCapture([id])}
-          onCopy={copySection}
           onRemove={(id) => setAnalysis({ ...analysis, sections: analysis.sections.filter((s) => s.id !== id) })}
           onPick={pick}
           onRedetect={() => tabId !== null && runAnalyse(tabId)}
@@ -242,50 +259,8 @@ export function App() {
       {analysis && view === 'palette' && <PaletteView analysis={analysis} onHighlight={(sel) => highlight(sel ? ({ selector: sel, name: '' } as Section) : null)} />}
       {analysis && view === 'motion' && <MotionView result={result} sections={analysis.sections} />}
       {analysis && view === 'stack' && <StackView analysis={analysis} />}
+      {view === 'captures' && <CapturesView items={captures} onRemove={(key) => setCaptures((l) => l.filter((c) => c.key !== key))} onError={setError} />}
     </div>
-  );
-}
-
-function Done({ result }: { result: CaptureResult }) {
-  const { manifest } = result;
-  return (
-    <div className="notice">
-      <div>
-        Saved <span className="mono">{result.filename}</span>
-      </div>
-      <div className="muted small">
-        {manifest.sections.length} sections · {manifest.files.length} files
-        {manifest.errors.length ? ` · ${manifest.errors.length} steps failed (listed in the report)` : ''}
-      </div>
-      <button className="link" onClick={() => downloadBundle(result)}>
-        Download again
-      </button>
-    </div>
-  );
-}
-
-function CopyMenu({ section, onCopy, disabled }: { section: Section; onCopy: (s: Section, f: 'html' | 'svg') => Promise<void>; disabled: boolean }) {
-  const [done, setDone] = useState<string | null>(null);
-  const copy = async (format: 'html' | 'svg', e: React.MouseEvent) => {
-    (e.currentTarget.closest('details') as HTMLDetailsElement | null)?.removeAttribute('open');
-    await onCopy(section, format);
-    setDone(format === 'html' ? 'HTML copied' : 'SVG copied');
-    setTimeout(() => setDone(null), 1500);
-  };
-  return (
-    <details className="menu">
-      <summary className={`ghost small ${disabled ? 'disabled' : ''}`} aria-label={`Copy ${section.name}`}>
-        {done ?? 'Copy'}
-      </summary>
-      <div className="menu-list" role="menu">
-        <button role="menuitem" onClick={(e) => copy('html', e)} disabled={disabled}>
-          HTML <span className="muted">for Paper</span>
-        </button>
-        <button role="menuitem" onClick={(e) => copy('svg', e)} disabled={disabled}>
-          SVG <span className="muted">for Figma, Illustrator</span>
-        </button>
-      </div>
-    </details>
   );
 }
 
@@ -296,7 +271,6 @@ function SectionsView(props: {
   busy: boolean;
   picking: boolean;
   onCapture: (id: string) => void;
-  onCopy: (section: Section, format: 'html' | 'svg') => Promise<void>;
   onRemove: (id: string) => void;
   onPick: () => void;
   onRedetect: () => void;
@@ -332,7 +306,6 @@ function SectionsView(props: {
                 {s.rect.width}×{s.rect.height} · {s.source}
               </div>
             </div>
-            {s.selector && <CopyMenu section={s} onCopy={props.onCopy} disabled={props.busy} />}
             <button className="ghost small" onClick={() => props.onCapture(s.id)} disabled={props.busy}>
               Capture
             </button>
@@ -532,7 +505,7 @@ function PaletteView({ analysis, onHighlight }: { analysis: FullAnalysis; onHigh
   );
 }
 
-const VIEW_LABEL: Record<View, string> = { sections: 'Sections', palette: 'Palette', motion: 'Motion', stack: 'Stack' };
+const VIEW_LABEL: Record<View, string> = { sections: 'Sections', palette: 'Palette', motion: 'Motion', stack: 'Stack', captures: 'Captures' };
 
 function MotionView({ result, sections }: { result: CaptureResult | null; sections: Section[] }) {
   const motion = result?.manifest.motion;
@@ -540,8 +513,8 @@ function MotionView({ result, sections }: { result: CaptureResult | null; sectio
   if (!motion) {
     return (
       <p className="panel muted">
-        Motion is recorded during Capture everything: page load and scroll video, animations frame by frame, hover and focus states, pointer effects and
-        menus.
+        Motion is recorded only when you turn on Record motion before capturing: page load and scroll video, animations frame by frame, hover and focus
+        states, pointer effects and menus.
       </p>
     );
   }

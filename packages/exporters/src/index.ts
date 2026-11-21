@@ -6,3 +6,4 @@ export * from './aftereffects';
 export * from './figma';
 export * from './fit';
 export * from './replicate';
+export * from './design-md';

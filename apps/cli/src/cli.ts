@@ -5,18 +5,19 @@
  */
 import { chromium } from '@playwright/test';
 import { access, mkdir, readFile, writeFile } from 'node:fs/promises';
-import { dirname, join, resolve } from 'node:path';
+import { join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 import { captureUrl, launch } from './capture.ts';
 import { checkBundle } from './check.ts';
 import { diffBundles, diffHtml } from './diff.ts';
 import { downloadMedia } from './media.ts';
 
-const DEFAULT_EXTENSION = resolve(dirname(new URL(import.meta.url).pathname), '../../extension/.output/chrome-mv3');
+// import.meta.dirname is a real path; URL.pathname would keep spaces as %20.
+const DEFAULT_EXTENSION = resolve(import.meta.dirname, '../../extension/.output/chrome-mv3');
 
 const HELP = `Specimen CLI
 
-  specimen capture <url...> [--urls file] [--out dir] [--concurrency n] [--headed] [--extension dir]
+  specimen capture <url...> [--urls file] [--out dir] [--concurrency n] [--headed] [--no-motion] [--extension dir]
       Capture pages with the Specimen extension (Capture everything) and save the .specimen.zip bundles.
 
   specimen diff <before.zip> <after.zip> [--out dir]
@@ -40,6 +41,7 @@ async function main() {
       urls: { type: 'string' },
       concurrency: { type: 'string', default: '1' },
       headed: { type: 'boolean', default: false },
+      'no-motion': { type: 'boolean', default: false },
       extension: { type: 'string', default: DEFAULT_EXTENSION },
       help: { type: 'boolean', short: 'h', default: false },
     },
@@ -65,6 +67,7 @@ async function main() {
             try {
               const { filename, zip } = await captureUrl(context, extensionId, url, {
                 extensionDir: values.extension!,
+                motion: !values['no-motion'],
                 onProgress: (u, step) => process.stderr.write(`\r\x1b[K${u}: ${step}`),
               });
               const path = await freePath(join(out, filename));

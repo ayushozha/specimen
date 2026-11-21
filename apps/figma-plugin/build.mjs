@@ -12,9 +12,10 @@ await writeFile(
 body{margin:0;padding:16px;font:12px/1.5 Inter,system-ui,sans-serif;color:#0a0a0a;background:#fff}
 @media (prefers-color-scheme:dark){body{color:#ededed;background:#0a0a0a}}
 label{display:block;border:1px dashed #d4d4d4;border-radius:8px;padding:18px;text-align:center;cursor:pointer}
+label.over{border-color:currentColor;border-style:solid}
 input{display:none}#status{margin-top:10px;color:#737373;min-height:18px}
 </style>
-<label>Choose a .specimen.zip<input id="file" type="file" accept=".zip"></label>
+<label id="drop">Drop the Specimen plugin file here<br><span style="opacity:.6">or click to choose a .figma.zip</span><input id="file" type="file" accept=".zip"></label>
 <div id="status"></div>
 <script>${script}</script>`,
 );

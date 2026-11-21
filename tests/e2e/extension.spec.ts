@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { strFromU8, unzipSync } from 'fflate';
-import { launchWithExtension, pngSize } from './helpers';
+import { launchWithExtension, pngSize, scan } from './helpers';
 
 test('Capture everything produces a complete bundle', async () => {
   const { context, extensionId } = await launchWithExtension();
@@ -14,9 +14,12 @@ test('Capture everything produces a complete bundle', async () => {
     const panel = await context.newPage();
     await panel.goto(`chrome-extension://${extensionId}/sidepanel.html?tabId=${tab.id}`);
 
-    // The panel analyses the page on open.
+    // Nothing runs on open: no scrolling, no cookie banner dismissed, until Scan page.
+    await expect(panel.getByRole('button', { name: 'Scan page' })).toBeVisible();
+    await panel.waitForTimeout(1000);
+    expect(await site.evaluate(() => [(window as unknown as { __consent?: string }).__consent ?? null, scrollY])).toEqual([null, 0]);
+    await scan(panel, { motion: true });
     const button = panel.getByRole('button', { name: 'Capture everything' });
-    await expect(button).toBeEnabled({ timeout: 60_000 });
     await expect(panel.getByText('5 sections')).toBeVisible();
     await expect(panel.getByText('Cookie banner: clicked “Reject all”.')).toBeVisible();
     await panel.screenshot({ path: 'test-results/panel-sections.png' });
@@ -34,7 +37,9 @@ test('Capture everything produces a complete bundle', async () => {
     );
     await button.click();
     const files = unzipSync(Buffer.from(await zipBase64, 'base64'));
-    await expect(panel.getByText(/^Saved /)).toBeVisible();
+    // The capture lands in the Captures tab with its outputs; nothing downloads by itself.
+    await expect(panel.getByRole('heading', { name: 'Design tools' })).toBeVisible();
+    await expect(panel.getByText(/^DESIGN\.md for Claude Code/)).toBeVisible({ timeout: 30_000 });
     await panel.screenshot({ path: 'test-results/panel-done.png' });
 
     const manifest = JSON.parse(strFromU8(files['manifest.json']));
@@ -123,7 +128,8 @@ test('Pick element adds the clicked element as a section, and the button cancels
     const [tab] = await context.serviceWorkers()[0].evaluate(() => chrome.tabs.query({}));
     const panel = await context.newPage();
     await panel.goto(`chrome-extension://${extensionId}/sidepanel.html?tabId=${tab.id}`);
-    await expect(panel.getByText('5 sections')).toBeVisible({ timeout: 60_000 });
+    await scan(panel);
+    await expect(panel.getByText('5 sections')).toBeVisible();
 
     await panel.getByRole('button', { name: 'Pick element' }).click();
     const picking = panel.getByRole('button', { name: /Click an element/ });
@@ -143,6 +149,84 @@ test('Pick element adds the clicked element as a section, and the button cancels
   }
 });
 
+test('a single section capture gives paste-ready copies for design tools and a DESIGN.md for agents', async () => {
+  test.setTimeout(120_000);
+  const { context, extensionId } = await launchWithExtension();
+  try {
+    await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+    const site = context.pages()[0] ?? (await context.newPage());
+    await site.setViewportSize({ width: 1200, height: 800 });
+    await site.goto('http://localhost:4321/landing.html');
+    const [tab] = await context.serviceWorkers()[0].evaluate(() => chrome.tabs.query({}));
+    const panel = await context.newPage();
+    await panel.goto(`chrome-extension://${extensionId}/sidepanel.html?tabId=${tab.id}`);
+    await scan(panel);
+
+    // One section, no motion: lands in Captures as its own card.
+    await panel.getByRole('listitem').filter({ hasText: 'Features' }).getByRole('button', { name: 'Capture' }).click();
+    const card = panel.locator('.capture').first();
+    await expect(card.locator('.capture-head .name')).toHaveText('Features', { timeout: 60_000 });
+    await expect(card.getByText(/no motion/)).toBeVisible();
+    await expect(card.getByText(/^DESIGN\.md for Claude Code/)).toBeVisible({ timeout: 30_000 });
+    await panel.screenshot({ path: 'test-results/panel-captures.png', fullPage: true });
+
+    const clipboardText = () => panel.evaluate(() => navigator.clipboard.readText());
+    const clipboardTypes = () => panel.evaluate(async () => (await navigator.clipboard.read()).flatMap((i) => i.types));
+
+    // Figma, Sketch, Penpot, Framer, Illustrator: SVG markup with everything inside.
+    await card.getByRole('listitem').filter({ hasText: 'Figma' }).getByRole('button', { name: 'Copy' }).click();
+    await expect(card.getByRole('status')).toHaveText('Copied. Paste in Figma with ⌘V');
+    const svg = await clipboardText();
+    expect(svg.startsWith('<svg')).toBe(true);
+    expect(svg).toContain('href="data:image/');
+    expect(svg).not.toMatch(/(href=|url\()["']?\.\.\//);
+    await card.getByRole('button', { name: 'Copy SVG' }).click();
+    await expect(card.getByRole('status')).toHaveText('Copied SVG. Paste with ⌘V');
+    expect(await clipboardText()).toBe(svg);
+
+    // Paper: HTML with its images inline.
+    await card.getByRole('listitem').filter({ hasText: 'Paper' }).getByRole('button', { name: 'Copy' }).click();
+    await expect(card.getByRole('status')).toHaveText('Copied. Paste in Paper with ⌘V');
+    expect(await clipboardTypes()).toEqual(expect.arrayContaining(['text/html', 'text/plain']));
+    const html = await panel.evaluate(async () => {
+      const [item] = await navigator.clipboard.read();
+      return (await item.getType('text/html')).text();
+    });
+    expect(html).toContain('Fast');
+    expect(html).not.toContain('../../assets/');
+
+    // Everything else: a PNG.
+    await card.getByRole('button', { name: 'Copy image' }).click();
+    await expect(card.getByRole('status')).toHaveText('Image copied. Paste with ⌘V');
+    expect(await clipboardTypes()).toContain('image/png');
+
+    // Figma plugin input: figma.json and the images it uses.
+    const [plugin] = await Promise.all([panel.waitForEvent('download'), card.getByRole('button', { name: 'Plugin file' }).click()]);
+    expect(plugin.suggestedFilename()).toBe('localhost-landing-03-features.figma.zip');
+    const pluginFiles = unzipSync(new Uint8Array(await (await import('node:fs/promises')).readFile((await plugin.path())!)));
+    expect(JSON.parse(strFromU8(pluginFiles['exports/figma.json'])).sections.map((s: { id: string }) => s.id)).toEqual(['03-features']);
+    expect(pluginFiles['sections/03-features/desktop.png']).toBeTruthy();
+
+    // Agent spec: a folder where the browser can write one, else the same folder as a zip.
+    await panel.evaluate(() => delete (window as unknown as { showDirectoryPicker?: unknown }).showDirectoryPicker);
+    const [spec] = await Promise.all([panel.waitForEvent('download'), card.getByRole('button', { name: 'Save to folder' }).click()]);
+    const specFiles = unzipSync(new Uint8Array(await (await import('node:fs/promises')).readFile((await spec.path())!)));
+    expect(Object.keys(specFiles).sort()).toEqual(
+      expect.arrayContaining(['design-spec/DESIGN.md', 'design-spec/tokens.json', 'design-spec/screenshots/03-features.png', 'design-spec/highlights/03-features.png']),
+    );
+    const md = strFromU8(specFiles['design-spec/DESIGN.md']);
+    expect(md).toContain('### 1. Features');
+    expect(md).toContain('![Features](screenshots/03-features.png)');
+    expect(md).toContain('1. **Card (×3, same size) “Fast”** at 32,80');
+    expect(md).toMatch(/\*\*Heading “(Fast|Exact)”\*\*/);
+    expect(md).toContain('| accent | `#1d84f5` | `oklch(0.62 0.19 255)` | `--brand` |');
+    expect(md).toContain('Motion was not recorded for this capture.');
+    expect(pngSize(specFiles['design-spec/highlights/03-features.png'])).toEqual(pngSize(specFiles['design-spec/screenshots/03-features.png']));
+  } finally {
+    await context.close();
+  }
+});
+
 test('page code never gets user activation from the extension', async () => {
   const { context, extensionId } = await launchWithExtension();
   try {
@@ -151,7 +235,7 @@ test('page code never gets user activation from the extension', async () => {
     const [tab] = await context.serviceWorkers()[0].evaluate(() => chrome.tabs.query({}));
     const panel = await context.newPage();
     await panel.goto(`chrome-extension://${extensionId}/sidepanel.html?tabId=${tab.id}`);
-    await expect(panel.getByRole('button', { name: 'Capture everything' })).toBeEnabled({ timeout: 60_000 });
+    await scan(panel);
     // hostile.html records navigator.userActivation.isActive inside a getter the stack probe reads.
     expect(await site.evaluate(() => document.documentElement.dataset.activation)).toBe('false');
   } finally {
