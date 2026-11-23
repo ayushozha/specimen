@@ -148,6 +148,55 @@ test('Capture everything scans and captures in one click, with motion on by defa
   }
 });
 
+test('Capture a section picks one element and captures only it, with its motion', async () => {
+  test.setTimeout(240_000);
+  const { context, extensionId } = await launchWithExtension();
+  try {
+    await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+    const { site, panel } = await openSiteAndPanel(context, extensionId, 'http://localhost:4321/landing.html');
+    const done = panel.evaluate(
+      () =>
+        new Promise<{ sections: string[]; files: string[] }>((resolve) =>
+          window.addEventListener('specimen:done', (e) => {
+            const r = (e as CustomEvent<{ files: Record<string, unknown>; manifest: { sections: { id: string }[] } }>).detail;
+            resolve({ sections: r.manifest.sections.map((s) => s.id), files: Object.keys(r.files) });
+          }),
+        ),
+    );
+    // No scan first: the button scans, then waits for a click on the page.
+    await panel.getByRole('button', { name: /^Capture a section/ }).click();
+    await expect(panel.getByRole('button', { name: /Click a section, header or button/ })).toBeVisible({ timeout: 60_000 });
+    await site.locator('a.btn').hover();
+    await site.mouse.down();
+    await site.mouse.up();
+    const r = await done;
+    expect(r.sections).toHaveLength(1);
+    await expect(panel.locator('.capture-head .name')).toHaveText('Get started');
+    const id = r.sections[0];
+    expect(r.files.some((f) => f.startsWith(`sections/${id}/states/`) && f.endsWith('--hover.png')), 'the button\'s hover state').toBe(true);
+    expect(r.files.some((f) => f.startsWith(`sections/${id}/pointer`)), 'the pointer sweep covers a small element too').toBe(true);
+    // Nothing from the rest of the page was probed.
+    expect(r.files.filter((f) => /^sections\/[^/]+\/interactions\.json$/.test(f) && !f.startsWith(`sections/${id}/`))).toEqual([]);
+
+    // Copy everything puts one markdown document on the clipboard.
+    await panel.getByRole('button', { name: 'Copy everything' }).click();
+    const md = await panel.evaluate(() => navigator.clipboard.readText());
+    expect(md).toContain('## Stack');
+    expect(md).toContain('## Motion');
+    await panel.getByRole('button', { name: 'Copy motion' }).click();
+    expect(await panel.evaluate(() => navigator.clipboard.readText())).toMatch(/^## Motion/);
+    await panel.getByRole('button', { name: 'Copy stack' }).click();
+    expect(await panel.evaluate(() => navigator.clipboard.readText())).toMatch(/^## Stack/);
+    await panel.getByRole('button', { name: 'Copy CSS' }).click();
+    expect(await panel.evaluate(() => navigator.clipboard.readText())).toMatch(/^:root \{/);
+    await panel.setViewportSize({ width: 420, height: 900 });
+    await panel.evaluate(() => scrollTo(0, 0));
+    await panel.screenshot({ path: 'test-results/panel-capture-section.png' });
+  } finally {
+    await context.close();
+  }
+});
+
 test('Pick element adds the clicked element as a section, and the button cancels', async () => {
   const { context, extensionId } = await launchWithExtension();
   try {

@@ -62,6 +62,8 @@ export const CONFIG = {
     pointerScreensPerSection: 3,
     /** Time limit for the whole pointer sweep (it has its own, longer than other motion steps). */
     pointerBudgetMs: 180_000,
+    /** Smallest area, in CSS px a side, a stroke covers: small picked elements get the space around them too. */
+    pointerMinArea: 240,
     /** Shortest section, in CSS px, worth a stroke. */
     pointerMinSection: 120,
     /** Smallest canvas, in CSS px per side, worth a stroke. */

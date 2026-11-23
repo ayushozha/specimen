@@ -83,6 +83,11 @@ export function sectionFromElement(el: Element, index: number): Section {
   return { id: sectionId(index, name), name, selector: uniqueSelector(el), rect: pageRect(el), source: 'picked' };
 }
 
+/** Longest text of its own an element can be named by. */
+const SHORT_NAME = 60;
+/** Elements named by their own text when picked. */
+const OWN_TEXT = 'a, button, img, label, summary, [role="button"], [role="link"], [role="tab"]';
+
 export function sectionName(el: Element): string {
   const label = el.getAttribute('aria-label') ?? el.getAttribute('data-framer-name') ?? el.getAttribute('data-section');
   if (label?.trim()) return clean(label);
@@ -91,6 +96,11 @@ export function sectionName(el: Element): string {
   const headingText = heading ? ((heading as HTMLElement).innerText || heading.textContent || '') : '';
   if (headingText.trim()) return clean(headingText);
   if (el.id) return clean(el.id.replace(/[-_]+/g, ' '));
+  // A picked button, link, label or image is named by its own short text or alt text.
+  if (el.matches(OWN_TEXT)) {
+    const own = ((el as HTMLElement).innerText || el.getAttribute('alt') || el.querySelector('img[alt]')?.getAttribute('alt') || '').trim();
+    if (own && own.length <= SHORT_NAME) return clean(own);
+  }
   const tag = el.tagName.toLowerCase();
   return tag === 'header' ? 'Header' : tag === 'footer' ? 'Footer' : tag === 'nav' ? 'Navigation' : 'Section';
 }

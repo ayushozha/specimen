@@ -98,11 +98,24 @@ export interface MotionContext {
   note(step: string, message: string): void;
   /** Aborted when the user cancels; long loops check it between items. */
   signal?: AbortSignal;
+  /**
+   * Only `sections` were asked for (one section, a picked button or header): hover probes and
+   * animations outside them are skipped, and the pointer sweep covers them however small they are.
+   */
+  scoped?: boolean;
 }
 
 export const MOTION_STEPS = 7;
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+/** `r` grown around its centre to at least `min` px a side, kept inside the viewport. */
+const grow = (r: Rect, min: number, vp: { width: number; height: number }): Rect => {
+  const width = Math.min(vp.width, Math.max(r.width, min));
+  const height = Math.min(vp.height, Math.max(r.height, min));
+  const x = Math.min(Math.max(0, r.x + r.width / 2 - width / 2), vp.width - width);
+  const y = Math.min(Math.max(0, r.y + r.height / 2 - height / 2), vp.height - height);
+  return { x, y, width, height };
+};
 const json = (v: unknown) => new TextEncoder().encode(JSON.stringify(v, null, 2));
 const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'item';
 
@@ -212,11 +225,12 @@ export async function captureMotion(ctx: MotionContext): Promise<{ summary: Moti
   });
 
   await ctx.step('Capturing animations frame by frame', async () => {
-    const anims = (await adapter.call('collectAnimations', null))
-      .filter((a) => a.kind !== 'css-transition' && a.timeline === 'document' && a.target && a.duration > 0)
-      .slice(0, m.maxAnimations);
+    const found = (await adapter.call('collectAnimations', null)).filter((a) => a.kind !== 'css-transition' && a.timeline === 'document' && a.target && a.duration > 0);
+    const foundIds = await sectionOf(found.map((a) => a.target));
+    const keep = found.map((a, i) => ({ a, id: foundIds[i] })).filter(({ id }) => !ctx.scoped || id).slice(0, m.maxAnimations);
+    const anims = keep.map(({ a }) => a);
+    const ids = keep.map(({ id }) => id);
     summary.animations = anims.length;
-    const ids = await sectionOf(anims.map((a) => a.target));
     if (!caps.frameStepping || anims.length === 0) {
       anims.forEach((a, i) => ids[i] && perSection.get(ids[i]!)?.animations.push({ ...a, rect: null }));
       return;
@@ -252,7 +266,8 @@ export async function captureMotion(ctx: MotionContext): Promise<{ summary: Moti
   });
 
   await ctx.step('Probing hover and focus', async () => {
-    const candidates = await adapter.call('findInteractionCandidates', ctx.sheets, summary.hooks?.pointerTargets ?? [], m.maxInteractions, m.perSignature);
+    const within = ctx.scoped ? sections.flatMap((s) => (s.selector ? [s.selector] : [])) : undefined;
+    const candidates = await adapter.call('findInteractionCandidates', ctx.sheets, summary.hooks?.pointerTargets ?? [], m.maxInteractions, m.perSignature, within);
     const ids = await sectionOf(candidates.map((c) => c.selector));
     const overBudget = budget();
     for (const [i, c] of candidates.entries()) {
@@ -345,7 +360,7 @@ export async function captureMotion(ctx: MotionContext): Promise<{ summary: Moti
     // Every section tall enough to move over gets a stroke, so effects that only listen for the pointer
     // (followers, trails, tilts) are found without a hint from the page. Canvas sections and the hero
     // go first in case the limit cuts the list short.
-    const tall = sections.filter((sec) => sec.rect.height >= m.pointerMinSection);
+    const tall = ctx.scoped ? sections : sections.filter((sec) => sec.rect.height >= m.pointerMinSection);
     const canvasIds = await adapter.call('sectionsWithCanvas', tall, m.pointerMinCanvas);
     const hero = tall.find((sec) => sec.rect.height > desktop.height * 0.4);
     const first = [...tall.filter((sec) => canvasIds.includes(sec.id)), ...(hero ? [hero] : [])];
@@ -360,8 +375,11 @@ export async function captureMotion(ctx: MotionContext): Promise<{ summary: Moti
       const top = await adapter.call('scrollToY', scrollTo);
       const [measured] = await adapter.call('measureSections', [sec]);
       const areaTop = Math.max(0, measured.rect.y - top);
-      const area: Rect = { x: measured.rect.x, y: areaTop, width: measured.rect.width, height: Math.min(measured.rect.y + measured.rect.height - top, desktop.height) - areaTop };
-      if (area.height < 80) return null;
+      const visible: Rect = { x: measured.rect.x, y: areaTop, width: measured.rect.width, height: Math.min(measured.rect.y + measured.rect.height - top, desktop.height) - areaTop };
+      if (visible.height < 1 || (!ctx.scoped && visible.height < 80)) return null;
+      // A small element (a button, a logo) gets a stroke over it and the space around it, where
+      // effects it owns (glows, magnetic pulls) show.
+      const area = grow(visible, m.pointerMinArea, desktop);
       await adapter.mouseMove(1, 1);
       await sleep(m.settleMs);
       // Canvases on screen now (off-screen ones may have been hidden by the site until now).
