@@ -14,11 +14,11 @@ export async function launchWithExtension(): Promise<{ context: BrowserContext; 
   return { context, extensionId: new URL(worker.url()).host };
 }
 
-/** Scans the page from the panel (nothing runs before this) and turns on motion when asked. */
+/** Scans the page from the panel (nothing runs before this) and sets Record motion (on by default) as asked. */
 export async function scan(panel: Page, options: { motion?: boolean } = {}): Promise<void> {
   await panel.getByRole('button', { name: 'Scan page' }).click();
   await expect(panel.getByRole('button', { name: 'Capture everything' })).toBeEnabled({ timeout: 60_000 });
-  if (options.motion) await panel.getByLabel(/Record motion/).check();
+  await panel.getByLabel(/Record motion/).setChecked(!!options.motion);
 }
 
 /**

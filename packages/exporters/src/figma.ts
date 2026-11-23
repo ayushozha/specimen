@@ -24,6 +24,8 @@ export interface FigmaSection {
   background: string | null;
   tree: LayoutTree;
   variants: FigmaVariant[];
+  /** Motion frames placed beside the section: pointer strokes, frame by frame with the cursor drawn in. */
+  motion?: string[];
 }
 
 /** `exports/figma.json`: everything the Specimen Figma plugin needs, with image paths into the bundle. */

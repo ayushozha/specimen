@@ -41,6 +41,17 @@ export interface Track {
 
 export type TrackKind = 'scroll-linked' | 'scroll-reveal' | 'time' | 'pointer';
 
+/**
+ * Whether a track recorded during a pointer stroke follows the pointer: it keeps changing for most of
+ * the stroke with no long pause. A hover effect changes in bursts as the pointer enters and leaves.
+ * `from`/`to` are the stroke's start and end, in the track's milliseconds.
+ */
+export function followsPointer(track: Track, from: number, to: number, maxGapMs = 250, minCover = 0.5): boolean {
+  const times = track.samples.slice(1).map(([t]) => t).filter((t) => t >= from && t <= to + maxGapMs);
+  if (times.length < 2 || times[times.length - 1] - times[0] < (to - from) * minCover) return false;
+  return times.every((t, i) => i === 0 || t - times[i - 1] <= maxGapMs);
+}
+
 /** Changes spread over more than this are a loop or autoplay, not a one-off reveal. */
 const LOOP_SPAN_MS = 2500;
 

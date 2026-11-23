@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { classifyTrack, diffSnapshots, downsample, numericValue, parseTransform, type StyleSnapshot, type Track } from '../src/motion-math';
+import { classifyTrack, diffSnapshots, followsPointer, downsample, numericValue, parseTransform, type StyleSnapshot, type Track } from '../src/motion-math';
 
 describe('parseTransform', () => {
   it('reads identity and translation', () => {
@@ -82,5 +82,19 @@ describe('easing', () => {
     expect(evaluateBezier(cubicBezierOf('ease-out'), 0.5)).toBeGreaterThan(0.5);
     expect(evaluateBezier(cubicBezierOf('ease-in'), 0)).toBeCloseTo(0);
     expect(evaluateBezier(cubicBezierOf('ease-in'), 1)).toBeCloseTo(1);
+  });
+});
+
+describe('followsPointer', () => {
+  const track = (times: number[]): Track => ({ selector: 'x', prop: 'transform', samples: times.map((t, i) => [t, 0, `translate(${i}px)`]) });
+  it('accepts an element that moves throughout the stroke', () => {
+    expect(followsPointer(track([0, ...Array.from({ length: 60 }, (_, i) => 600 + i * 33)]), 600, 2600)).toBe(true);
+  });
+  it('rejects a hover effect that changes in bursts on enter and leave', () => {
+    const burst = (at: number) => Array.from({ length: 12 }, (_, i) => at + i * 16);
+    expect(followsPointer(track([0, ...burst(900), ...burst(1500), ...burst(2200)]), 600, 2600)).toBe(false);
+  });
+  it('rejects one short change', () => {
+    expect(followsPointer(track([0, 700, 716]), 600, 2600)).toBe(false);
   });
 });

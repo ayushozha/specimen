@@ -56,8 +56,10 @@ export const CONFIG = {
     pointerIdleMs: 600,
     /** Recorded after the stroke, to see how long a trail takes to fade. */
     pointerFadeMs: 2000,
-    /** Sections that get a pointer stroke (with a canvas, or the hero when the page tracks the pointer). */
-    maxPointerSections: 3,
+    /** Sections that get a pointer stroke: canvas sections and the hero first, then the rest in page order. */
+    maxPointerSections: 8,
+    /** Shortest section, in CSS px, worth a stroke. */
+    pointerMinSection: 120,
     /** Smallest canvas, in CSS px per side, worth a stroke. */
     pointerMinCanvas: 200,
     /** Share of the viewport a stroke must change to count as a painted pointer effect. */

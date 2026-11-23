@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { strFromU8, unzipSync } from 'fflate';
-import { launchWithExtension, pngSize, scan } from './helpers';
+import { launchWithExtension, openSiteAndPanel, pngSize, scan } from './helpers';
 
 test('Capture everything produces a complete bundle', async () => {
   const { context, extensionId } = await launchWithExtension();
@@ -37,7 +37,7 @@ test('Capture everything produces a complete bundle', async () => {
     );
     await button.click();
     const files = unzipSync(Buffer.from(await zipBase64, 'base64'));
-    // The capture lands in the Captures tab with its outputs; nothing downloads by itself.
+    // The capture shows its outputs under Screenshots and exports; nothing downloads by itself.
     await expect(panel.getByRole('heading', { name: 'Design tools' })).toBeVisible();
     await expect(panel.getByText(/^DESIGN\.md for Claude Code/)).toBeVisible({ timeout: 30_000 });
     await panel.screenshot({ path: 'test-results/panel-done.png' });
@@ -100,20 +100,49 @@ test('Capture everything produces a complete bundle', async () => {
     expect(files['sections/04-pricing/states/is-there-a-free-tier-1--open.png']).toBeTruthy();
     expect(manifest.motion.libraries.gsap.tweens[0].vars).toEqual({ y: 40, opacity: 0, duration: 1, ease: 'power2.out' });
     expect(JSON.parse(strFromU8(files['page/pointer.json'])).some((t: { prop: string }) => t.prop === 'transform')).toBe(true);
+    // The sweep crosses every section, but card hover effects are not mistaken for a pointer trail.
+    expect(files['sections/03-features/pointer.json'], 'hover cards are not a pointer effect').toBeUndefined();
 
-    await panel.getByRole('tab', { name: 'Motion' }).click();
+    // One capture, every part shown as its own block on one page: no tabs.
+    await expect(panel.getByRole('tab')).toHaveCount(0);
+    for (const block of ['Screenshots and exports', 'Palette', 'Motion', 'Stack', 'Sections']) await expect(panel.getByRole('heading', { name: block, exact: true })).toBeVisible();
     await expect(panel.getByText('Hover and focus effects')).toBeVisible();
+    await expect(panel.getByText(/Elements follow the pointer/)).toBeVisible();
+    await expect(panel.locator('.clip video')).toHaveCount(2);
     await expect(panel.getByText('The page changed.'), 'our own deep-mode reload is not reported').toHaveCount(0);
     await panel.screenshot({ path: 'test-results/panel-motion.png' });
 
-    // The palette tab renders the captured colours.
-    await panel.getByRole('tab', { name: 'Palette' }).click();
+    // The palette block renders the captured colours.
     await panel.getByRole('button', { name: /^#[0-9a-f]{6}, used/ }).first().click();
     await expect(panel.getByText('Exact values')).toBeVisible();
     await panel.screenshot({ path: 'test-results/panel-palette.png', fullPage: true });
-    await panel.getByRole('tab', { name: 'Stack' }).click();
     await expect(panel.getByText('GSAP', { exact: true })).toBeVisible();
     await panel.screenshot({ path: 'test-results/panel-stack.png', fullPage: true });
+  } finally {
+    await context.close();
+  }
+});
+
+test('Capture everything scans and captures in one click, with motion on by default', async () => {
+  test.setTimeout(240_000);
+  const { context, extensionId } = await launchWithExtension();
+  try {
+    const { panel } = await openSiteAndPanel(context, extensionId, 'http://localhost:4321/landing.html');
+    await expect(panel.getByLabel(/Record motion/)).toBeChecked();
+    const done = panel.evaluate(
+      () =>
+        new Promise<string[]>((resolve) =>
+          window.addEventListener('specimen:done', (e) => resolve(Object.keys((e as CustomEvent<{ files: Record<string, unknown> }>).detail.files))),
+        ),
+    );
+    // No Scan page first: the one button does both.
+    await panel.getByRole('button', { name: 'Capture everything' }).click();
+    const files = await done;
+    expect(files).toContain('manifest.json');
+    expect(files.some((f) => /^sections\/02-ship-exact-designs\/pointer\.(mp4|webm)$/.test(f)), 'the pointer sweep ran without being asked').toBe(true);
+    for (const block of ['Screenshots and exports', 'Palette', 'Motion', 'Stack', 'Sections']) await expect(panel.getByRole('heading', { name: block, exact: true })).toBeVisible();
+    await panel.setViewportSize({ width: 420, height: 2400 });
+    await panel.screenshot({ path: 'test-results/panel-one-capture.png', fullPage: true });
   } finally {
     await context.close();
   }
