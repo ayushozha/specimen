@@ -1,6 +1,7 @@
 import {
   classifyTrack,
   diffSnapshots,
+  followsPointer,
   installHooks,
   probeMotionLibraries,
   readHooks,
@@ -20,7 +21,7 @@ import {
 import type { PageAdapter, ScreencastFrame } from './adapter';
 import { CONFIG } from './config';
 import { encodeFrames, type FrameOverlay } from './video';
-import { cursorOverlay, filmstrip, frameAt, frameDiff, strokePath, type PointerSample } from './pointer';
+import { cursorOverlay, filmstrip, frameAt, frameDiff, strokePath, type PointerSample, type Share } from './pointer';
 
 export interface ClassifiedTrack extends Track {
   kind: TrackKind;
@@ -340,17 +341,24 @@ export async function captureMotion(ctx: MotionContext): Promise<{ summary: Moti
 
   await ctx.step('Drawing pointer strokes over sections', async () => {
     if (!caps.realPointer || !caps.screencast) return;
-    // Sections worth a stroke: ones holding a canvas (WebGL, 2D), and the first content section when
-    // the page listens for the pointer everywhere (cursor followers, ink and fluid effects).
     const overlaps = (a: Rect, b: Rect) => a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
-    const tall = sections.filter((sec) => sec.rect.height >= m.pointerMinCanvas);
+    // Every section tall enough to move over gets a stroke, so effects that only listen for the pointer
+    // (followers, trails, tilts) are found without a hint from the page. Canvas sections and the hero
+    // go first in case the limit cuts the list short.
+    const tall = sections.filter((sec) => sec.rect.height >= m.pointerMinSection);
     const canvasIds = await adapter.call('sectionsWithCanvas', tall, m.pointerMinCanvas);
     const hero = tall.find((sec) => sec.rect.height > desktop.height * 0.4);
-    // Canvas sections in page order, then the hero when the page tracks the pointer everywhere.
-    const candidates = [...new Set([...tall.filter((sec) => canvasIds.includes(sec.id)), ...(summary.hooks?.globalPointer && hero ? [hero] : [])])].slice(0, m.maxPointerSections);
+    const first = [...tall.filter((sec) => canvasIds.includes(sec.id)), ...(hero ? [hero] : [])];
+    const candidates = [...new Set([...first, ...tall])].slice(0, m.maxPointerSections);
+    const known = new Set([...perSection.values()].flatMap((d) => [...d.interactions.map((e) => e.selector), ...d.tracks.filter((t) => t.kind === 'time').map((t) => t.selector)]));
     const allTracks: ClassifiedTrack[] = [];
-    for (const sec of candidates) {
+    const overBudget = budget();
+    for (const [i, sec] of candidates.entries()) {
       ctx.signal?.throwIfAborted();
+      if (overBudget()) {
+        ctx.note('Drawing pointer strokes over sections', `Stopped after ${m.stepBudgetMs / 1000}s: swept ${i} of ${candidates.length} sections (motion.stepBudgetMs in config.ts).`);
+        break;
+      }
       // Go to where the scan found the section first: a sticky or fixed hero measured while the page
       // is scrolled down reports the current scroll as its position. Then measure there.
       await adapter.call('scrollToY', sec.rect.y);
@@ -365,6 +373,7 @@ export async function captureMotion(ctx: MotionContext): Promise<{ summary: Moti
       const canvases = (await adapter.call('listMedia', 48)).filter((x) => x.kind === 'canvas' && x.rect.width >= m.pointerMinCanvas && x.rect.height >= m.pointerMinCanvas);
 
       await adapter.startScreencast(desktop.width * scale, desktop.height * scale);
+      const traceStart = Date.now();
       const tracing = adapter.call('traceMotion', { scroll: false, durationMs: m.pointerIdleMs + m.pointerSweepMs + m.pointerFadeMs, maxElements: m.traceMaxElements });
       await sleep(m.pointerIdleMs);
       const path: PointerSample[] = [];
@@ -375,19 +384,28 @@ export async function captureMotion(ctx: MotionContext): Promise<{ summary: Moti
         await sleep(25);
       }
       await sleep(m.pointerFadeMs);
-      const tracks = (await tracing).map((t) => ({ ...t, kind: 'pointer' as TrackKind, rect: null, section: sec.id, observed: false }));
+      // Hover effects, looping animations and followers already found also change during a stroke; they are reported once, elsewhere.
+      // The stroke's start and end on the trace's clock (ms from when tracing started).
+      const strokeFrom = path[0].t * 1000 - traceStart;
+      const strokeTo = path[path.length - 1].t * 1000 - traceStart;
+      const tracks = (await tracing).filter((t) => !known.has(t.selector) && followsPointer(t, strokeFrom, strokeTo)).map((t) => ({ ...t, kind: 'pointer' as TrackKind, rect: null, section: sec.id, observed: false }));
       const frames = await adapter.stopScreencast();
       await adapter.mouseMove(1, 1);
       if (frames.length < 3) continue;
 
       // Pixels that change while the pointer moves, beyond what the page does by itself meanwhile.
+      // Hover effects found earlier change pixels as the stroke crosses them; leave their boxes out.
+      const hovers: Share[] = [...perSection.values()].flatMap((d) =>
+        d.interactions.map((e) => ({ x: (e.rect.x - m.clipPadding) / desktop.width, y: (e.rect.y - top - m.clipPadding) / desktop.height, width: (e.rect.width + m.clipPadding * 2) / desktop.width, height: (e.rect.height + m.clipPadding * 2) / desktop.height })),
+      );
+      const diff = (a: Parameters<typeof frameDiff>[0], b: Parameters<typeof frameDiff>[0]) => frameDiff(a, b, hovers);
       const start = path[0].t;
       const end = path[path.length - 1].t;
-      const idle = await frameDiff(frames[0], frameAt(frames, start));
+      const idle = await diff(frames[0], frameAt(frames, start));
       // The largest change during the stroke, so trails that fade fast still count.
-      let stroke = await frameDiff(frameAt(frames, start), frameAt(frames, end));
+      let stroke = await diff(frameAt(frames, start), frameAt(frames, end));
       for (const k of [0.25, 0.5, 0.75, 0.9]) {
-        const d = await frameDiff(frameAt(frames, start), frameAt(frames, start + (end - start) * k));
+        const d = await diff(frameAt(frames, start), frameAt(frames, start + (end - start) * k));
         if (d.changed > stroke.changed) stroke = d;
       }
       const painted = stroke.changed > Math.max(m.pointerMinChange, idle.changed * 3);
@@ -395,9 +413,9 @@ export async function captureMotion(ctx: MotionContext): Promise<{ summary: Moti
       if (painted) {
         // Fade is timed from what is on screen when the pointer stops, down to a quarter of it.
         const base = frameAt(frames, start);
-        const atEnd = (await frameDiff(base, frameAt(frames, end))).changed;
+        const atEnd = (await diff(base, frameAt(frames, end))).changed;
         for (const f of frames.filter((f) => f.time > end)) {
-          if ((await frameDiff(base, f)).changed <= idle.changed + Math.max(0, atEnd - idle.changed) * 0.25) {
+          if ((await diff(base, f)).changed <= idle.changed + Math.max(0, atEnd - idle.changed) * 0.25) {
             fadeMs = Math.round((f.time - end) * 1000);
             break;
           }
@@ -430,6 +448,8 @@ export async function captureMotion(ctx: MotionContext): Promise<{ summary: Moti
       summary.sections[sec.id].pointer = (painted ? 1 : 0) + tracks.length;
       summary.pointerEffects += (painted ? 1 : 0) + tracks.length;
       allTracks.push(...tracks);
+      // A follower that tracks the pointer page-wide shows up under every stroke; report it once.
+      for (const t of tracks) known.add(t.selector);
     }
     ctx.put('page/pointer.json', json(allTracks));
   });

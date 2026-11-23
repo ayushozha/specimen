@@ -37,7 +37,7 @@
 
 ## What it does
 
-Specimen opens in the browser's side panel and reads a page the way the browser renders it. Nothing runs until you ask: **Scan page** finds the sections, colours and stack; **Capture everything** (or **Capture** on one section) takes the screenshots, HTML and layers, and **Cancel** stops it and puts the page back; motion is recorded only when **Record motion** is on. Each capture lands in the **Captures** tab with a preview and its outputs: a copy that pastes into Figma, Paper, Sketch, Penpot, Framer or Illustrator, design files, and a `DESIGN.md` folder for coding agents.
+Specimen opens in the browser's side panel and reads a page the way the browser renders it. Nothing runs until you ask. One button, **Capture everything**, scans the page and captures it, and the panel shows the result as one page of blocks: **Screenshots and exports** (a preview and its outputs: a copy that pastes into Figma, Paper, Sketch, Penpot, Framer or Illustrator, design files, and a `DESIGN.md` folder for coding agents), **Palette**, **Motion** (pointer-effect filmstrips and the page-load and scroll recordings), **Stack** and **Sections**. **Record motion** is on by default: it reloads the page, sweeps the pointer over every section to find trails, followers and canvas effects, hovers and opens menus. If the page reacts to the mouse in a way the sweep misses, **Record interaction** under Motion records you moving it, with the cursor drawn in. **Scan page** first if you want to choose sections; **Capture** on one section recaptures just that one, and **Cancel** stops a capture and puts the page back. Earlier captures stay under **Earlier captures**.
 
 | | |
 |---|---|
@@ -57,14 +57,14 @@ Specimen opens in the browser's side panel and reads a page the way the browser 
 
 <table>
   <tr>
-    <td width="33%"><img src="docs/assets/panel-sections.png" alt="Sections tab with five sections and the Copy menu open"></td>
-    <td width="33%"><img src="docs/assets/panel-palette.png" alt="Palette tab showing roles, swatches and a Display P3 colour with its CSS variable"></td>
-    <td width="33%"><img src="docs/assets/panel-motion-dark.png" alt="Motion tab in dark mode with animations, hover effects, scroll effects and effects rebuilt as code"></td>
+    <td width="33%"><img src="docs/assets/panel-one-capture.png" alt="One capture shown as blocks: screenshots and exports, palette, motion, stack and sections"></td>
+    <td width="33%"><img src="docs/assets/panel-palette.png" alt="Palette block showing roles, swatches and a Display P3 colour with its CSS variable"></td>
+    <td width="33%"><img src="docs/assets/panel-pointer-effect.png" alt="Motion block with a canvas pointer effect, its filmstrip with the cursor drawn in, and the page recordings"></td>
   </tr>
   <tr>
-    <td align="center"><sub>Sections, with Copy for Paper and Figma</sub></td>
+    <td align="center"><sub>One capture, every part as a block</sub></td>
     <td align="center"><sub>Palette</sub></td>
-    <td align="center"><sub>Motion (dark mode)</sub></td>
+    <td align="center"><sub>Motion: pointer sweep and recordings</sub></td>
   </tr>
 </table>
 
@@ -89,7 +89,7 @@ pnpm install
 pnpm build:all
 ```
 
-**Chrome, Brave, Edge, Arc, Opera, Vivaldi:** open `chrome://extensions`, turn on **Developer mode**, **Load unpacked** and choose `apps/extension/.output/chrome-mv3`. Click the Specimen button: the side panel opens; click **Scan page** to start. While it's connected, the browser shows a "started debugging this browser" bar (see [Privacy and security](#privacy-and-security)).
+**Chrome, Brave, Edge, Arc, Opera, Vivaldi:** open `chrome://extensions`, turn on **Developer mode**, **Load unpacked** and choose `apps/extension/.output/chrome-mv3`. Click the Specimen button: the side panel opens; click **Capture everything** to start. While it's connected, the browser shows a "started debugging this browser" bar (see [Privacy and security](#privacy-and-security)).
 
 **Firefox 140+:** open `about:debugging#/runtime/this-firefox`, **Load Temporary Add-on** and pick `apps/extension/.output/firefox-mv3/manifest.json`. The button opens the sidebar.
 
@@ -121,7 +121,7 @@ example.com-pricing_2026-11-18T14-02-11.specimen.zip
 
 ## Outputs
 
-Every capture in the **Captures** tab has these, for all its sections or the one you select:
+Every capture under **Screenshots and exports** has these, for all its sections or the one you select:
 
 | Where | How | What you get |
 |---|---|---|

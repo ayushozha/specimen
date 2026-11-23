@@ -30,8 +30,6 @@ export interface RecordingItem {
   recording: InteractionRecording;
 }
 
-export type TrayItem = CaptureItem | RecordingItem;
-
 /** Object URLs for PNG bytes, revoked when the component goes away. */
 function useImageUrls(files: Record<string, Uint8Array>, paths: string[]): Record<string, string> {
   const urls = useMemo(() => Object.fromEntries(paths.map((p) => [p, URL.createObjectURL(new Blob([files[p] as BlobPart], { type: 'image/png' }))])), [files, paths.join('|')]);
@@ -39,29 +37,7 @@ function useImageUrls(files: Record<string, Uint8Array>, paths: string[]): Recor
   return urls;
 }
 
-export function CapturesView({ items, onRemove, onError }: { items: TrayItem[]; onRemove: (key: number) => void; onError: (message: string) => void }) {
-  if (!items.length) {
-    return (
-      <p className="panel muted">
-        Nothing captured yet. Capture the page or a single section; each capture lands here with its outputs: Figma, Paper, Sketch, Penpot, Framer, Illustrator,
-        Photoshop, and a design spec for coding agents.
-      </p>
-    );
-  }
-  return (
-    <section className="panel">
-      {items.map((item) =>
-        'recording' in item ? (
-          <RecordingCard key={item.key} item={item} onRemove={() => onRemove(item.key)} onError={onError} />
-        ) : (
-          <CaptureCard key={item.key} item={item} onRemove={() => onRemove(item.key)} onError={onError} />
-        ),
-      )}
-    </section>
-  );
-}
-
-function CaptureCard({ item, onRemove, onError }: { item: CaptureItem; onRemove: () => void; onError: (message: string) => void }) {
+export function CaptureCard({ item, onRemove, onError }: { item: CaptureItem; onRemove: () => void; onError: (message: string) => void }) {
   const { result } = item;
   const sections = useMemo(() => capturedSections(result), [result]);
   const [scope, setScope] = useState<string>(sections.length === 1 ? sections[0].id : 'all');
@@ -142,8 +118,6 @@ function CaptureCard({ item, onRemove, onError }: { item: CaptureItem; onRemove:
           {flash}
         </div>
       )}
-
-      <PointerPreview result={result} ids={ids} onSave={(label, fn) => run(label, fn)} />
 
       <h4>Design tools</h4>
       <ul className="list tools">
@@ -275,27 +249,63 @@ function fail(message = 'This capture has no file for that export'): never {
   throw new Error(message);
 }
 
-/** Pointer effects found in the selected sections: the filmstrip with the cursor drawn in, and the clip. */
-function PointerPreview({ result, ids, onSave }: { result: CaptureResult; ids: string[]; onSave: (label: string, fn: () => unknown) => void }) {
-  const found = ids.filter((id) => result.files[`sections/${id}/pointer-strip.png`]);
-  const urls = useImageUrls(result.files, found.map((id) => `sections/${id}/pointer-strip.png`));
-  if (!found.length) return null;
+const VIDEO = /\.(mp4|webm)$/;
+/** Page-wide recordings shown under Motion, by bundle path without extension. */
+const PAGE_CLIPS = [
+  ['page/intro', 'Page load'],
+  ['page/scroll-desktop', 'Scrolling the page'],
+] as const;
+const videoUrl = (bytes: Uint8Array, path: string) => URL.createObjectURL(new Blob([bytes as BlobPart], { type: path.endsWith('.mp4') ? 'video/mp4' : 'video/webm' }));
+
+/**
+ * What the capture recorded moving: pointer effects (filmstrip with the cursor drawn in, and the
+ * clip), and the page-load and scroll recordings.
+ */
+export function MotionPreviews({ result, onError }: { result: CaptureResult; onError: (message: string) => void }) {
+  const sections = useMemo(() => result.manifest.sections.filter((s) => result.files[`sections/${s.id}/pointer-strip.png`]), [result]);
+  const strips = useImageUrls(result.files, sections.map((s) => `sections/${s.id}/pointer-strip.png`));
+  const pageClips = useMemo(
+    () =>
+      PAGE_CLIPS.flatMap(([base, label]) => {
+        const path = Object.keys(result.files).find((p) => p.startsWith(`${base}.`) && VIDEO.test(p));
+        return path ? [{ label, path }] : [];
+      }),
+    [result],
+  );
+  const urls = useMemo(() => Object.fromEntries(pageClips.map((c) => [c.path, videoUrl(result.files[c.path], c.path)])), [pageClips, result]);
+  useEffect(() => () => Object.values(urls).forEach((u) => URL.revokeObjectURL(u)), [urls]);
+  const save = (filename: string, data: Uint8Array) => {
+    try {
+      downloadFile(filename, data);
+    } catch (err) {
+      onError(err instanceof Error ? err.message : String(err));
+    }
+  };
+
   return (
     <>
-      <h4>Pointer effects</h4>
-      {found.map((id) => {
-        const clip = Object.keys(result.files).find((p) => p.startsWith(`sections/${id}/pointer.`) && /\.(mp4|webm)$/.test(p));
-        const info = result.files[`sections/${id}/pointer.json`] ? (JSON.parse(new TextDecoder().decode(result.files[`sections/${id}/pointer.json`])) as { kind: string; fadeMs: number | null }) : null;
+      <h3>Pointer effects</h3>
+      {sections.length === 0 && (
+        <p className="muted small">
+          Specimen swept the pointer over each section and the page didn't visibly react. If it does react to the mouse (a trail, a follower, a tilt), record it with
+          Record interaction below.
+        </p>
+      )}
+      {sections.map((s) => {
+        const clip = Object.keys(result.files).find((p) => p.startsWith(`sections/${s.id}/pointer.`) && VIDEO.test(p));
+        const raw = result.files[`sections/${s.id}/pointer.json`];
+        const info = raw ? (JSON.parse(new TextDecoder().decode(raw)) as { kind: string; fadeMs: number | null }) : null;
         return (
-          <div key={id} className="spec">
-            <img className="spec-shot strip" src={urls[`sections/${id}/pointer-strip.png`]} alt="Pointer stroke, frame by frame" />
+          <div key={s.id} className="spec">
+            <div className="name small">{s.name}</div>
+            <img className="spec-shot strip" src={strips[`sections/${s.id}/pointer-strip.png`]} alt="Pointer stroke, frame by frame" />
             <div className="small">
               {info?.kind === 'canvas' ? 'The pointer paints into a canvas' : info?.kind === 'pixels' ? 'The pointer changes the pixels under it' : 'Elements follow the pointer'}
               {info?.fadeMs != null ? `; the trail fades in about ${info.fadeMs}ms` : info && info.kind !== 'dom' ? '; the trail stays' : ''}. Included in DESIGN.md.
             </div>
             {clip && (
               <div className="actions">
-                <button className="small" onClick={() => onSave('Saved the clip', () => downloadFile(`${baseName(result, id)}-pointer.${clip.split('.').pop()}`, result.files[clip]))}>
+                <button className="small" onClick={() => save(`${baseName(result, s.id)}-pointer.${clip.split('.').pop()}`, result.files[clip])}>
                   Clip with cursor
                 </button>
               </div>
@@ -303,11 +313,18 @@ function PointerPreview({ result, ids, onSave }: { result: CaptureResult; ids: s
           </div>
         );
       })}
+      {pageClips.length > 0 && <h3>Recordings</h3>}
+      {pageClips.map((c) => (
+        <figure key={c.path} className="clip">
+          <video className="recording" src={urls[c.path]} controls muted loop playsInline />
+          <figcaption className="muted small">{c.label}</figcaption>
+        </figure>
+      ))}
     </>
   );
 }
 
-function RecordingCard({ item, onRemove, onError }: { item: RecordingItem; onRemove: () => void; onError: (message: string) => void }) {
+export function RecordingCard({ item, onRemove, onError }: { item: RecordingItem; onRemove: () => void; onError: (message: string) => void }) {
   const r = item.recording;
   const [flash, setFlash] = useState<string | null>(null);
   const video = useMemo(() => (r.video ? URL.createObjectURL(new Blob([r.video.data as BlobPart], { type: r.video.ext === 'mp4' ? 'video/mp4' : 'video/webm' })) : null), [r]);

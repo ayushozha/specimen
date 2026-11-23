@@ -108,15 +108,25 @@ export interface FrameDiff {
   box: { x: number; y: number; width: number; height: number } | null;
 }
 
-/** How much changed between two frames (JPEG noise ignored). */
-export async function frameDiff(a: Frame, b: Frame): Promise<FrameDiff> {
+/** A box as shares of the frame (0–1). */
+export type Share = { x: number; y: number; width: number; height: number };
+
+/** How much changed between two frames (JPEG noise ignored), leaving out the `ignore` boxes. */
+export async function frameDiff(a: Frame, b: Frame, ignore: Share[] = []): Promise<FrameDiff> {
   const [x, y] = await Promise.all([thumb(a), thumb(b)]);
   let changed = 0;
   let minX = Infinity;
   let minY = Infinity;
   let maxX = -1;
   let maxY = -1;
+  const skip = new Uint8Array(x.px.length / 4);
+  for (const r of ignore) {
+    for (let py = Math.max(0, Math.floor(r.y * x.h)); py < Math.min(x.h, Math.ceil((r.y + r.height) * x.h)); py++) {
+      for (let px = Math.max(0, Math.floor(r.x * x.w)); px < Math.min(x.w, Math.ceil((r.x + r.width) * x.w)); px++) skip[py * x.w + px] = 1;
+    }
+  }
   for (let i = 0; i < x.px.length; i += 4) {
+    if (skip[i / 4]) continue;
     const d = Math.max(Math.abs(x.px[i] - y.px[i]), Math.abs(x.px[i + 1] - y.px[i + 1]), Math.abs(x.px[i + 2] - y.px[i + 2]));
     if (d > 24) {
       changed++;

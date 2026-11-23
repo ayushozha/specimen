@@ -149,6 +149,7 @@ export async function buildExports(ctx: ExportContext): Promise<ExportSummary> {
       background: ctx.plates.has(section.id) ? `sections/${section.id}/desktop-background.png` : null,
       tree,
       variants: [],
+      motion: motion?.pointer?.files.filter((f) => f.endsWith('.png')) ?? [],
     };
     for (const url of tree.images) if (ctx.assets.has(url)) figma.assets[url] = ctx.assets.get(url)!;
 

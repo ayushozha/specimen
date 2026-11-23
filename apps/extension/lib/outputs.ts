@@ -131,6 +131,7 @@ export function figmaImportZip(result: CaptureResult, ids?: string[]): Uint8Arra
     wanted.add(s.screenshot);
     if (s.background) wanted.add(s.background);
     for (const v of s.variants) wanted.add(v.defaultImage).add(v.hoverImage);
+    for (const m of s.motion ?? []) wanted.add(m);
   }
   const files: Record<string, Uint8Array> = { 'exports/figma.json': strToU8(JSON.stringify(doc)) };
   for (const path of wanted) if (result.files[path]) files[path] = result.files[path];

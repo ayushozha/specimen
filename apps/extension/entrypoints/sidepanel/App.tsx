@@ -4,11 +4,11 @@ import { analyse, capture, type Analysis, type CaptureResult, type Progress } fr
 import type { StyleSheetText } from '@specimen/core';
 import { Session, explainError, focusTabWindow, targetTabId } from '../../lib/session';
 import { CONFIG } from '../../lib/config';
-import { CapturesView, type TrayItem } from './Captures';
+import { capturedSections } from '../../lib/outputs';
+import { CaptureCard, MotionPreviews, RecordingCard, type CaptureItem, type RecordingItem } from './Captures';
 import { canRecordInteraction, startInteraction, stopInteraction, type RecordingSession } from '../../lib/interaction';
 import { CaptureTargetChangedError } from '../../lib/safari-screenshot';
 
-type View = 'sections' | 'palette' | 'motion' | 'stack' | 'captures';
 type FullAnalysis = Analysis & { sheets: StyleSheetText[] };
 
 declare global {
@@ -24,16 +24,16 @@ const PICK_POLL_MS = 150;
 export function App() {
   const [tabId, setTabId] = useState<number | null>(null);
   const [analysis, setAnalysis] = useState<FullAnalysis | null>(null);
-  const [view, setView] = useState<View>('sections');
   const [busy, setBusy] = useState<string | null>(null);
   const [progress, setProgress] = useState<Progress | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<CaptureResult | null>(null);
-  const [captures, setCaptures] = useState<TrayItem[]>([]);
+  const [captures, setCaptures] = useState<CaptureItem[]>([]);
+  const [recordings, setRecordings] = useState<RecordingItem[]>([]);
   const [recording, setRecording] = useState<RecordingSession | null>(null);
   const [elapsed, setElapsed] = useState(0);
   const recordingRef = useRef<RecordingSession | null>(null);
-  const [withMotion, setWithMotion] = useState(false);
+  // On by default: Capture everything includes motion and the pointer sweep unless turned off.
+  const [withMotion, setWithMotion] = useState(true);
   const [live, setLive] = useState<{ name: string; url: string } | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -84,7 +84,6 @@ export function App() {
         void session.disconnect();
         setTabId(info.tabId);
         setAnalysis(null);
-        setResult(null);
         setError(null);
       });
     };
@@ -117,7 +116,7 @@ export function App() {
   }, []);
 
   const runCapture = async (sectionIds?: string[]) => {
-    if (tabId === null || !analysis || abortRef.current) return;
+    if (tabId === null || abortRef.current) return;
     const abort = new AbortController();
     abortRef.current = abort;
     setBusy('capture');
@@ -127,11 +126,19 @@ export function App() {
       // Must be the first await: browsers only show the permission prompt during the click.
       await session.requestHostAccess();
       const adapter = await connect(tabId);
-      const ids = sectionIds ?? (excluded.size ? analysis.sections.filter((s) => !excluded.has(s.id)).map((s) => s.id) : undefined);
-      const r = await capture(adapter, analysis, { sectionIds: ids, motion: withMotion, signal: abort.signal }, onProgress);
-      if (r.manifest.motion) setResult(r);
-      setCaptures((list) => [{ key: Date.now(), result: r, stack: analysis.stack }, ...list]);
-      setView('captures');
+      // One button: scan first when there is no scan yet, or the page changed since.
+      let scanned = analysis;
+      if (!scanned || stale) {
+        scanned = await analyse(adapter, setProgress);
+        setAnalysis(scanned);
+        setExcluded(new Set());
+        setStale(false);
+        abort.signal.throwIfAborted();
+      }
+      const skip = scanned === analysis ? excluded : new Set<string>();
+      const ids = sectionIds ?? (skip.size ? scanned.sections.filter((s) => !skip.has(s.id)).map((s) => s.id) : undefined);
+      const r = await capture(adapter, scanned, { sectionIds: ids, motion: withMotion, signal: abort.signal }, onProgress);
+      setCaptures((list) => [{ key: Date.now(), result: r, stack: scanned.stack }, ...list]);
       // Lets automated tests (and future integrations) read the bundle.
       window.dispatchEvent(new CustomEvent('specimen:done', { detail: r }));
     } catch (err) {
@@ -185,8 +192,7 @@ export function App() {
     try {
       const adapter = await connect(tabId);
       const r = await stopInteraction(adapter, session);
-      setCaptures((list) => [{ key: Date.now(), recording: r }, ...list]);
-      setView('captures');
+      setRecordings((list) => [{ key: Date.now(), recording: r }, ...list]);
       setNotice(null);
       window.dispatchEvent(new CustomEvent('specimen:recorded', { detail: r }));
     } catch (err) {
@@ -246,6 +252,9 @@ export function App() {
   const host = analysis ? safeHost(analysis.url) : '';
   const capturing = busy === 'capture';
   const included = analysis ? analysis.sections.length - excluded.size : 0;
+  const [latest, ...earlier] = captures;
+  const withMotionResult = captures.find((c) => c.result.manifest.motion)?.result ?? null;
+  const removeCapture = (key: number) => setCaptures((l) => l.filter((c) => c.key !== key));
 
   return (
     <div className="app">
@@ -256,18 +265,34 @@ export function App() {
         <a className="privacy-link small" href="https://specimen.ayushojha.com/privacy.html" target="_blank" rel="noreferrer">Privacy</a>
       </header>
 
-      <div className="segmented" role="tablist">
-        {(['sections', 'palette', 'motion', 'stack', 'captures'] as View[]).map((v) => (
-          <button key={v} role="tab" aria-selected={view === v} className={view === v ? 'on' : ''} onClick={() => setView(v)}>
-            {VIEW_LABEL[v]}
-            {v === 'captures' && captures.length > 0 && <span className="count">{captures.length}</span>}
-          </button>
-        ))}
-      </div>
-
-      <button className="primary" onClick={() => (capturing ? undefined : runCapture())} aria-busy={capturing} disabled={!analysis || !!busy}>
-        {capturing && progress ? `Capturing… ${progress.done}/${progress.total}` : excluded.size ? `Capture ${included} sections` : 'Capture everything'}
+      <button className="primary" onClick={() => (capturing ? undefined : runCapture())} aria-busy={capturing} disabled={tabId === null || !!busy}>
+        {capturing && progress ? `Capturing… ${progress.done}/${progress.total}` : analysis && excluded.size && !stale ? `Capture ${included} sections` : 'Capture everything'}
       </button>
+
+      {!busy && tabId !== null && (
+        <div className="options">
+          <label className="switch">
+            <input type="checkbox" checked={withMotion} onChange={(e) => setWithMotion(e.target.checked)} />
+            <span>
+              Record motion <span className="muted small">· reloads the page, sweeps the pointer over each section, hovers and opens menus</span>
+            </span>
+          </label>
+          <div className="muted small">
+            One capture gives you every part below: {analysis ? `${excluded.size ? included : analysis.sections.length} section` : 'section'} screenshots at{' '}
+            {CONFIG.breakpoints.map((b) => b.width).join(' / ')}px, the palette, the tech stack, editable layers for Figma, Paper, Sketch and more, a Photoshop file and a
+            DESIGN.md for agents{withMotion ? ', plus animations, hover states, pointer effects and recordings' : ''}.
+            {!analysis && (
+              <>
+                {' '}
+                <button className="link" onClick={() => runAnalyse(tabId)}>
+                  Scan page
+                </button>{' '}
+                first to choose sections.
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       {recording && (
         <div className="recorder" role="status">
@@ -278,26 +303,6 @@ export function App() {
           <button className="small" onClick={() => void stopRecording()}>
             Stop
           </button>
-        </div>
-      )}
-      {!busy && tabId !== null && (
-        <button className="secondary" onClick={startRecording}>
-          Record interaction <span className="muted small">· you move the mouse, Specimen records it with the cursor</span>
-        </button>
-      )}
-
-      {analysis && !busy && (
-        <div className="options">
-          <label className="switch">
-            <input type="checkbox" checked={withMotion} onChange={(e) => setWithMotion(e.target.checked)} />
-            <span>
-              Record motion <span className="muted small">· reloads the page, hovers and opens menus</span>
-            </span>
-          </label>
-          <div className="muted small">
-            You'll get: {excluded.size ? included : analysis.sections.length} section screenshots at {CONFIG.breakpoints.map((b) => b.width).join(' / ')}px, editable
-            layers for Figma, Paper, Sketch and more, a Photoshop file and a DESIGN.md for agents{withMotion ? ', plus animations, hover states and recordings' : ''}.
-          </div>
         </div>
       )}
 
@@ -342,38 +347,79 @@ export function App() {
       )}
       {stale && !busy && (
         <div className="notice">
-          The page changed.{' '}
+          The page changed; the next capture scans it again.{' '}
           <button className="link" onClick={() => tabId !== null && runAnalyse(tabId)}>
-            Scan again
+            Scan again now
           </button>
         </div>
       )}
-      {!analysis && !busy && !error && tabId !== null && view !== 'captures' && (
-        <div className="empty">
-          <p>Scan this page to find its sections, colours and tech stack. Specimen processes the selected page on this device and scrolls once to load content. Use Capture to save page content.</p>
-          <button onClick={() => runAnalyse(tabId)}>Scan page</button>
-        </div>
-      )}
 
-      {analysis && view === 'sections' && (
-        <SectionsView
-          analysis={analysis}
-          excluded={excluded}
-          setExcluded={setExcluded}
-          busy={!!busy}
-          onCapture={(id) => runCapture([id])}
-          onRemove={(id) => setAnalysis({ ...analysis, sections: analysis.sections.filter((s) => s.id !== id) })}
-          onPick={pick}
-          onRedetect={() => tabId !== null && runAnalyse(tabId)}
-          onHover={highlight}
-          picking={busy === 'pick'}
-        />
+      {latest && (
+        <Block title="Screenshots and exports" meta={plural(capturedSections(latest.result).length, 'section')}>
+          <CaptureCard key={latest.key} item={latest} onRemove={() => removeCapture(latest.key)} onError={setError} />
+        </Block>
       )}
-      {analysis && view === 'palette' && <PaletteView analysis={analysis} onHighlight={(sel) => highlight(sel ? ({ selector: sel, name: '' } as Section) : null)} />}
-      {analysis && view === 'motion' && <MotionView result={result} sections={analysis.sections} />}
-      {analysis && view === 'stack' && <StackView analysis={analysis} />}
-      {view === 'captures' && <CapturesView items={captures} onRemove={(key) => setCaptures((l) => l.filter((c) => c.key !== key))} onError={setError} />}
+      {analysis && (
+        <Block title="Palette" meta={`${analysis.palette.colors.length} colours`}>
+          <PaletteView analysis={analysis} onHighlight={(sel) => highlight(sel ? ({ selector: sel, name: '' } as Section) : null)} />
+        </Block>
+      )}
+      {tabId !== null && (
+        <Block title="Motion" meta={withMotionResult?.manifest.motion ? `${withMotionResult.manifest.motion.pointerEffects} pointer · ${withMotionResult.manifest.motion.animations} animations` : undefined}>
+          <MotionView result={withMotionResult} sections={analysis?.sections ?? []} />
+          {withMotionResult && <MotionPreviews result={withMotionResult} onError={setError} />}
+          {!busy && (
+            <button className="secondary" onClick={startRecording}>
+              Record interaction <span className="muted small">· you move the mouse, Specimen records it with the cursor drawn in</span>
+            </button>
+          )}
+          {recordings.map((item) => (
+            <RecordingCard key={item.key} item={item} onRemove={() => setRecordings((l) => l.filter((r) => r.key !== item.key))} onError={setError} />
+          ))}
+        </Block>
+      )}
+      {analysis && (
+        <Block title="Stack" meta={`${analysis.stack.length} found`}>
+          <StackView analysis={analysis} />
+        </Block>
+      )}
+      {analysis && (
+        <Block title="Sections" meta={plural(analysis.sections.length, 'section')} open={!latest}>
+          <SectionsView
+            analysis={analysis}
+            excluded={excluded}
+            setExcluded={setExcluded}
+            busy={!!busy}
+            onCapture={(id) => runCapture([id])}
+            onRemove={(id) => setAnalysis({ ...analysis, sections: analysis.sections.filter((s) => s.id !== id) })}
+            onPick={pick}
+            onRedetect={() => tabId !== null && runAnalyse(tabId)}
+            onHover={highlight}
+            picking={busy === 'pick'}
+          />
+        </Block>
+      )}
+      {earlier.length > 0 && (
+        <Block title="Earlier captures" meta={String(earlier.length)} open={false}>
+          {earlier.map((item) => (
+            <CaptureCard key={item.key} item={item} onRemove={() => removeCapture(item.key)} onError={setError} />
+          ))}
+        </Block>
+      )}
     </div>
+  );
+}
+
+/** One part of the capture: a titled block that can be folded away. */
+function Block({ title, meta, open = true, children }: { title: string; meta?: string; open?: boolean; children: React.ReactNode }) {
+  return (
+    <details className="block" open={open}>
+      <summary>
+        <h2>{title}</h2>
+        {meta && <span className="muted small">{meta}</span>}
+      </summary>
+      <div className="block-body">{children}</div>
+    </details>
   );
 }
 
@@ -399,7 +445,8 @@ function SectionsView(props: {
   return (
     <section className="panel">
       <div className="toolbar">
-        <span className="muted small">{analysis.sections.length} sections</span>
+        {/* The count is in the block header. */}
+        <span />
         <div className="actions">
           <button onClick={props.onPick} disabled={props.busy && !props.picking}>
             {props.picking ? 'Click an element… (Esc or here to cancel)' : 'Pick element'}
@@ -618,16 +665,14 @@ function PaletteView({ analysis, onHighlight }: { analysis: FullAnalysis; onHigh
   );
 }
 
-const VIEW_LABEL: Record<View, string> = { sections: 'Sections', palette: 'Palette', motion: 'Motion', stack: 'Stack', captures: 'Captures' };
-
 function MotionView({ result, sections }: { result: CaptureResult | null; sections: Section[] }) {
   const motion = result?.manifest.motion;
   const rebuilt = result?.manifest.exports;
   if (!motion) {
     return (
-      <p className="panel muted">
-        Motion is recorded only when you turn on Record motion before capturing: page load and scroll video, animations frame by frame, hover and focus
-        states, pointer effects and menus.
+      <p className="panel muted small">
+        Captured with Record motion on: page load and scroll video, animations frame by frame, hover and focus states, a pointer sweep over each section,
+        and menus.
       </p>
     );
   }
@@ -730,6 +775,8 @@ function StackView({ analysis }: { analysis: FullAnalysis }) {
     </section>
   );
 }
+
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
 
 function safeHost(url: string): string {
   try {

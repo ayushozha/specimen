@@ -129,14 +129,17 @@ async function openSafariTestPanel(context: BrowserContext, extensionId: string)
   return { site, panel };
 }
 
-test('Safari requires a rescan when the original document is replaced at the same URL', async () => {
+test('Safari rescans before the next capture when the original document is replaced at the same URL', async () => {
   const { context, extensionId } = await launchWithExtension();
   try {
     const { site, panel } = await openSafariTestPanel(context, extensionId);
     await site.reload();
+    // The old scan is dropped, and Capture everything scans the new document before capturing it.
+    await expect(panel.getByText('The page changed; the next capture scans it again.')).toBeVisible();
+    const done = panel.evaluate(() => new Promise<boolean>((resolve) => window.addEventListener('specimen:done', () => resolve(true))));
     await panel.getByRole('button', { name: 'Capture everything' }).click();
-    await expect(panel.getByText('The selected tab changed during capture. Return to it and scan again.')).toBeVisible();
-    await expect(panel.getByRole('button', { name: 'Capture everything' })).toBeDisabled();
+    expect(await done).toBe(true);
+    await expect(panel.getByText('The page changed; the next capture scans it again.')).toHaveCount(0);
   } finally {
     await context.close();
   }
@@ -183,7 +186,9 @@ test('Safari rejects the capture even when raster plate cleanup also fails', asy
     await expect(panel.getByText('The selected tab changed during capture. Return to it and scan again.')).toBeVisible({ timeout: 60_000 });
     await expect(panel.locator('body')).toHaveAttribute('data-plate-cleanup-failed', 'true');
     await expect(panel.locator('body')).toHaveAttribute('data-capture-completed', 'false');
-    await expect(panel.getByRole('button', { name: 'Capture everything' })).toBeDisabled();
+    // The next Capture everything scans the page again by itself.
+    await expect(panel.getByText('The page changed; the next capture scans it again.')).toBeVisible();
+    await expect(panel.getByRole('button', { name: 'Capture everything' })).toBeEnabled();
   } finally {
     await context.close();
   }

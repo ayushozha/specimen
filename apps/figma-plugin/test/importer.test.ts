@@ -28,7 +28,7 @@ function fakeFigma() {
     createRectangle: () => node('RECTANGLE'),
     createComponent: () => node('COMPONENT'),
     createNodeFromSvg: (svg: string) => Object.assign(node('FRAME'), { svg }),
-    createImage: (bytes: Uint8Array) => ({ hash: `img-${bytes.length}` }),
+    createImage: (bytes: Uint8Array) => ({ hash: `img-${bytes.length}`, getSizeAsync: async () => ({ width: 2200, height: 300 }) }),
     createPaintStyle: () => node('PAINT_STYLE'),
     combineAsVariants: (nodes: any[]) => Object.assign(node('COMPONENT_SET'), { children: nodes, height: 50 }),
     loadFontAsync: async (f: { family: string; style: string }) => {
@@ -112,6 +112,16 @@ describe('Figma importer', () => {
     });
     expect(root.children.find((c: any) => c.type === 'INSTANCE')).toMatchObject({ x: 20, y: 60 });
     expect(page.children).toContain(root);
+  });
+
+  it('places pointer motion filmstrips beside the section, under its hover variants', async () => {
+    const strip = 'sections/01-hero/pointer-strip.png';
+    const { api, created } = fakeFigma();
+    const [root]: any[] = await importDocument(api, { ...doc, sections: [{ ...doc.sections[0], motion: [strip, 'missing.png'] }] }, { ...files, [strip]: new Uint8Array(7) });
+    const placed = created.filter((n) => n.name === 'Pointer motion · frame by frame (cursor drawn in)');
+    expect(placed).toHaveLength(1);
+    // Scaled to the section's width, kept to the filmstrip's aspect ratio, below the 50px variant set.
+    expect(placed[0]).toMatchObject({ width: 400, height: 55, x: root.width + 80, y: 90, fills: [{ type: 'IMAGE', imageHash: 'img-7', scaleMode: 'FIT' }] });
   });
 
   it('rejects files that are not Specimen captures', async () => {

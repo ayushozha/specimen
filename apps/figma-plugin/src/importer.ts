@@ -207,7 +207,8 @@ export async function importDocument(figma: PluginAPI, doc: FigmaDocument, files
       ref.visible = false;
       ref.locked = true;
     }
-    await addVariants(figma, section, root, image);
+    const offsetY = await addVariants(figma, section, root, image);
+    await addMotion(figma, section, root, files, offsetY);
     roots.push(root);
     y += section.tree.height + SECTION_GAP;
   }
@@ -215,7 +216,7 @@ export async function importDocument(figma: PluginAPI, doc: FigmaDocument, files
   return roots;
 }
 
-async function addVariants(figma: PluginAPI, section: FigmaSection, root: FrameNode, image: (path: string) => string | null): Promise<void> {
+async function addVariants(figma: PluginAPI, section: FigmaSection, root: FrameNode, image: (path: string) => string | null): Promise<number> {
   let offsetY = 0;
   for (const v of section.variants) {
     const make = (state: string, path: string) => {
@@ -248,6 +249,25 @@ async function addVariants(figma: PluginAPI, section: FigmaSection, root: FrameN
     root.appendChild(instance);
     instance.x = v.x;
     instance.y = v.y;
+  }
+  return offsetY;
+}
+
+/** Pointer strokes as filmstrips beside the section, under its hover variants: Figma can't play the motion, so it shows it frame by frame. */
+async function addMotion(figma: PluginAPI, section: FigmaSection, root: FrameNode, files: Files, offsetY: number): Promise<void> {
+  for (const path of section.motion ?? []) {
+    const bytes = files[path];
+    if (!bytes?.length) continue;
+    const img = figma.createImage(bytes);
+    const { width, height } = await img.getSizeAsync();
+    const w = Math.min(width, root.width);
+    const strip = figma.createRectangle();
+    strip.name = 'Pointer motion · frame by frame (cursor drawn in)';
+    strip.resize(w, Math.max(1, Math.round((height * w) / width)));
+    strip.fills = [{ type: 'IMAGE', imageHash: img.hash, scaleMode: 'FIT' }];
+    strip.x = root.x + root.width + 80;
+    strip.y = root.y + offsetY;
+    offsetY += strip.height + 40;
   }
 }
 

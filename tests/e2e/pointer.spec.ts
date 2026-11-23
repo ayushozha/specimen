@@ -32,7 +32,7 @@ test('a canvas the pointer paints into is found, timed and recorded with the cur
     expect(Object.keys(files).some((k) => /sections\/.+\/pointer\.(mp4|webm)$/.test(k))).toBe(true);
     expect(pngSize(files[`sections/${id}/pointer-strip.png`]).width).toBeGreaterThan(1000);
 
-    // The Captures tab shows it, and the agent spec describes it.
+    // The Motion block shows it, and the agent spec describes it.
     await expect(panel.getByText(/The pointer paints into a canvas; the trail fades in about \d+ms/)).toBeVisible();
     await panel.setViewportSize({ width: 420, height: 1600 });
     await panel.screenshot({ path: 'test-results/panel-pointer-effect.png', fullPage: true });
