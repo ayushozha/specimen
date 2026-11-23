@@ -42,6 +42,32 @@ test('a canvas the pointer paints into is found, timed and recorded with the cur
   }
 });
 
+test('every screen of a tall section gets a stroke, with a visible cursor that is gone afterwards', async () => {
+  test.setTimeout(240_000);
+  const { context, extensionId } = await launchWithExtension();
+  try {
+    const { site, panel } = await openSiteAndPanel(context, extensionId, 'http://localhost:4321/tall.html');
+    // The cursor Specimen draws while it sweeps, seen in the page during the capture.
+    const sawCursor = site.waitForSelector('[data-specimen-cursor]', { state: 'attached', timeout: 200_000 }).then(() => true);
+    const done = panel.evaluate(
+      () =>
+        new Promise<string[]>((resolve) =>
+          window.addEventListener('specimen:done', (e) => resolve(Object.keys((e as CustomEvent<{ files: Record<string, unknown> }>).detail.files))),
+        ),
+    );
+    await panel.getByRole('button', { name: 'Capture everything' }).click();
+    const files = await done;
+    expect(await sawCursor).toBe(true);
+    expect(await site.locator('[data-specimen-cursor]').count(), 'the sweep cursor is removed').toBe(0);
+    const story = files.find((f) => /^sections\/[^/]+\/pointer\.json$/.test(f));
+    expect(story, 'the ink on the second screen is found').toMatch(/ink-lives-further-down/);
+    // The Motion block plays the clip in place.
+    await expect(panel.getByLabel(/^Pointer sweep over /)).toBeVisible();
+  } finally {
+    await context.close();
+  }
+});
+
 test('Record interaction records the real pointer with the cursor drawn in', async () => {
   test.setTimeout(120_000);
   const { context, extensionId } = await launchWithExtension();

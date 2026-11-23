@@ -331,3 +331,38 @@ export function stopPointerLog(): PointerLogSample[] {
   delete (globalThis as PointerLogGlobal)[POINTER_LOG];
   return log.samples;
 }
+
+/** Marks Specimen's own sweep cursor, so tracing and highlighting leave it out. */
+export const SWEEP_CURSOR_ATTR = 'data-specimen-cursor';
+const SWEEP_CURSOR = '__specimenSweepCursor';
+type SweepCursorGlobal = { [SWEEP_CURSOR]?: () => void };
+
+/**
+ * Shows an arrow cursor that follows the pointer events Specimen sends during its pointer sweep, so
+ * the person watching sees what is moving the page and the recording shows where the pointer was.
+ * Synthetic input moves no system cursor. It ignores the pointer, so the page under it gets the events.
+ */
+export function showSweepCursor(): void {
+  hideSweepCursor();
+  const el = document.createElement('div');
+  el.setAttribute(SWEEP_CURSOR_ATTR, '');
+  el.setAttribute('aria-hidden', 'true');
+  el.style.cssText = 'position:fixed;left:0;top:0;width:22px;height:22px;z-index:2147483647;pointer-events:none;display:none;will-change:transform;';
+  el.innerHTML =
+    '<svg width="22" height="22" viewBox="0 0 22 22" xmlns="http://www.w3.org/2000/svg"><path d="M1 1v17l4.2-4 3 6.6 2.8-1.2-2.9-6.4h5.5z" fill="#0A0A0A" stroke="#FFF" stroke-width="1.6" stroke-linejoin="round"/></svg>';
+  document.documentElement.appendChild(el);
+  const move = (e: PointerEvent) => {
+    el.style.display = 'block';
+    el.style.transform = `translate(${e.clientX}px, ${e.clientY}px)`;
+  };
+  window.addEventListener('pointermove', move, { capture: true, passive: true });
+  (globalThis as SweepCursorGlobal)[SWEEP_CURSOR] = () => {
+    window.removeEventListener('pointermove', move, { capture: true });
+    el.remove();
+  };
+}
+
+export function hideSweepCursor(): void {
+  (globalThis as SweepCursorGlobal)[SWEEP_CURSOR]?.();
+  delete (globalThis as SweepCursorGlobal)[SWEEP_CURSOR];
+}

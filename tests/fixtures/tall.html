@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Tall fixture</title>
+<style>
+  body { margin: 0; font: 16px/1.5 system-ui, sans-serif; color: #0a0a0a; }
+  #intro { height: 600px; padding: 64px; background: #ffffff; }
+  #story { position: relative; height: 2000px; background: #f4f0ff; }
+  #story h2 { margin: 0; padding: 64px; font-size: 40px; }
+  #story canvas { position: absolute; left: 0; top: 1100px; width: 100%; height: 800px; }
+</style>
+</head>
+<body>
+<section id="intro"><h1>Nothing here reacts</h1></section>
+<section id="story"><h2>Ink lives further down this section</h2><canvas></canvas></section>
+<script>
+  // Only the lower screen of a tall section reacts: a stroke over its first screen sees nothing.
+  const canvas = document.querySelector('#story canvas');
+  const ctx = canvas.getContext('2d');
+  const size = () => { canvas.width = canvas.clientWidth; canvas.height = canvas.clientHeight; };
+  size();
+  addEventListener('resize', size);
+  addEventListener('pointermove', (e) => {
+    const r = canvas.getBoundingClientRect();
+    if (e.clientY < r.top || e.clientY > r.bottom) return;
+    ctx.fillStyle = 'rgba(37, 99, 235, 0.85)';
+    ctx.beginPath();
+    ctx.arc(e.clientX - r.left, e.clientY - r.top, 40, 0, Math.PI * 2);
+    ctx.fill();
+  });
+</script>
+</body>
+</html>
