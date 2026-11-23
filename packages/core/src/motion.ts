@@ -1,4 +1,5 @@
 import { allElements, isRendered, sleep, uniqueSelector } from './dom';
+import { SWEEP_CURSOR_ATTR } from './interactions';
 import { downsample, type Track } from './motion-math';
 
 export interface AnimationInfo {
@@ -159,7 +160,7 @@ export async function traceMotion(options: Partial<TraceOptions> = {}): Promise<
   };
   // Fixed elements move with scrolling by definition; skip them then, but keep them for pointer sweeps (cursor followers).
   const elements = allElements(document.body)
-    .filter((el) => isRendered(el) && !(opts.scroll && fixed(el)))
+    .filter((el) => isRendered(el) && !(opts.scroll && fixed(el)) && !el.closest(`[${SWEEP_CURSOR_ATTR}]`))
     .filter((el) => {
       const r = el.getBoundingClientRect();
       return r.width >= 8 && r.height >= 8;

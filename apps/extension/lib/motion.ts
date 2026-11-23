@@ -21,7 +21,7 @@ import {
 import type { PageAdapter, ScreencastFrame } from './adapter';
 import { CONFIG } from './config';
 import { encodeFrames, type FrameOverlay } from './video';
-import { cursorOverlay, filmstrip, frameAt, frameDiff, strokePath, type PointerSample, type Share } from './pointer';
+import { filmstrip, frameAt, frameDiff, strokePath, type PointerSample, type Share } from './pointer';
 
 export interface ClassifiedTrack extends Track {
   kind: TrackKind;
@@ -352,21 +352,16 @@ export async function captureMotion(ctx: MotionContext): Promise<{ summary: Moti
     const candidates = [...new Set([...first, ...tall])].slice(0, m.maxPointerSections);
     const known = new Set([...perSection.values()].flatMap((d) => [...d.interactions.map((e) => e.selector), ...d.tracks.filter((t) => t.kind === 'time').map((t) => t.selector)]));
     const allTracks: ClassifiedTrack[] = [];
-    const overBudget = budget();
-    for (const [i, sec] of candidates.entries()) {
-      ctx.signal?.throwIfAborted();
-      if (overBudget()) {
-        ctx.note('Drawing pointer strokes over sections', `Stopped after ${m.stepBudgetMs / 1000}s: swept ${i} of ${candidates.length} sections (motion.stepBudgetMs in config.ts).`);
-        break;
-      }
-      // Go to where the scan found the section first: a sticky or fixed hero measured while the page
-      // is scrolled down reports the current scroll as its position. Then measure there.
-      await adapter.call('scrollToY', sec.rect.y);
+    const started = Date.now();
+    const overBudget = () => Date.now() - started > m.pointerBudgetMs;
+
+    /** One stroke over what is on screen of `sec` with the page scrolled to `scrollTo`. */
+    const strokeScreen = async (sec: Section, scrollTo: number) => {
+      const top = await adapter.call('scrollToY', scrollTo);
       const [measured] = await adapter.call('measureSections', [sec]);
-      const top = await adapter.call('scrollToY', measured.rect.y);
       const areaTop = Math.max(0, measured.rect.y - top);
-      const area: Rect = { x: measured.rect.x, y: areaTop, width: measured.rect.width, height: Math.min(measured.rect.height, desktop.height - areaTop) };
-      if (area.height < 80) continue;
+      const area: Rect = { x: measured.rect.x, y: areaTop, width: measured.rect.width, height: Math.min(measured.rect.y + measured.rect.height - top, desktop.height) - areaTop };
+      if (area.height < 80) return null;
       await adapter.mouseMove(1, 1);
       await sleep(m.settleMs);
       // Canvases on screen now (off-screen ones may have been hidden by the site until now).
@@ -391,7 +386,7 @@ export async function captureMotion(ctx: MotionContext): Promise<{ summary: Moti
       const tracks = (await tracing).filter((t) => !known.has(t.selector) && followsPointer(t, strokeFrom, strokeTo)).map((t) => ({ ...t, kind: 'pointer' as TrackKind, rect: null, section: sec.id, observed: false }));
       const frames = await adapter.stopScreencast();
       await adapter.mouseMove(1, 1);
-      if (frames.length < 3) continue;
+      if (frames.length < 3) return null;
 
       // Pixels that change while the pointer moves, beyond what the page does by itself meanwhile.
       // Hover effects found earlier change pixels as the stroke crosses them; leave their boxes out.
@@ -421,7 +416,7 @@ export async function captureMotion(ctx: MotionContext): Promise<{ summary: Moti
           }
         }
       }
-      if (!painted && !tracks.length) continue;
+      if (!painted && !tracks.length) return null;
       const region = stroke.box && { x: Math.round(stroke.box.x * desktop.width), y: Math.round(stroke.box.y * desktop.height), width: Math.round(stroke.box.width * desktop.width), height: Math.round(stroke.box.height * desktop.height) };
       const inCanvas = !!region && canvases.some((c) => overlaps({ ...c.rect, y: c.rect.y - top }, region));
       const effect: PointerEffect = {
@@ -434,22 +429,51 @@ export async function captureMotion(ctx: MotionContext): Promise<{ summary: Moti
         tracks: tracks.length,
         files: [],
       };
-      const video = await saveVideo(frames, `sections/${sec.id}/pointer`, cursorOverlay(path, desktop.width));
-      if (video) effect.files.push(video);
-      const strip = await filmstrip(frames, path, desktop.width);
-      if (strip) {
-        ctx.put(`sections/${sec.id}/pointer-strip.png`, strip, false);
-        effect.files.push(`sections/${sec.id}/pointer-strip.png`);
+      return { effect, painted, tracks, frames };
+    };
+
+    // The cursor Specimen draws in the page shows in the recording itself, so clips need no overlay.
+    await adapter.call('showSweepCursor');
+    try {
+      sweep: for (const [i, sec] of candidates.entries()) {
+        // Go to where the scan found the section first: a sticky or fixed hero measured while the page
+        // is scrolled down reports the current scroll as its position. Then measure there.
+        await adapter.call('scrollToY', sec.rect.y);
+        const [measured] = await adapter.call('measureSections', [sec]);
+        const screens = Math.min(m.pointerScreensPerSection, Math.max(1, Math.ceil(measured.rect.height / desktop.height)));
+        // The strongest result over the section's screens: painted pixels first, then followers.
+        let best: Awaited<ReturnType<typeof strokeScreen>> = null;
+        for (let s = 0; s < screens; s++) {
+          ctx.signal?.throwIfAborted();
+          if (overBudget()) {
+            ctx.note('Drawing pointer strokes over sections', `Stopped after ${m.pointerBudgetMs / 1000}s: swept ${i} of ${candidates.length} sections (motion.pointerBudgetMs in config.ts).`);
+            break sweep;
+          }
+          const r = await strokeScreen(sec, measured.rect.y + s * desktop.height);
+          const score = (x: typeof r) => (x ? (x.painted ? 1 + x.effect.changed : 0) + x.tracks.length * 0.01 : -1);
+          if (score(r) > score(best)) best = r;
+        }
+        if (!best) continue;
+        const { effect, painted, tracks, frames } = best;
+        const video = await saveVideo(frames, `sections/${sec.id}/pointer`);
+        if (video) effect.files.push(video);
+        const strip = await filmstrip(frames, [], desktop.width);
+        if (strip) {
+          ctx.put(`sections/${sec.id}/pointer-strip.png`, strip, false);
+          effect.files.push(`sections/${sec.id}/pointer-strip.png`);
+        }
+        ctx.put(`sections/${sec.id}/pointer.json`, json({ ...effect, tracks }));
+        ctx.addSectionFile(sec.id, `sections/${sec.id}/pointer.json`);
+        for (const f of effect.files) ctx.addSectionFile(sec.id, f);
+        perSection.get(sec.id)!.pointer = effect;
+        summary.sections[sec.id].pointer = (painted ? 1 : 0) + tracks.length;
+        summary.pointerEffects += (painted ? 1 : 0) + tracks.length;
+        allTracks.push(...tracks);
+        // A follower that tracks the pointer page-wide shows up under every stroke; report it once.
+        for (const t of tracks) known.add(t.selector);
       }
-      ctx.put(`sections/${sec.id}/pointer.json`, json({ ...effect, tracks }));
-      ctx.addSectionFile(sec.id, `sections/${sec.id}/pointer.json`);
-      for (const f of effect.files) ctx.addSectionFile(sec.id, f);
-      perSection.get(sec.id)!.pointer = effect;
-      summary.sections[sec.id].pointer = (painted ? 1 : 0) + tracks.length;
-      summary.pointerEffects += (painted ? 1 : 0) + tracks.length;
-      allTracks.push(...tracks);
-      // A follower that tracks the pointer page-wide shows up under every stroke; report it once.
-      for (const t of tracks) known.add(t.selector);
+    } finally {
+      await adapter.call('hideSweepCursor').catch(() => {});
     }
     ctx.put('page/pointer.json', json(allTracks));
   });

@@ -57,7 +57,11 @@ export const CONFIG = {
     /** Recorded after the stroke, to see how long a trail takes to fade. */
     pointerFadeMs: 2000,
     /** Sections that get a pointer stroke: canvas sections and the hero first, then the rest in page order. */
-    maxPointerSections: 8,
+    maxPointerSections: 30,
+    /** Screens of one tall section that get their own stroke. */
+    pointerScreensPerSection: 3,
+    /** Time limit for the whole pointer sweep (it has its own, longer than other motion steps). */
+    pointerBudgetMs: 180_000,
     /** Shortest section, in CSS px, worth a stroke. */
     pointerMinSection: 120,
     /** Smallest canvas, in CSS px per side, worth a stroke. */

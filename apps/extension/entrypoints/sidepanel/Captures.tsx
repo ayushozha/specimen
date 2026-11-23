@@ -272,7 +272,18 @@ export function MotionPreviews({ result, onError }: { result: CaptureResult; onE
       }),
     [result],
   );
-  const urls = useMemo(() => Object.fromEntries(pageClips.map((c) => [c.path, videoUrl(result.files[c.path], c.path)])), [pageClips, result]);
+  // Each section's pointer clip plays in place, so the effect is seen moving, not as a thumbnail strip.
+  const pointerClips = useMemo(
+    () => Object.fromEntries(sections.flatMap((s) => {
+      const path = Object.keys(result.files).find((p) => p.startsWith(`sections/${s.id}/pointer.`) && VIDEO.test(p));
+      return path ? [[s.id, path]] : [];
+    })),
+    [sections, result],
+  );
+  const urls = useMemo(
+    () => Object.fromEntries([...pageClips.map((c) => c.path), ...Object.values(pointerClips)].map((p) => [p, videoUrl(result.files[p], p)])),
+    [pageClips, pointerClips, result],
+  );
   useEffect(() => () => Object.values(urls).forEach((u) => URL.revokeObjectURL(u)), [urls]);
   const save = (filename: string, data: Uint8Array) => {
     try {
@@ -292,13 +303,17 @@ export function MotionPreviews({ result, onError }: { result: CaptureResult; onE
         </p>
       )}
       {sections.map((s) => {
-        const clip = Object.keys(result.files).find((p) => p.startsWith(`sections/${s.id}/pointer.`) && VIDEO.test(p));
+        const clip = pointerClips[s.id];
         const raw = result.files[`sections/${s.id}/pointer.json`];
         const info = raw ? (JSON.parse(new TextDecoder().decode(raw)) as { kind: string; fadeMs: number | null }) : null;
         return (
           <div key={s.id} className="spec">
             <div className="name small">{s.name}</div>
-            <img className="spec-shot strip" src={strips[`sections/${s.id}/pointer-strip.png`]} alt="Pointer stroke, frame by frame" />
+            {clip ? (
+              <video className="recording" src={urls[clip]} autoPlay muted loop playsInline controls aria-label={`Pointer sweep over ${s.name}`} />
+            ) : (
+              <img className="spec-shot strip" src={strips[`sections/${s.id}/pointer-strip.png`]} alt="Pointer stroke, frame by frame" />
+            )}
             <div className="small">
               {info?.kind === 'canvas' ? 'The pointer paints into a canvas' : info?.kind === 'pixels' ? 'The pointer changes the pixels under it' : 'Elements follow the pointer'}
               {info?.fadeMs != null ? `; the trail fades in about ${info.fadeMs}ms` : info && info.kind !== 'dom' ? '; the trail stays' : ''}. Included in DESIGN.md.
