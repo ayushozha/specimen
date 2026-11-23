@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Docs — Specimen</title>
+  <meta name="description" content="How to use Specimen: capture a page or one section, record motion, and take it into Figma, Framer, design tools and coding agents.">
+  <meta name="theme-color" content="#fff8f2">
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Specimen docs">
+  <meta property="og:description" content="Capture a page or one section, record motion, and take it into Figma, Framer, design tools and coding agents.">
+  <meta property="og:image" content="https://specimen.ayushojha.com/assets/banner-still.webp">
+  <meta property="og:url" content="https://specimen.ayushojha.com/docs.html">
+  <link rel="canonical" href="https://specimen.ayushojha.com/docs.html">
+  <link rel="icon" href="assets/icon.png" type="image/png">
+  <link rel="preload" href="assets/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header">
+    <div class="wrap header-inner">
+      <a class="brand" href="./">
+        <img src="assets/icon.png" width="28" height="28" alt="">
+        <span>Specimen</span>
+      </a>
+      <nav aria-label="Main navigation">
+        <a href="./#workflow">Workflow</a>
+        <a href="./#exports">Exports</a>
+        <a href="./#motion">Motion</a>
+        <a href="docs.html" aria-current="page">Docs</a>
+      </nav>
+      <div class="header-actions">
+        <a class="repo-link" href="https://github.com/ayushozha/specimen">GitHub</a>
+        <a class="button button-dark button-small" href="./#install">Install</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap docs-layout" id="main">
+    <nav class="docs-toc" aria-label="On this page">
+      <p class="eyebrow">On this page</p>
+      <ol>
+        <li><a href="#install">Install</a></li>
+        <li><a href="#first-capture">Your first capture</a></li>
+        <li><a href="#results">Reading a capture</a></li>
+        <li><a href="#one-section">Capture a section</a></li>
+        <li><a href="#motion">Motion</a></li>
+        <li><a href="#copy">Copying</a></li>
+        <li><a href="#figma">Figma</a></li>
+        <li><a href="#framer">Framer</a></li>
+        <li><a href="#other-tools">Other design tools</a></li>
+        <li><a href="#agents">Coding agents</a></li>
+        <li><a href="#shaders">Shaders</a></li>
+        <li><a href="#bundle">The bundle</a></li>
+        <li><a href="#cli">Command line</a></li>
+        <li><a href="#browsers">Browser support</a></li>
+        <li><a href="#privacy">Privacy and permissions</a></li>
+        <li><a href="#faq">Questions</a></li>
+      </ol>
+    </nav>
+
+    <article class="docs">
+      <p class="eyebrow">Docs</p>
+      <h1>Using Specimen</h1>
+      <p class="docs-lead">Specimen is a browser extension that captures a web page, or one part of it, as it renders: screenshots, editable layers, colours, type, motion and the code behind its effects. This guide covers every button in the panel and where each output goes.</p>
+
+      <section id="install" aria-labelledby="install-title">
+        <h2 id="install-title">Install</h2>
+        <p>Specimen is installed from source for now. You need <strong>Node.js 23+</strong>, <strong>pnpm</strong> and Git.</p>
+        <pre tabindex="0"><code>git clone https://github.com/ayushozha/specimen.git
+cd specimen
+pnpm install
+pnpm build:all</code></pre>
+        <dl class="docs-steps">
+          <div><dt>Chrome, Edge, Brave, Arc</dt><dd>Open the browser's extensions page (<code>chrome://extensions</code>, <code>edge://extensions</code>, <code>brave://extensions</code>), turn on <strong>Developer mode</strong>, select <strong>Load unpacked</strong> and choose <code>apps/extension/.output/chrome-mv3</code>.</dd></div>
+          <div><dt>Firefox 140+</dt><dd>Open <code>about:debugging#/runtime/this-firefox</code>, select <strong>Load Temporary Add-on</strong> and choose <code>apps/extension/.output/firefox-mv3/manifest.json</code>.</dd></div>
+          <div><dt>Safari on macOS</dt><dd>Run <code>pnpm safari:project</code>, open <code>apps/safari/Specimen/Specimen.xcodeproj</code> in Xcode and run it. In Safari, turn on <strong>Settings → Developer → Allow unsigned extensions</strong> (Safari asks for your Mac password and turns it off again when it quits), then enable Specimen under <strong>Settings → Extensions</strong>.</dd></div>
+        </dl>
+        <p class="docs-note"><strong>Updating.</strong> After <code>git pull</code> and <code>pnpm build:all</code>, select <strong>Reload</strong> on Specimen's card in the extensions page, or restart the browser. Rebuild and run the Xcode project again for Safari.</p>
+      </section>
+
+      <section id="first-capture" aria-labelledby="first-capture-title">
+        <h2 id="first-capture-title">Your first capture</h2>
+        <ol>
+          <li>Open the page you want and click Specimen in the toolbar. In Chromium the panel opens beside the page; in Safari it opens in a window docked beside it.</li>
+          <li>Select <strong>Capture everything</strong>. Specimen scans the page (it scrolls once to load lazy content and declines cookie banners), then captures every section at 1440, 768 and 390 px.</li>
+          <li>Watch the progress bar. Each section's screenshot appears as it is taken. <strong>Cancel</strong> stops the run at the next step and puts the page back as it was.</li>
+        </ol>
+        <p><strong>Record motion</strong> is on by default. It reloads the page with small recording hooks, records the load and a scroll through the page, steps through animations, hovers interactive elements, sweeps a cursor over every section and opens menus. That takes a few minutes on a long page. Turn it off for a quick, still capture.</p>
+        <p>Nothing runs until you select a capture button. To choose sections before capturing, use the <strong>Scan page</strong> link under the button, untick sections in the <strong>Sections</strong> block, then select <strong>Capture</strong>.</p>
+      </section>
+
+      <section id="results" aria-labelledby="results-title">
+        <h2 id="results-title">Reading a capture</h2>
+        <dl class="docs-steps">
+          <div><dt>Screenshots and exports</dt><dd>The latest capture: a thumbnail per section (select <strong>All</strong> or one section to scope every export), then the design-tool and coding-agent outputs below.</dd></div>
+          <div><dt>Palette</dt><dd>Colours by role, every swatch with its exact value (<code>oklch()</code> and Display P3 kept as written), CSS variables, gradients, and WCAG contrast for each text and background pair. The eyedropper finds the nearest page colour.</dd></div>
+          <div><dt>Motion</dt><dd>Counts of animations, hover and focus effects, scroll effects, pointer effects and menus, per section; each pointer effect as a clip (hover it to play); the page-load and scroll recordings; and <strong>Record interaction</strong>.</dd></div>
+          <div><dt>Stack</dt><dd>Detected frameworks, styling, animation libraries and site builders, each with its evidence.</dd></div>
+          <div><dt>Sections</dt><dd>The detected sections. Hover one to outline it on the page, untick it to leave it out, <strong>Capture</strong> to recapture only it, <strong>Pick element</strong> to add any element, <strong>Detect again</strong> after the page changes.</dd></div>
+          <div><dt>Earlier captures</dt><dd>Every capture of this session, with all its exports, until you close the panel.</dd></div>
+        </dl>
+        <figure class="docs-figure docs-figure-block">
+          <img src="assets/one-capture.png" width="420" height="900" loading="lazy" alt="The Specimen panel after a capture, with Capture everything, Capture a section, Copy everything and the Screenshots and exports block.">
+          <figcaption>A capture opens as blocks you can fold.</figcaption>
+        </figure>
+      </section>
+
+      <section id="one-section" aria-labelledby="one-section-title">
+        <h2 id="one-section-title">Capture a section</h2>
+        <p>Use <strong>Capture a section</strong> when you want one part of the page: a hero, a pricing table, a header, a single button.</p>
+        <ol>
+          <li>Select <strong>Capture a section</strong>. Specimen scans the page first if it hasn't yet.</li>
+          <li>Move over the page. The picker outlines the element under the pointer with its margin, padding and size. Press <kbd>↑</kbd> for the parent, <kbd>↓</kbd> for the child.</li>
+          <li>Click, or press <kbd>Enter</kbd>. Press <kbd>Esc</kbd> or select the button again to cancel.</li>
+        </ol>
+        <p>Only that element is captured, with every export the full page gets. Its motion is scoped to it: hover and focus states and animations inside it, and a pointer sweep over it and the space around it (at least 240 × 240 px), where glows and magnetic effects show. Buttons, links and images are named by their own text.</p>
+      </section>
+
+      <section id="motion" aria-labelledby="motion-title">
+        <h2 id="motion-title">Motion</h2>
+        <h3>What Record motion captures</h3>
+        <ul>
+          <li><strong>Load and scroll.</strong> A clip of the page loading and one scrolling through it, cut into a clip per section.</li>
+          <li><strong>Animations.</strong> CSS and Web Animations stepped frame by frame, with keyframes, duration, delay and easing. GSAP tweens and ScrollTrigger settings are read from the page.</li>
+          <li><strong>Hover and focus.</strong> Each interactive element is hovered and focused with the real pointer. The changed styles, their transitions and before and after images are saved.</li>
+          <li><strong>Scroll effects.</strong> Elements are traced while the page scrolls, and classified as reveals (play once in view) or scroll-linked (follow the scroll position).</li>
+          <li><strong>Menus and accordions.</strong> Opened, captured, and closed again.</li>
+        </ul>
+        <h3>The pointer sweep</h3>
+        <figure class="docs-figure">
+          <img src="assets/motion-block.png" width="420" height="900" loading="lazy" alt="The Motion block with a pointer-effect clip of an ink trail.">
+          <figcaption>Pointer effects play in the Motion block.</figcaption>
+        </figure>
+        <p>Some effects only respond to the mouse: ink and fluid trails, cursor followers, tilting cards. Specimen draws a cursor on the page and moves it over every screen of every section (up to three screens of a tall section), recording each stroke. You can watch it move. A section counts as reacting when the pixels change around the stroke beyond what the page does by itself, or when an element keeps moving with the pointer for the whole stroke. Hover effects are reported once, under hover, not again here.</p>
+        <p>Each effect is saved as a clip with the cursor in it, a frame-by-frame filmstrip, and a description: whether it paints into a canvas or moves elements, where, and how long the trail takes to fade.</p>
+        <h3>Record interaction</h3>
+        <p>If the page reacts in a way the sweep doesn't reach (a drag, a scrub, a gesture), select <strong>Record interaction</strong> in the Motion block, move your own mouse over the page, then <strong>Stop</strong>. You get a clip with the cursor drawn in, a filmstrip and the pointer path, ready to save for an agent. Recording stops by itself after 30 seconds. Chromium only.</p>
+      </section>
+
+      <section id="copy" aria-labelledby="copy-title">
+        <h2 id="copy-title">Copying</h2>
+        <table class="docs-table">
+          <thead><tr><th scope="col">Button</th><th scope="col">What goes on the clipboard</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Copy everything</strong></td><td>One markdown document: the DESIGN.md (colours, type, spacing, every section with screenshots named and its motion), the stack, the motion cues with the rebuilt effect code, and the page's shader code.</td></tr>
+            <tr><td><strong>Copy CSS</strong>, <strong>Copy JSON</strong></td><td>The palette as CSS variables, or as JSON with every value, role and usage.</td></tr>
+            <tr><td><strong>Copy motion</strong></td><td>The motion cues per section and the rebuilt CSS, GSAP and Motion code.</td></tr>
+            <tr><td><strong>Copy stack</strong></td><td>The detected technologies as a list.</td></tr>
+            <tr><td>Design-tool buttons</td><td>See the sections for each tool below.</td></tr>
+          </tbody>
+        </table>
+        <p class="docs-note">A clipboard holds text or one image per paste, so screenshots and clips stay as files: use <strong>Copy image</strong>, <strong>Save to folder</strong> or <strong>Download everything</strong> for those.</p>
+      </section>
+
+      <section id="figma" aria-labelledby="figma-title">
+        <h2 id="figma-title">Figma</h2>
+        <h3>Paste</h3>
+        <p>Select <strong>Copy</strong> in the Figma row, then press <kbd>⌘</kbd> <kbd>V</kbd> in Figma. The section pastes as editable layers: frames, text, images, gradients, borders and shadows. With <strong>All</strong> selected, sections paste stacked with a gap.</p>
+        <h3>Import with the Specimen plugin</h3>
+        <p>The plugin brings in what a paste can't: auto layout, colour variables, hover states, and motion.</p>
+        <ol>
+          <li>In the Figma desktop app, open <strong>Plugins → Development → Import plugin from manifest</strong> and choose <code>apps/figma-plugin/manifest.json</code> from your Specimen folder (once).</li>
+          <li>In Specimen, select <strong>Plugin file</strong> to save a <code>.figma.zip</code>.</li>
+          <li>In Figma, run <strong>Plugins → Development → Specimen</strong> and drop the file on it. A full <code>.specimen.zip</code> works too.</li>
+        </ol>
+        <p>You get one frame per section with real layers, colour variables and styles, hover states as component variants wired with Smart Animate at the captured duration and easing, and the screenshot as a hidden reference layer. Beside each section:</p>
+        <ul>
+          <li>its pointer-sweep and scroll clips as <strong>video layers that play</strong>,</li>
+          <li>its pointer filmstrip, frame by frame,</li>
+          <li>and its motion cues (timing, easing, shaders) as a <strong>Dev Mode annotation</strong> on the frame.</li>
+        </ul>
+        <p class="docs-note">Video layers need a Figma plan that allows video. Where Figma refuses them, the filmstrip is still placed and the annotation lists the clips that were skipped.</p>
+      </section>
+
+      <section id="framer" aria-labelledby="framer-title">
+        <h2 id="framer-title">Framer</h2>
+        <figure class="docs-figure docs-figure-wide">
+          <img src="assets/framer-live.png" width="720" height="450" loading="lazy" alt="A Framer component rendering a captured section, with a pink glow drawn by the page's own shader under the pointer.">
+          <figcaption>The component runs the page's own WebGL shader under the pointer.</figcaption>
+        </figure>
+        <h3>Copy component</h3>
+        <ol>
+          <li>Select a section's thumbnail, then <strong>Copy component</strong> in the Framer row.</li>
+          <li>In Framer, open <strong>Assets → Code → New file</strong>, replace its contents with the clipboard, and save.</li>
+          <li>Drag the component onto the canvas. It scales to any width.</li>
+        </ol>
+        <p>The component renders the section exactly as captured. If its canvas was drawn by a WebGL shader that fills the canvas, that shader runs live inside the component and follows the pointer, with the page's text still above it. Turn on <strong>Recorded motion</strong> in the component's properties to play the captured clip instead, for effects that can't run outside the site.</p>
+        <h3>Overrides</h3>
+        <p><strong>Overrides</strong> copies Framer code overrides for the rebuilt hover, load, loop, scroll-reveal and scroll-linked effects. Paste them into a code file, select one of your own layers, and pick an override in its <strong>Code Overrides</strong> panel. The layer then moves with the captured timing and easing.</p>
+      </section>
+
+      <section id="other-tools" aria-labelledby="other-tools-title">
+        <h2 id="other-tools-title">Other design tools</h2>
+        <table class="docs-table">
+          <thead><tr><th scope="col">Tool</th><th scope="col">How</th><th scope="col">What you get</th></tr></thead>
+          <tbody>
+            <tr><td>Paper</td><td><strong>Copy</strong>, then paste</td><td>The section as HTML with images inline; Paper turns it into layers.</td></tr>
+            <tr><td>Sketch, Penpot, Illustrator</td><td><strong>Copy SVG</strong> or <strong>.svg</strong></td><td>One self-contained SVG with images, background and fonts inside.</td></tr>
+            <tr><td>Photoshop</td><td><strong>.psd</strong></td><td>A layered file: a group per box, editable text, images as exact crops, the screenshot as a hidden reference.</td></tr>
+            <tr><td>Canva, Keynote, Slides, Notion</td><td><strong>Copy image</strong></td><td>The section's screenshot.</td></tr>
+            <tr><td>After Effects</td><td><strong>.jsx</strong></td><td>Run it with <strong>File → Scripts → Run Script File</strong>: a comp per section, each animated element a layer with eased keyframes.</td></tr>
+            <tr><td>Lottie</td><td><strong>Lottie</strong></td><td>Each animation and hover effect as Lottie JSON, for lottie-web, LottieFiles, Figma and Rive.</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="agents" aria-labelledby="agents-title">
+        <h2 id="agents-title">Coding agents</h2>
+        <dl class="docs-steps">
+          <div><dt>Claude Code, Codex, Cursor</dt><dd>Select <strong>Save to folder</strong> (Chrome and Edge; other browsers download a zip) and pick your repo. Specimen writes <code>design-spec/</code>: <code>DESIGN.md</code>, screenshots at each width, highlight images with numbered callouts, <code>tokens.json</code>, motion clips and filmstrips, and shader files. Then ask your agent, for example, “Build the hero exactly as in <code>design-spec/DESIGN.md</code>, section 2.”</dd></div>
+          <div><dt>Claude, ChatGPT, Grok, Gemini</dt><dd>Select <strong>Copy everything</strong> (or <strong>Copy prompt</strong> for the DESIGN.md alone), paste it into the chat, and attach the screenshots it names (<strong>Copy screenshot</strong> copies the selected section's).</dd></div>
+        </dl>
+        <p>What agents get from motion: every effect as plain text (what changes, from what to what, over how long, with which easing), the rebuilt CSS, GSAP and Motion code, filmstrips they can look at when the files are saved, and the page's own shader code for canvas effects. Agents can't watch video, so the filmstrips and text carry the motion to them.</p>
+      </section>
+
+      <section id="shaders" aria-labelledby="shaders-title">
+        <h2 id="shaders-title">Shaders</h2>
+        <p>Canvas effects like ink, fluid and glow are drawn by shader programs, not by layers. With <strong>Record motion</strong> on, Specimen records every WebGL (GLSL) and WebGPU (WGSL) shader the page compiles, and works out which section's canvas each one draws. WebGPU shaders are matched by following what each render pass draws, so a renderer shared by several canvases is still split correctly. For WebGL it also records the last value of each uniform and how often the page set it; one set every frame is animated or follows the pointer.</p>
+        <p>The shaders are saved as <code>page/shaders/*.glsl</code> and <code>*.wgsl</code> with <code>page/shaders.json</code>, listed under each section in DESIGN.md, carried in the spec folder, and included in <strong>Copy everything</strong>. The shader code belongs to the site you captured: use it to understand and rebuild an effect, not to ship it as-is.</p>
+        <p class="docs-note">Simple WebGL shaders that fill a canvas run live in the Framer component. Multi-pass effects, such as WebGPU fluid simulations, depend on the site's own JavaScript to run, so design tools get their clip and agents get their shader code.</p>
+      </section>
+
+      <section id="bundle" aria-labelledby="bundle-title">
+        <h2 id="bundle-title">The bundle</h2>
+        <p><strong>Download everything (.zip)</strong> saves the full capture. Open <code>index.html</code> inside it for a browsable report.</p>
+<pre tabindex="0"><code>example.com_2026-11-23T10-00-00.specimen.zip
+  index.html             browsable report
+  manifest.json          page, breakpoints, sections, motion summary, errors
+  palette.json  stack.json
+  page/                  full-page screenshots, page.mhtml, load and scroll clips,
+                         motion.json, pointer.json, shaders/ and shaders.json
+  sections/&lt;id&gt;/        screenshots per width, &lt;id&gt;.html, scroll clip,
+                         motion.json, interactions.json, pointer clip and filmstrip,
+                         states/ (default, hover, focus, open)
+  exports/               figma.json, svg/, psd/, after-effects/, lottie/,
+                         code/ (CSS, GSAP, Motion, Framer overrides), palette files
+  design/  assets/</code></pre>
+      </section>
+
+      <section id="cli" aria-labelledby="cli-title">
+        <h2 id="cli-title">Command line</h2>
+        <p>The CLI runs the real extension in Chromium to capture many pages, compare captures and check them. Run <code>npx playwright install chromium</code> once first.</p>
+<pre tabindex="0"><code>node apps/cli/src/cli.ts capture https://example.com https://example.com/pricing --out captures
+node apps/cli/src/cli.ts diff before.specimen.zip after.specimen.zip --out diff
+node apps/cli/src/cli.ts check captures/*.specimen.zip
+node apps/cli/src/cli.ts media captures/example.com_2026-11-23T10-00-00.specimen.zip --out media</code></pre>
+        <p><code>capture</code> records motion unless you pass <code>--no-motion</code>, and never overwrites a file. <a href="https://github.com/ayushozha/specimen#command-line">All options are in the README.</a></p>
+      </section>
+
+      <section id="browsers" aria-labelledby="browsers-title">
+        <h2 id="browsers-title">Browser support</h2>
+        <table class="docs-table">
+          <thead><tr><th scope="col"></th><th scope="col">Chrome, Edge, Brave, Arc</th><th scope="col">Firefox</th><th scope="col">Safari</th></tr></thead>
+          <tbody>
+            <tr><td>Screenshots, layers, palette, stack, exports</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+            <tr><td>Load, scroll and pointer clips</td><td>Yes</td><td>No</td><td>No</td></tr>
+            <tr><td>Animations frame by frame</td><td>Yes</td><td>Yes</td><td>No</td></tr>
+            <tr><td>Hover and focus states</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+            <tr><td>Pointer sweep, Record interaction</td><td>Yes</td><td>No</td><td>No</td></tr>
+            <tr><td>Shader capture</td><td>Yes</td><td>Yes</td><td>Not tested</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="privacy" aria-labelledby="privacy-title">
+        <h2 id="privacy-title">Privacy and permissions</h2>
+        <p>Specimen runs on your device. It has no account, analytics or server, and never sends captures anywhere. In Chromium it uses the browser's debugging permission on the tab you capture, so the browser shows a “started debugging this browser” bar while the panel is connected; <strong>Cancel</strong> on that bar ends the session. Read the <a href="privacy.html">privacy policy</a>.</p>
+      </section>
+
+      <section id="faq" aria-labelledby="faq-title">
+        <h2 id="faq-title">Questions</h2>
+        <details>
+          <summary>Why doesn't motion come across when I paste into a design tool?</summary>
+          <p>Design tools accept SVG, HTML or an image from the clipboard, and none of those can carry animation, so a paste is always a still frame. Use the Figma plugin (video layers, hover prototypes, annotations), the Framer component and overrides, or the After Effects and Lottie exports to take the motion with you.</p>
+        </details>
+        <details>
+          <summary>The sweep didn't find an effect I can see.</summary>
+          <p>Use <strong>Record interaction</strong> and move the mouse yourself. Effects that need a click, a drag or a specific path aren't triggered by a sweep.</p>
+        </details>
+        <details>
+          <summary>The panel says the page changed.</summary>
+          <p>The page navigated or reloaded after the scan. The next capture scans it again by itself, or select <strong>Scan again now</strong>.</p>
+        </details>
+        <details>
+          <summary>A capture with motion takes several minutes.</summary>
+          <p>The pointer sweep spends about six seconds per screen of each section, up to three minutes in all. Turn off <strong>Record motion</strong> for a still capture, or use <strong>Capture a section</strong>.</p>
+        </details>
+        <details>
+          <summary>Specimen disappeared from Safari.</summary>
+          <p>Safari turns off <strong>Allow unsigned extensions</strong> every time it quits. Turn it on again in <strong>Settings → Developer</strong>, then enable Specimen in <strong>Settings → Extensions</strong>.</p>
+        </details>
+        <details>
+          <summary>Copy says “Document is not focused”.</summary>
+          <p>The browser only allows clipboard writes from the focused panel. Click inside the panel, then select the copy button again.</p>
+        </details>
+      </section>
+    </article>
+  </main>
+
+  <footer class="wrap site-footer">
+    <a class="brand" href="./">
+      <img src="assets/icon.png" width="25" height="25" alt="">
+      <span>Specimen</span>
+    </a>
+    <p>TypeScript · React · WXT · WebCodecs · Chrome DevTools Protocol</p>
+    <div class="footer-links">
+      <a href="docs.html">Docs</a>
+      <a href="https://github.com/ayushozha/specimen">GitHub</a>
+      <a href="privacy.html">Privacy</a>
+      <a href="https://github.com/ayushozha/specimen/issues">Report an issue</a>
+    </div>
+  </footer>
+</body>
+</html>

@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Specimen — Capture the web in editable detail</title>
-  <meta name="description" content="Capture websites section by section. Export editable design layers, record motion, and give coding agents a DESIGN.md grounded in the page.">
+  <meta name="description" content="Capture websites section by section. Export editable layers to Figma and Framer, record motion and the page's own shader code, and give coding agents a DESIGN.md grounded in the page.">
   <meta name="theme-color" content="#fff8f2">
   <meta property="og:type" content="website">
   <meta property="og:title" content="Specimen — Capture the web in editable detail">
@@ -29,6 +29,7 @@
         <a href="#workflow">Workflow</a>
         <a href="#exports">Exports</a>
         <a href="#motion">Motion</a>
+        <a href="docs.html">Docs</a>
       </nav>
       <div class="header-actions">
         <a class="repo-link" href="https://github.com/ayushozha/specimen">GitHub</a>
@@ -46,7 +47,7 @@
           <p class="hero-description">Take the web into your design tool or coding agent with editable layers, recorded motion, and exact design specs.</p>
           <div class="actions">
             <a class="button button-dark" href="#install">Install Specimen</a>
-            <a class="button button-outline" href="https://github.com/ayushozha/specimen">View on GitHub</a>
+            <a class="button button-outline" href="docs.html">Read the docs</a>
           </div>
           <p class="hero-note">Runs locally in your browser. No server or account.</p>
         </div>
@@ -76,59 +77,59 @@
       <div class="section-heading split-heading">
         <div>
           <p class="eyebrow">Workflow</p>
-          <h2 id="workflow-title">From page to capture.</h2>
+          <h2 id="workflow-title">One button, the whole page.</h2>
         </div>
-        <p>Scanning starts only when you select <strong>Scan page</strong>. Capture the whole page, run one section, or use the element picker to frame exactly what you want.</p>
+        <p><strong>Capture everything</strong> scans the page and captures it in one go. Want one part only? <strong>Capture a section</strong> lets you click a hero, a header or a single button and captures just that, with its motion.</p>
       </div>
 
       <div class="showcase" data-showcase>
         <div class="showcase-tabs" role="tablist" aria-label="Capture examples" hidden>
-          <button type="button" role="tab" id="tab-pick" aria-controls="example-pick" aria-selected="true">Pick a section</button>
-          <button type="button" role="tab" id="tab-review" aria-controls="example-review" aria-selected="false" tabindex="-1">Review captures</button>
-          <button type="button" role="tab" id="tab-styles" aria-controls="example-styles" aria-selected="false" tabindex="-1">Inspect styles</button>
+          <button type="button" role="tab" id="tab-everything" aria-controls="example-everything" aria-selected="true">Capture everything</button>
+          <button type="button" role="tab" id="tab-section" aria-controls="example-section" aria-selected="false" tabindex="-1">Capture a section</button>
+          <button type="button" role="tab" id="tab-copy" aria-controls="example-copy" aria-selected="false" tabindex="-1">Copy everything</button>
         </div>
-        <article class="showcase-panel" id="example-pick">
+        <article class="showcase-panel" id="example-everything">
           <div class="showcase-text">
-            <h3>Point to any element.</h3>
-            <p>The picker outlines the element and its box model as you hover. Use <kbd>↑</kbd> and <kbd>↓</kbd> for parent and child, then <kbd>Enter</kbd> or click to add it to the capture list.</p>
-            <p>Turn on <strong>Record motion</strong> when you need animation. Use <strong>Cancel</strong> to stop a run in progress.</p>
+            <h3>Everything on one page.</h3>
+            <p>Each capture opens as blocks you can fold: <strong>Screenshots and exports</strong>, <strong>Palette</strong>, <strong>Motion</strong>, <strong>Stack</strong> and <strong>Sections</strong>. Earlier captures stay below.</p>
+            <p><strong>Record motion</strong> is on by default. Turn it off for a faster capture without the page reload. <strong>Cancel</strong> stops a run and puts the page back.</p>
           </div>
           <figure class="showcase-visual pair-visual scan-visual">
-            <a href="assets/idle.png" aria-label="Open the full screenshot before scanning">
-              <img src="assets/idle.png" width="420" height="900" loading="lazy" alt="Specimen waits for you to select Scan page.">
-            </a>
-            <a href="assets/scanned.png" aria-label="Open the full screenshot after scanning">
-              <img src="assets/scanned.png" width="420" height="900" loading="lazy" alt="The Sections tab shows detected sections, Pick element, and Record motion.">
-            </a>
-          </figure>
-        </article>
-        <article class="showcase-panel" id="example-review">
-          <div class="showcase-text">
-            <h3>Review before you export.</h3>
-            <p>Each capture goes into the <strong>Captures</strong> tab. Inspect the live preview and use the export that fits your next step.</p>
-            <p>Keep a browsable report with page and section screenshots, portable HTML, exact colours, and the detected tech stack.</p>
-          </div>
-          <figure class="showcase-visual pair-visual">
-            <a href="assets/captures.png" aria-label="Open the full Captures tab screenshot">
-              <img src="assets/captures.png" width="420" height="1068" loading="lazy" alt="Specimen Captures tab with a captured section and its export options.">
+            <a href="assets/one-capture.png" aria-label="Open the full screenshot of a capture">
+              <img src="assets/one-capture.png" width="420" height="900" loading="lazy" alt="Specimen panel after Capture everything, with the screenshots, exports and palette blocks.">
             </a>
             <a href="assets/report.png" aria-label="Open the full bundle report screenshot">
               <img src="assets/report.png" width="1200" height="800" loading="lazy" alt="A browsable capture report with section thumbnails.">
             </a>
           </figure>
         </article>
-        <article class="showcase-panel" id="example-styles">
+        <article class="showcase-panel" id="example-section">
           <div class="showcase-text">
-            <h3>Read the design as rendered.</h3>
-            <p>Find CSS variables, exact <code>oklch()</code> and Display P3 values, and WCAG contrast checks for text and backgrounds.</p>
-            <p>See evidence for detected technologies across 41 frameworks and libraries.</p>
+            <h3>Point at one thing.</h3>
+            <p>Select <strong>Capture a section</strong>, then click any element on the page. The picker outlines it and its box model as you hover; <kbd>↑</kbd> and <kbd>↓</kbd> move to the parent or child.</p>
+            <p>Only that element is captured: its screenshots, layers, hover states, animations and a pointer sweep over it and the space around it.</p>
           </div>
-          <figure class="showcase-visual pair-visual style-visual">
-            <a href="assets/sections.png" aria-label="Open the full Sections tab screenshot">
-              <img src="assets/sections.png" width="380" height="700" loading="lazy" alt="Sections tab with individual capture controls.">
+          <figure class="showcase-visual pair-visual scan-visual">
+            <a href="assets/capture-section.png" aria-label="Open the full screenshot of a one-section capture">
+              <img src="assets/capture-section.png" width="420" height="900" loading="lazy" alt="Specimen after capturing a single Get started button.">
             </a>
-            <a href="assets/palette.png" aria-label="Open the full Palette tab screenshot">
-              <img src="assets/palette.png" width="380" height="700" loading="lazy" alt="Palette tab with swatches, source values, and token roles.">
+            <a href="assets/palette-block.png" aria-label="Open the full Palette block screenshot">
+              <img src="assets/palette-block.png" width="420" height="700" loading="lazy" alt="Palette block with roles, swatches and WCAG contrast checks.">
+            </a>
+          </figure>
+        </article>
+        <article class="showcase-panel" id="example-copy">
+          <div class="showcase-text">
+            <h3>Copy it all at once.</h3>
+            <p><strong>Copy everything</strong> puts one markdown document on the clipboard: the DESIGN.md (colours, type, spacing, every section and its motion), the stack, the rebuilt effect code and the page's own shader code.</p>
+            <p>Each block has its own copy too: <strong>Copy CSS</strong> and <strong>Copy JSON</strong> for the palette, <strong>Copy motion</strong>, <strong>Copy stack</strong>.</p>
+          </div>
+          <figure class="showcase-visual pair-visual scan-visual">
+            <a href="assets/capture-section.png" aria-label="Open the full screenshot with Copy everything">
+              <img src="assets/capture-section.png" width="420" height="900" loading="lazy" alt="The Copy everything button beside Capture a section.">
+            </a>
+            <a href="assets/motion-block.png" aria-label="Open the full Motion block screenshot">
+              <img src="assets/motion-block.png" width="420" height="900" loading="lazy" alt="Motion block with counts and a pointer-effect clip.">
             </a>
           </figure>
         </article>
@@ -147,8 +148,16 @@
         <div class="exports-layout">
           <div class="formats">
             <article>
-              <h3>Editable layers</h3>
-              <p>Copy self-contained SVG or HTML into Figma, Paper, Sketch, Penpot, Framer, and Illustrator. The Figma plugin imports auto layout, colour variables, and hover variants where supported.</p>
+              <h3>Figma</h3>
+              <p>Paste editable layers, or import with the Specimen plugin: auto layout, colour variables and hover variants, plus each section's clips as <strong>video layers that play</strong> and its motion as a <strong>Dev Mode annotation</strong>.</p>
+            </article>
+            <article>
+              <h3>Framer</h3>
+              <p><strong>Copy component</strong> gives a code component that renders the section exactly, with its WebGL shader running live under the pointer. <strong>Overrides</strong> add the captured hover, reveal and scroll motion to your own layers.</p>
+            </article>
+            <article>
+              <h3>Paper, Sketch, Penpot, Illustrator</h3>
+              <p>Copy self-contained HTML or SVG, with images and fonts inside.</p>
             </article>
             <article>
               <h3>Image and motion files</h3>
@@ -163,7 +172,7 @@
           <article class="spec-card">
             <p class="eyebrow">Coding agents</p>
             <h3>The page, spelled out in DESIGN.md.</h3>
-            <p>Save a spec folder in Chrome or Edge, or download it as a ZIP for Claude Code, Codex, or Cursor. Copy a prompt for Claude, ChatGPT, Grok, or Gemini.</p>
+            <p>Save a spec folder in Chrome or Edge, or download it as a ZIP for Claude Code, Codex, or Cursor. Or select <strong>Copy everything</strong> and paste into Claude, ChatGPT, Grok, or Gemini.</p>
             <div class="file-card">
               <div class="file-title"><span>design-spec/</span><strong>DESIGN.md</strong></div>
               <dl>
@@ -171,6 +180,7 @@
                 <div><dt>Breakpoints</dt><dd>1440 px · 768 px · 390 px</dd></div>
                 <div><dt>Reference images</dt><dd>Screenshots and numbered element callouts</dd></div>
                 <div><dt>Behaviour</dt><dd>Hover, focus, scroll, and motion timings</dd></div>
+                <div><dt>Shaders</dt><dd>The page's WebGL and WebGPU code for canvas effects</dd></div>
                 <div><dt>Stack</dt><dd>Detected frameworks and libraries</dd></div>
               </dl>
             </div>
@@ -185,10 +195,10 @@
           <p class="eyebrow">Motion recording</p>
           <h2 id="motion-title">Capture what moves.</h2>
           <p>Record page load and scroll, step through CSS animations frame by frame, inspect GSAP timelines, and capture hover, focus, and scroll reveals with their timings.</p>
-          <p>Canvas and WebGL pointer effects show up as clips and filmstrips with the cursor drawn in. In Chrome and Edge, <strong>Record interaction</strong> also captures your own mouse movement.</p>
+          <p>Specimen moves a cursor you can watch over every screen of every section, so effects that only answer the mouse (ink trails, followers, tilts) are found and recorded. The Motion block plays each one. <strong>Record interaction</strong> records your own mouse for anything it misses.</p>
           <div class="motion-detail">
-            <strong>Take the timing with you.</strong>
-            <p>Export supported effects as CSS, GSAP, or Motion code.</p>
+            <strong>Take the effect itself.</strong>
+            <p>Export supported effects as CSS, GSAP, Motion or Framer code, and get the page's own WebGL and WebGPU shader code for canvas effects.</p>
           </div>
         </div>
         <figure class="motion-visual">
@@ -196,8 +206,8 @@
             <a href="assets/recording.png" aria-label="Open the full interaction recording screenshot">
               <img src="assets/recording.png" width="420" height="1000" loading="lazy" alt="Specimen recording panel with a replay of a pointer effect.">
             </a>
-            <a href="assets/motion.png" aria-label="Open the full Motion tab screenshot">
-              <img src="assets/motion.png" width="380" height="700" loading="lazy" alt="Motion tab listing animations, hover and focus effects, and pointer effects.">
+            <a href="assets/motion-block.png" aria-label="Open the full Motion block screenshot">
+              <img src="assets/motion-block.png" width="420" height="900" loading="lazy" alt="Motion block listing animations, hover and focus effects and pointer effects, with a pointer-effect clip.">
             </a>
           </div>
           <a class="filmstrip" href="assets/ink-strip.png" aria-label="Open the full recorded pointer-effect filmstrip">
@@ -252,7 +262,7 @@ pnpm build:all</code></pre>
               <li>Enable <strong>Allow unsigned extensions</strong> in Safari’s Develop menu and turn on Specimen under <strong>Settings → Extensions</strong>.</li>
             </ol>
           </details>
-          <p class="install-next">Open a website, click Specimen in the toolbar, then select <strong>Scan page</strong>.</p>
+          <p class="install-next">Open a website, click Specimen in the toolbar, then select <strong>Capture everything</strong>. New to Specimen? <a href="docs.html">Read the docs</a>.</p>
         </div>
       </div>
     </section>
@@ -269,6 +279,7 @@ pnpm build:all</code></pre>
     </a>
     <p>TypeScript · React · WXT · WebCodecs · Chrome DevTools Protocol</p>
     <div class="footer-links">
+      <a href="docs.html">Docs</a>
       <a href="https://github.com/ayushozha/specimen">GitHub</a>
       <a href="privacy.html">Privacy</a>
       <a href="https://github.com/ayushozha/specimen/issues">Report an issue</a>
