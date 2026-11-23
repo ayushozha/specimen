@@ -47,7 +47,17 @@ export function findInteractionCandidates(
   pointerTargets: string[] = [],
   max = 40,
   perSignature = 2,
+  /** Only elements inside (or equal to) these, e.g. the sections being captured; all when absent. */
+  within?: string[],
 ): InteractionCandidate[] {
+  const roots = within?.flatMap((sel) => {
+    try {
+      const el = document.querySelector(sel);
+      return el ? [el] : [];
+    } catch {
+      return [];
+    }
+  });
   const texts = sheets.map((s) => s.text);
   for (const sheet of Array.from(document.styleSheets)) {
     try {
@@ -81,6 +91,7 @@ export function findInteractionCandidates(
   const out: InteractionCandidate[] = [];
   for (const [el, { states, sources }] of found) {
     if (el === document.documentElement || el === document.body || !isRendered(el)) continue;
+    if (roots && !roots.some((root) => root.contains(el))) continue;
     const r = el.getBoundingClientRect();
     if (r.width < 8 || r.height < 8) continue;
     const signature = `${el.tagName.toLowerCase()}.${Array.from(el.classList).sort().join('.')}`;

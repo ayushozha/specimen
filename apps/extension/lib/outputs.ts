@@ -321,3 +321,41 @@ export async function writeToFolder(files: Record<string, Uint8Array>, folder = 
   }
   return `${root.name}/${folder}`;
 }
+
+// ---------------------------------------------------------------------------------------------
+// Copy as text
+
+/** The motion of the captured sections as markdown: cues per section, then the rebuilt effect code. */
+export function motionMarkdown(result: CaptureResult): string {
+  const parts: string[] = ['## Motion', ''];
+  for (const s of capturedSections(result)) {
+    const cues = motionCues(result, s.id);
+    if (!cues.length) continue;
+    parts.push(`### ${s.name}`, '', ...cues.map((c) => `- **${c.kind}** \`${c.target}\`: ${c.description}`), '');
+  }
+  if (parts.length === 2) parts.push(result.manifest.motion ? 'No motion found in these sections.' : 'Motion was not recorded for this capture.', '');
+  const code = Object.keys(result.files)
+    .filter((p) => p.startsWith('exports/code/') && /\.(css|gsap\.js|motion\.tsx)$/.test(p))
+    .sort();
+  if (code.length) {
+    parts.push('## Effect code', '');
+    for (const p of code) parts.push(`\`${p.replace('exports/code/', '')}\``, '', '```' + (p.endsWith('.css') ? 'css' : 'tsx'), strFromU8(result.files[p]).trim(), '```', '');
+  }
+  return parts.join('\n');
+}
+
+/** The tech stack as a markdown list. */
+export function stackMarkdown(stack: StackItem[]): string {
+  if (!stack.length) return '## Stack\n\nNo frameworks or libraries detected.\n';
+  return ['## Stack', '', ...stack.map((s) => `- ${s.name}${s.version ? ` ${s.version}` : ''} (${s.category}, ${s.confidence} confidence)`), ''].join('\n');
+}
+
+/**
+ * Everything one capture knows, as one markdown document to paste into an agent or a doc: the
+ * DESIGN.md (palette, type, spacing, every section and its motion cues) followed by the stack and
+ * the rebuilt effect code. Screenshots and clips stay files: the clipboard carries text.
+ */
+export async function everythingMarkdown(result: CaptureResult, stack: StackItem[]): Promise<string> {
+  const spec = await agentSpec(result, stack);
+  return [spec.markdown.trim(), '', stackMarkdown(stack), motionMarkdown(result)].join('\n');
+}

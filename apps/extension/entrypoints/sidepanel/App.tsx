@@ -4,7 +4,8 @@ import { analyse, capture, type Analysis, type CaptureResult, type Progress } fr
 import type { StyleSheetText } from '@specimen/core';
 import { Session, explainError, focusTabWindow, targetTabId } from '../../lib/session';
 import { CONFIG } from '../../lib/config';
-import { capturedSections } from '../../lib/outputs';
+import { capturedSections, everythingMarkdown, motionMarkdown, stackMarkdown } from '../../lib/outputs';
+import { renderPaletteCss } from '../../lib/report';
 import { CaptureCard, MotionPreviews, RecordingCard, type CaptureItem, type RecordingItem } from './Captures';
 import { canRecordInteraction, startInteraction, stopInteraction, type RecordingSession } from '../../lib/interaction';
 import { CaptureTargetChangedError } from '../../lib/safari-screenshot';
@@ -115,7 +116,8 @@ export function App() {
     }
   }, []);
 
-  const runCapture = async (sectionIds?: string[]) => {
+  /** Captures the page, or `sectionIds` only. `given` is a scan made just before (Capture a section). */
+  const runCapture = async (sectionIds?: string[], given?: FullAnalysis) => {
     if (tabId === null || abortRef.current) return;
     const abort = new AbortController();
     abortRef.current = abort;
@@ -127,8 +129,8 @@ export function App() {
       await session.requestHostAccess();
       const adapter = await connect(tabId);
       // One button: scan first when there is no scan yet, or the page changed since.
-      let scanned = analysis;
-      if (!scanned || stale) {
+      let scanned = given ?? analysis;
+      if (!scanned || (!given && stale)) {
         scanned = await analyse(adapter, setProgress);
         setAnalysis(scanned);
         setExcluded(new Set());
@@ -214,15 +216,19 @@ export function App() {
     return () => clearInterval(timer);
   }, [recording, stopRecording]);
 
-  const pick = async () => {
-    if (tabId === null || !analysis) return;
+  /** Lets the user click an element on the page and adds it as a section. Clicking again cancels. */
+  const pickFrom = async (scan: FullAnalysis): Promise<{ section: Section; analysis: FullAnalysis } | null> => {
+    if (tabId === null) return null;
     const adapter = await connect(tabId);
-    if (busyRef.current === 'pick') return void adapter.call('cancelPick');
+    if (busyRef.current === 'pick') {
+      await adapter.call('cancelPick');
+      return null;
+    }
     setBusy('pick');
     const back = await focusTabWindow(tabId);
     try {
       // Section ids number from 01; a picked element takes the next free number.
-      const next = Math.max(0, ...analysis.sections.map((s) => parseInt(s.id, 10) || 0));
+      const next = Math.max(0, ...scan.sections.map((s) => parseInt(s.id, 10) || 0));
       await adapter.call('startPick', next);
       let state = await adapter.call('pickState');
       while (state.picking) {
@@ -230,12 +236,50 @@ export function App() {
         state = await adapter.call('pickState');
       }
       const picked = state.section;
-      if (picked) setAnalysis({ ...analysis, sections: [...analysis.sections, picked].sort((a, b) => a.rect.y - b.rect.y) });
+      if (!picked) return null;
+      const updated = { ...scan, sections: [...scan.sections, picked].sort((a, b) => a.rect.y - b.rect.y) };
+      setAnalysis(updated);
+      return { section: picked, analysis: updated };
     } catch (err) {
       setError(explainError(err));
+      return null;
     } finally {
       await back();
       setBusy(null);
+    }
+  };
+
+  const pick = () => (analysis ? pickFrom(analysis) : undefined);
+
+  /**
+   * Capture a section: pick one thing on the page (a hero, a header, a button) and capture only
+   * that, with its motion, hover states, pointer effects and exports, without capturing the page.
+   */
+  const captureSection = async () => {
+    if (tabId === null) return;
+    if (busyRef.current && busyRef.current !== 'pick') return;
+    setError(null);
+    setNotice(null);
+    try {
+      // Must be the first await: browsers only show the permission prompt during the click.
+      await session.requestHostAccess();
+      let scan = analysis;
+      if (busyRef.current !== 'pick' && (!scan || stale)) {
+        setBusy('analyse');
+        scan = await analyse(await connect(tabId), setProgress);
+        setAnalysis(scan);
+        setExcluded(new Set());
+        setStale(false);
+        setProgress(null);
+        setBusy(null);
+      }
+      if (!scan) return;
+      const picked = await pickFrom(scan);
+      if (picked) await runCapture([picked.section.id], picked.analysis);
+    } catch (err) {
+      setError(explainError(err));
+      setBusy(null);
+      setProgress(null);
     }
   };
 
@@ -268,6 +312,18 @@ export function App() {
       <button className="primary" onClick={() => (capturing ? undefined : runCapture())} aria-busy={capturing} disabled={tabId === null || !!busy}>
         {capturing && progress ? `Capturing… ${progress.done}/${progress.total}` : analysis && excluded.size && !stale ? `Capture ${included} sections` : 'Capture everything'}
       </button>
+      <div className="capture-row">
+        <button className="secondary grow" onClick={() => void captureSection()} disabled={tabId === null || (!!busy && busy !== 'pick')}>
+          {busy === 'pick' ? (
+            'Click a section, header or button on the page… (Esc or here to cancel)'
+          ) : (
+            <>
+              Capture a section <span className="muted small">· pick a hero, header or button; only it is captured, with its motion</span>
+            </>
+          )}
+        </button>
+        {latest && !busy && <CopyButton label="Copy everything" title="DESIGN.md, palette, stack, motion and effect code as one markdown document" text={() => everythingMarkdown(latest.result, latest.stack)} onError={setError} />}
+      </div>
 
       {!busy && tabId !== null && (
         <div className="options">
@@ -366,6 +422,12 @@ export function App() {
       )}
       {tabId !== null && (
         <Block title="Motion" meta={withMotionResult?.manifest.motion ? `${withMotionResult.manifest.motion.pointerEffects} pointer · ${withMotionResult.manifest.motion.animations} animations` : undefined}>
+          {withMotionResult && (
+            <div className="toolbar">
+              <span className="muted small">Cues and rebuilt effect code, as markdown</span>
+              <CopyButton label="Copy motion" text={() => motionMarkdown(withMotionResult)} onError={setError} />
+            </div>
+          )}
           <MotionView result={withMotionResult} sections={analysis?.sections ?? []} />
           {withMotionResult && <MotionPreviews result={withMotionResult} onError={setError} />}
           {!busy && (
@@ -380,6 +442,10 @@ export function App() {
       )}
       {analysis && (
         <Block title="Stack" meta={`${analysis.stack.length} found`}>
+          <div className="toolbar">
+            <span className="muted small">Frameworks, styling and motion libraries</span>
+            <CopyButton label="Copy stack" text={() => stackMarkdown(analysis.stack)} onError={setError} />
+          </div>
           <StackView analysis={analysis} />
         </Block>
       )}
@@ -407,6 +473,31 @@ export function App() {
         </Block>
       )}
     </div>
+  );
+}
+
+/** Copies text built on click, and says so for a moment. */
+function CopyButton({ label, title, text, onError }: { label: string; title?: string; text: () => string | Promise<string>; onError: (message: string) => void }) {
+  const [copied, setCopied] = useState(false);
+  const timer = useRef<number>(0);
+  useEffect(() => () => clearTimeout(timer.current), []);
+  return (
+    <button
+      className="small"
+      title={title}
+      onClick={async () => {
+        try {
+          await navigator.clipboard.writeText(await text());
+          setCopied(true);
+          clearTimeout(timer.current);
+          timer.current = window.setTimeout(() => setCopied(false), 1500);
+        } catch (err) {
+          onError(`Couldn't copy: ${err instanceof Error ? err.message : String(err)}`);
+        }
+      }}
+    >
+      {copied ? 'Copied' : label}
+    </button>
   );
 }
 
@@ -531,6 +622,9 @@ function PaletteView({ analysis, onHighlight }: { analysis: FullAnalysis; onHigh
           {window.EyeDropper && <button onClick={eyedrop}>Eyedropper</button>}
           <button className="ghost" onClick={() => copy(JSON.stringify(palette, null, 2))}>
             {copied?.startsWith('{') ? 'Copied' : 'Copy JSON'}
+          </button>
+          <button className="ghost" onClick={() => copy(renderPaletteCss(palette))}>
+            {copied?.startsWith(':root') || copied?.startsWith('/*') ? 'Copied' : 'Copy CSS'}
           </button>
         </div>
       </div>
