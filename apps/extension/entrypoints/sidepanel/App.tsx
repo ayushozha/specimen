@@ -477,7 +477,7 @@ export function App() {
 }
 
 /** Copies text built on click, and says so for a moment. */
-function CopyButton({ label, title, text, onError }: { label: string; title?: string; text: () => string | Promise<string>; onError: (message: string) => void }) {
+function CopyButton({ label, title, text, onError }: { label: string; title?: string; text: () => string | Promise<string>; onError: (message: string | null) => void }) {
   const [copied, setCopied] = useState(false);
   const timer = useRef<number>(0);
   useEffect(() => () => clearTimeout(timer.current), []);
@@ -487,8 +487,13 @@ function CopyButton({ label, title, text, onError }: { label: string; title?: st
       title={title}
       onClick={async () => {
         try {
-          await navigator.clipboard.writeText(await text());
+          // The write starts inside the click and resolves when the text is built: Safari only allows
+          // clipboard writes during the gesture, and long builds (Copy everything) would miss it.
+          const built = Promise.resolve(text());
+          if (typeof ClipboardItem === 'function') await navigator.clipboard.write([new ClipboardItem({ 'text/plain': built.then((t) => new Blob([t], { type: 'text/plain' })) })]);
+          else await navigator.clipboard.writeText(await built);
           setCopied(true);
+          onError(null);
           clearTimeout(timer.current);
           timer.current = window.setTimeout(() => setCopied(false), 1500);
         } catch (err) {

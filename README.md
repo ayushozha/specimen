@@ -39,6 +39,12 @@
 
 Specimen opens in the browser's side panel and reads a page the way the browser renders it. Nothing runs until you ask. One button, **Capture everything**, scans the page and captures it, and the panel shows the result as one page of blocks: **Screenshots and exports** (a preview and its outputs: a copy that pastes into Figma, Paper, Sketch, Penpot, Framer or Illustrator, design files, and a `DESIGN.md` folder for coding agents), **Palette**, **Motion** (pointer-effect filmstrips and the page-load and scroll recordings), **Stack** and **Sections**. **Record motion** is on by default: it reloads the page, sweeps the pointer over every section to find trails, followers and canvas effects, hovers and opens menus. If the page reacts to the mouse in a way the sweep misses, **Record interaction** under Motion records you moving it, with the cursor drawn in. **Scan page** first if you want to choose sections; **Capture** on one section recaptures just that one, and **Cancel** stops a capture and puts the page back. Earlier captures stay under **Earlier captures**.
 
+What moves on the page travels as far as each tool allows:
+- **Coding agents** get the motion as text (timing, easing, from → to), filmstrips, the rebuilt effect code, and, for canvas effects, **the page's own WebGL and WebGPU shader code** with the uniform values it set, listed per section in `DESIGN.md` and included in **Copy everything**.
+- **Figma**: the plugin places each section's clips as **video layers that play** (on Figma plans that allow video; otherwise the filmstrip), and adds the section's motion cues as a **Dev Mode annotation**.
+- **Framer**: **Copy component** gives a code component that renders the section exactly and, where the page drew it with a WebGL shader, runs that shader live under the pointer; **Overrides** gives code overrides that add the captured hover, reveal and scroll motion to your own layers.
+- Effects built only in a site's JavaScript or WebGPU pipelines can't run inside a design tool; they come as clips, filmstrips and shader code.
+
 | | |
 |---|---|
 | **Sections** | Finds the page's sections by their HTML tags, then by layout. Untick, remove or capture one, or **Pick element** to add any element: hover to see its box model, ↑ ↓ for parent or child, ↵ or click to add it. |

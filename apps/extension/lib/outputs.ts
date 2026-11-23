@@ -1,5 +1,5 @@
-import type { LayoutTree, StackItem } from '@specimen/core';
-import { pickCallouts, toDesignMarkdown, tokensJson, type Callout, type FigmaDocument, type MotionCue, type SpecSection } from '@specimen/exporters';
+import type { LayoutTree, Rect, StackItem } from '@specimen/core';
+import { framerName, pickCallouts, toDesignMarkdown, toFramerComponent, tokensJson, type Callout, type FigmaDocument, type FramerShader, type MotionCue, type SpecSection } from '@specimen/exporters';
 import { strFromU8, strToU8, zipSync } from 'fflate';
 import type { CaptureResult } from './capture';
 import type { CapturedAnimation, ClassifiedTrack, InteractionEffect, PointerEffect } from './motion';
@@ -131,7 +131,7 @@ export function figmaImportZip(result: CaptureResult, ids?: string[]): Uint8Arra
     wanted.add(s.screenshot);
     if (s.background) wanted.add(s.background);
     for (const v of s.variants) wanted.add(v.defaultImage).add(v.hoverImage);
-    for (const m of s.motion ?? []) wanted.add(m);
+    for (const m of s.motion ?? []) wanted.add(typeof m === 'string' ? m : m.path);
   }
   const files: Record<string, Uint8Array> = { 'exports/figma.json': strToU8(JSON.stringify(doc)) };
   for (const path of wanted) if (result.files[path]) files[path] = result.files[path];
@@ -148,11 +148,19 @@ function json<T>(result: CaptureResult, path: string): T | null {
 
 const ms = (n: number) => `${Math.round(n)}ms`;
 
+/** Reads a file of the bundle by path. */
+export type Reader = (path: string) => Uint8Array | null | undefined;
+
 /** Motion recorded for a section, as plain sentences an agent can implement. */
-export function motionCues(result: CaptureResult, id: string): MotionCue[] {
+export function motionCues(source: CaptureResult | Reader, id: string): MotionCue[] {
+  const read: Reader = typeof source === 'function' ? source : (path) => source.files[path];
+  const readJson = <T,>(path: string): T | null => {
+    const bytes = read(path);
+    return bytes ? (JSON.parse(strFromU8(bytes)) as T) : null;
+  };
   const cues: MotionCue[] = [];
-  const motion = json<{ animations: CapturedAnimation[]; tracks: ClassifiedTrack[] }>(result, `sections/${id}/motion.json`);
-  const interactions = json<InteractionEffect[]>(result, `sections/${id}/interactions.json`) ?? [];
+  const motion = readJson<{ animations: CapturedAnimation[]; tracks: ClassifiedTrack[] }>(`sections/${id}/motion.json`);
+  const interactions = readJson<InteractionEffect[]>(`sections/${id}/interactions.json`) ?? [];
   for (const a of motion?.animations ?? []) {
     const loop = a.iterations === 'infinite';
     const timing = a.timeline === 'scroll' ? 'driven by scroll position' : `${ms(a.duration)}${a.delay ? ` after ${ms(a.delay)}` : ''}, ${a.easing}${loop ? ', loops forever' : a.iterations !== 1 ? `, ${a.iterations}×` : ''}`;
@@ -166,7 +174,7 @@ export function motionCues(result: CaptureResult, id: string): MotionCue[] {
     const how = { 'scroll-reveal': 'plays once as it scrolls into view', 'scroll-linked': 'follows the scroll position', pointer: 'follows the pointer', time: 'changes over time' }[t.kind];
     cues.push({ kind, target: t.selector, description: `${t.prop} ${first ?? ''} → ${last ?? ''}, ${how}${t.observed ? ' (IntersectionObserver)' : ''}` });
   }
-  const pointer = json<PointerEffect & { tracks: ClassifiedTrack[] }>(result, `sections/${id}/pointer.json`);
+  const pointer = readJson<PointerEffect & { tracks: ClassifiedTrack[] }>(`sections/${id}/pointer.json`);
   if (pointer && pointer.kind !== 'dom') {
     const where = pointer.kind === 'canvas' ? 'paints into a <canvas> (WebGL or 2D)' : 'changes the pixels under it';
     const fade = pointer.fadeMs == null ? 'the trail stays after the pointer stops' : `the trail fades about ${pointer.fadeMs}ms after the pointer stops`;
@@ -227,6 +235,22 @@ async function highlightImage(png: Uint8Array, callouts: Callout[], cssWidth: nu
   return new Uint8Array(await (await canvas.convertToBlob({ type: 'image/png' })).arrayBuffer());
 }
 
+interface ShadersFile {
+  shaders: { path: string; api: 'webgl' | 'webgpu'; stage: string; canvas: number | null; section: string | null; rect?: Rect | null; lines: number }[];
+  uniforms: { canvas: number; values: { name: string; value: unknown; updates: number }[] }[];
+}
+
+/** The shaders drawing a section's canvases (paths inside the agent spec) and their uniforms. */
+export function sectionShaders(result: CaptureResult, id: string) {
+  const file = json<ShadersFile>(result, 'page/shaders.json');
+  const mine = (file?.shaders ?? []).filter((sh) => sh.section === id && result.files[sh.path]);
+  const canvases = new Set(mine.map((sh) => sh.canvas));
+  return {
+    shaders: mine.map((sh) => ({ path: sh.path.replace('page/', ''), source: sh.path, api: sh.api, stage: sh.stage, lines: sh.lines })),
+    uniforms: (file?.uniforms ?? []).filter((u) => canvases.has(u.canvas)).flatMap((u) => u.values),
+  };
+}
+
 export interface SpecPreview {
   sections: number;
   screenshots: number;
@@ -277,7 +301,13 @@ export async function agentSpec(result: CaptureResult, stack: StackItem[], ids?:
       preview.videos++;
     }
     const motion = motionCues(result, s.id);
-    sections.push({ id: s.id, name: s.name, width: s.width, height: s.height, tree, screenshots: shots, highlights, callouts, motion, video, media });
+    const shaderInfo = sectionShaders(result, s.id);
+    for (const sh of shaderInfo.shaders) files[sh.path] = result.files[sh.source];
+    sections.push({
+      id: s.id, name: s.name, width: s.width, height: s.height, tree, screenshots: shots, highlights, callouts, motion, video, media,
+      shaders: shaderInfo.shaders.map(({ source: _s, ...rest }) => rest),
+      uniforms: shaderInfo.uniforms,
+    });
     preview.sections++;
     preview.screenshots += 1 + (shots.tablet ? 1 : 0) + (shots.mobile ? 1 : 0);
     preview.highlights += highlights ? 1 : 0;
@@ -357,5 +387,77 @@ export function stackMarkdown(stack: StackItem[]): string {
  */
 export async function everythingMarkdown(result: CaptureResult, stack: StackItem[]): Promise<string> {
   const spec = await agentSpec(result, stack);
-  return [spec.markdown.trim(), '', stackMarkdown(stack), motionMarkdown(result)].join('\n');
+  return [spec.markdown.trim(), '', stackMarkdown(stack), motionMarkdown(result), shaderMarkdown(result)].join('\n');
+}
+
+/** Pasted shader code stops here; the rest is in the saved spec folder. */
+const MAX_PASTED_SHADER_CHARS = 300_000;
+
+/** The captured sections' shader code as markdown code blocks. */
+export function shaderMarkdown(result: CaptureResult): string {
+  const parts: string[] = [];
+  let budget = MAX_PASTED_SHADER_CHARS;
+  for (const s of capturedSections(result)) {
+    for (const sh of sectionShaders(result, s.id).shaders) {
+      const code = strFromU8(result.files[sh.source]);
+      if (code.length > budget) {
+        parts.push(`\`${sh.path}\` (${s.name}): too long to paste; it is in the saved spec folder.`, '');
+        continue;
+      }
+      budget -= code.length;
+      parts.push(`\`${sh.path}\` (${s.name}, ${sh.api === 'webgpu' ? 'WGSL' : `GLSL ${sh.stage}`})`, '', '```' + (sh.api === 'webgpu' ? 'wgsl' : 'glsl'), code.trim(), '```', '');
+    }
+  }
+  return parts.length ? ['## Shader code', '', ...parts].join('\n') : '';
+}
+
+// ---------------------------------------------------------------------------------------------
+// Framer
+
+/** A WebGL shader pair drawing one canvas of the section, ready to run in the Framer component. */
+function framerShader(result: CaptureResult, id: string): FramerShader | null {
+  const file = json<ShadersFile>(result, 'page/shaders.json');
+  const section = result.manifest.sections.find((s) => s.id === id);
+  const origin = section?.rects.desktop ?? section?.rect;
+  if (!file || !origin) return null;
+  const mine = file.shaders.filter((sh) => sh.section === id && sh.api === 'webgl' && sh.canvas !== null && sh.rect && result.files[sh.path]);
+  for (const canvas of new Set(mine.map((sh) => sh.canvas))) {
+    const vertex = mine.find((sh) => sh.canvas === canvas && sh.stage === 'vertex');
+    const fragment = mine.find((sh) => sh.canvas === canvas && sh.stage === 'fragment');
+    if (!vertex || !fragment) continue;
+    const r = fragment.rect!;
+    return {
+      vertex: strFromU8(result.files[vertex.path]),
+      fragment: strFromU8(result.files[fragment.path]),
+      uniforms: (file.uniforms.find((u) => u.canvas === canvas)?.values ?? []).map(({ name, value }) => ({ name, value })),
+      rect: { x: r.x - origin.x, y: r.y - origin.y, width: r.width, height: r.height },
+    };
+  }
+  return null;
+}
+
+/** The section as a Framer code component (TSX), with its shader running live where it can. */
+export function framerComponent(result: CaptureResult, id: string): string | null {
+  const s = capturedSections(result).find((x) => x.id === id);
+  const html = sectionHtml(result, id);
+  if (!s || !html) return null;
+  const clipPath = Object.keys(result.files).find((p) => p.startsWith(`sections/${id}/pointer.`) && /\.(mp4|webm)$/.test(p));
+  return toFramerComponent({
+    name: framerName(s.name),
+    source: result.manifest.url,
+    width: s.width,
+    height: s.height,
+    html,
+    shader: framerShader(result, id),
+    clip: clipPath ? dataUrl(result.files[clipPath], clipPath) : null,
+  });
+}
+
+/** The Framer code overrides for the sections' rebuilt effects, one file. */
+export function framerOverrides(result: CaptureResult, ids: string[]): string | null {
+  const files = ids.map((id) => result.files[`exports/code/${id}.framer.tsx`]).filter(Boolean).map((f) => strFromU8(f));
+  if (!files.length) return null;
+  const [first, ...rest] = files;
+  // Each file repeats the header and imports; keep them once.
+  return [first, ...rest.map((f) => f.split('\n').filter((l) => !l.startsWith('//') || l.includes(' — ')).filter((l) => !l.startsWith('import ')).join('\n'))].join('\n');
 }

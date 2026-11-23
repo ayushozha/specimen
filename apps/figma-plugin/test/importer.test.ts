@@ -29,6 +29,10 @@ function fakeFigma() {
     createComponent: () => node('COMPONENT'),
     createNodeFromSvg: (svg: string) => Object.assign(node('FRAME'), { svg }),
     createImage: (bytes: Uint8Array) => ({ hash: `img-${bytes.length}`, getSizeAsync: async () => ({ width: 2200, height: 300 }) }),
+    createVideoAsync: async (bytes: Uint8Array) => {
+      if (api.videoRefused) throw new Error('Video requires a paid plan');
+      return { hash: `vid-${bytes.length}` };
+    },
     createPaintStyle: () => node('PAINT_STYLE'),
     combineAsVariants: (nodes: any[]) => Object.assign(node('COMPONENT_SET'), { children: nodes, height: 50 }),
     loadFontAsync: async (f: { family: string; style: string }) => {
@@ -122,6 +126,45 @@ describe('Figma importer', () => {
     expect(placed).toHaveLength(1);
     // Scaled to the section's width, kept to the filmstrip's aspect ratio, below the 50px variant set.
     expect(placed[0]).toMatchObject({ width: 400, height: 55, x: root.width + 80, y: 90, fills: [{ type: 'IMAGE', imageHash: 'img-7', scaleMode: 'FIT' }] });
+  });
+
+  it('places clips as playing video layers and the motion cues as an annotation', async () => {
+    const clip = 'sections/01-hero/pointer.mp4';
+    const strip = 'sections/01-hero/pointer-strip.png';
+    const section = {
+      ...doc.sections[0],
+      motion: [
+        { kind: 'video' as const, path: clip, label: 'Pointer sweep (plays in Figma)', width: 1440, height: 900 },
+        { kind: 'image' as const, path: strip, label: 'Pointer motion · frame by frame (cursor drawn in)', width: 1440, height: 900 },
+      ],
+      notes: ['**hover** `Get started`: transform none → translateY(-2px) (transform 200ms ease-out)'],
+    };
+    const { api, created } = fakeFigma();
+    const [root]: any[] = await importDocument(api, { ...doc, sections: [section] }, { ...files, [clip]: new Uint8Array(9), [strip]: new Uint8Array(7) });
+    const video = created.find((n) => n.name === 'Pointer sweep (plays in Figma)');
+    // 400px wide like the section, 16:10 like the recorded viewport, beside the section under the variants.
+    expect(video).toMatchObject({ width: 400, height: 250, x: root.width + 80, y: 90, fills: [{ type: 'VIDEO', videoHash: 'vid-9', scaleMode: 'FIT' }] });
+    expect(created.find((n) => n.name === 'Pointer motion · frame by frame (cursor drawn in)').y).toBe(90 + 250 + 40);
+    expect(root.annotations[0].labelMarkdown).toContain('**Motion**');
+    expect(root.annotations[0].labelMarkdown).toContain('translateY(-2px)');
+  });
+
+  it('keeps the filmstrip and says so when Figma refuses video layers', async () => {
+    const clip = 'sections/01-hero/pointer.mp4';
+    const strip = 'sections/01-hero/pointer-strip.png';
+    const { api, created } = fakeFigma();
+    api.videoRefused = true;
+    const section = {
+      ...doc.sections[0],
+      motion: [
+        { kind: 'video' as const, path: clip, label: 'Pointer sweep (plays in Figma)', width: 1440, height: 900 },
+        { kind: 'image' as const, path: strip, label: 'Pointer motion · frame by frame (cursor drawn in)', width: 1440, height: 900 },
+      ],
+    };
+    const [root]: any[] = await importDocument(api, { ...doc, sections: [section] }, { ...files, [clip]: new Uint8Array(9), [strip]: new Uint8Array(7) });
+    expect(created.find((n) => n.name === 'Pointer sweep (plays in Figma)')).toBeUndefined();
+    expect(created.find((n) => n.name === 'Pointer motion · frame by frame (cursor drawn in)').y).toBe(90);
+    expect(root.annotations[0].labelMarkdown).toContain('Clips not placed (video layers need a Figma plan that allows video): Hero: Pointer sweep (plays in Figma)');
   });
 
   it('rejects files that are not Specimen captures', async () => {
