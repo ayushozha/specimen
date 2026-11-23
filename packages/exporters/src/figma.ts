@@ -24,8 +24,23 @@ export interface FigmaSection {
   background: string | null;
   tree: LayoutTree;
   variants: FigmaVariant[];
-  /** Motion frames placed beside the section: pointer strokes, frame by frame with the cursor drawn in. */
-  motion?: string[];
+  /**
+   * Motion placed beside the section: clips as video layers that play in Figma, and filmstrips
+   * (frame by frame, cursor drawn in). Plain strings are filmstrip paths from older plugin files.
+   */
+  motion?: (FigmaMotionMedia | string)[];
+  /** Motion cues (hover, scroll, pointer, shaders) shown as a Dev Mode annotation on the section. */
+  notes?: string[];
+}
+
+export interface FigmaMotionMedia {
+  kind: 'video' | 'image';
+  /** Bundle path. */
+  path: string;
+  label: string;
+  /** Size in CSS px the clip was recorded at (videos; images are measured). */
+  width: number;
+  height: number;
 }
 
 /** `exports/figma.json`: everything the Specimen Figma plugin needs, with image paths into the bundle. */

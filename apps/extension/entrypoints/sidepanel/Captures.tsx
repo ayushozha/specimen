@@ -10,6 +10,8 @@ import {
   copySvg,
   downloadFile,
   figmaImportZip,
+  framerComponent,
+  framerOverrides,
   sectionHtml,
   sectionSvg,
   stackedSvg,
@@ -78,6 +80,7 @@ export function CaptureCard({ item, onRemove, onError }: { item: CaptureItem; on
   };
 
   const svg = () => (one ? sectionSvg(result, one) : stackedSvg(result, ids));
+  const overrides = framerOverrides(result, ids);
   const name = baseName(result, one ?? undefined);
   const host = result.filename.replace(/_.*$/, '');
   const m = result.manifest;
@@ -133,6 +136,20 @@ export function CaptureCard({ item, onRemove, onError }: { item: CaptureItem; on
           <button className="small" onClick={() => run('Copied. Paste in Paper with ⌘V', async () => copyHtml(ids.map((id) => sectionHtml(result, id) ?? '').join('\n') || fail()))}>
             Copy
           </button>
+        </Tool>
+        <Tool name="Framer" hint="Code component: the section exactly, with its WebGL shader running live. Overrides give your layers the captured hover, reveal and scroll motion">
+          <button
+            className="small"
+            onClick={() => run('Copied. In Framer: Assets ▸ Code ▸ New file, paste', () => navigator.clipboard.writeText(framerComponent(result, one ?? ids[0]) ?? fail()))}
+            title={one ? undefined : 'Copies the first section; pick one above for another'}
+          >
+            Copy component
+          </button>
+          {overrides && (
+            <button className="small" onClick={() => run('Copied. Paste into a Framer code file, then pick an override for a layer', () => navigator.clipboard.writeText(overrides))}>
+              Overrides
+            </button>
+          )}
         </Tool>
         <Tool name="Sketch · Penpot · Framer · Illustrator" hint="Self-contained SVG: images and fonts inside">
           <button className="small" onClick={() => run('Copied SVG. Paste with ⌘V', async () => copySvg(svg() ?? fail()))}>
@@ -310,7 +327,19 @@ export function MotionPreviews({ result, onError }: { result: CaptureResult; onE
           <div key={s.id} className="spec">
             <div className="name small">{s.name}</div>
             {clip ? (
-              <video className="recording" src={urls[clip]} autoPlay muted loop playsInline controls aria-label={`Pointer sweep over ${s.name}`} />
+              // Plays on hover: several full-size clips decoding at once is heavy for a side panel.
+              <video
+                className="recording"
+                src={urls[clip]}
+                preload="metadata"
+                muted
+                loop
+                playsInline
+                controls
+                aria-label={`Pointer sweep over ${s.name}`}
+                onMouseEnter={(e) => void e.currentTarget.play().catch(() => {})}
+                onMouseLeave={(e) => e.currentTarget.pause()}
+              />
             ) : (
               <img className="spec-shot strip" src={strips[`sections/${s.id}/pointer-strip.png`]} alt="Pointer stroke, frame by frame" />
             )}
@@ -331,7 +360,7 @@ export function MotionPreviews({ result, onError }: { result: CaptureResult; onE
       {pageClips.length > 0 && <h3>Recordings</h3>}
       {pageClips.map((c) => (
         <figure key={c.path} className="clip">
-          <video className="recording" src={urls[c.path]} controls muted loop playsInline />
+          <video className="recording" src={urls[c.path]} preload="metadata" controls muted loop playsInline />
           <figcaption className="muted small">{c.label}</figcaption>
         </figure>
       ))}

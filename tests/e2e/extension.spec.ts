@@ -180,15 +180,16 @@ test('Capture a section picks one element and captures only it, with its motion'
 
     // Copy everything puts one markdown document on the clipboard.
     await panel.getByRole('button', { name: 'Copy everything' }).click();
+    await expect(panel.getByRole('button', { name: 'Copied' })).toBeVisible({ timeout: 30_000 });
     const md = await panel.evaluate(() => navigator.clipboard.readText());
     expect(md).toContain('## Stack');
     expect(md).toContain('## Motion');
     await panel.getByRole('button', { name: 'Copy motion' }).click();
-    expect(await panel.evaluate(() => navigator.clipboard.readText())).toMatch(/^## Motion/);
+    await expect.poll(() => panel.evaluate(() => navigator.clipboard.readText())).toMatch(/^## Motion/);
     await panel.getByRole('button', { name: 'Copy stack' }).click();
-    expect(await panel.evaluate(() => navigator.clipboard.readText())).toMatch(/^## Stack/);
+    await expect.poll(() => panel.evaluate(() => navigator.clipboard.readText())).toMatch(/^## Stack/);
     await panel.getByRole('button', { name: 'Copy CSS' }).click();
-    expect(await panel.evaluate(() => navigator.clipboard.readText())).toMatch(/^:root \{/);
+    await expect.poll(() => panel.evaluate(() => navigator.clipboard.readText())).toMatch(/^:root \{/);
     await panel.setViewportSize({ width: 420, height: 900 });
     await panel.evaluate(() => scrollTo(0, 0));
     await panel.screenshot({ path: 'test-results/panel-capture-section.png' });

@@ -40,6 +40,10 @@ export interface SpecSection {
   video: string | null;
   /** Images and clips that show the motion (filmstrips with the cursor drawn in, recordings). */
   media?: { label: string; path: string }[];
+  /** Shader code the page compiled for this section's canvas effects, as files next to DESIGN.md. */
+  shaders?: { path: string; api: 'webgl' | 'webgpu'; stage: string; lines: number }[];
+  /** WebGL uniforms the page set for those canvases, most often updated first. */
+  uniforms?: { name: string; value: unknown; updates: number }[];
 }
 
 export interface DesignSpecInput {
@@ -53,6 +57,9 @@ export interface DesignSpecInput {
   motionRecorded: boolean;
   tokensFile: string;
 }
+
+/** Uniforms listed per section; the full list is in shaders.json. */
+const MAX_UNIFORMS_LISTED = 12;
 
 /** Most callouts drawn on one section, so the highlight image stays readable. */
 export const MAX_CALLOUTS = 8;
@@ -300,6 +307,19 @@ export function toDesignMarkdown(input: DesignSpecInput): string {
       out.push('Motion was not recorded for this capture.', '');
     } else {
       out.push('No motion or hover effects found in this section.', '');
+    }
+    if (s.shaders?.length) {
+      out.push(
+        "Shaders: the page's own code that draws this section's canvas. Rebuild the effect from it (same inputs, same output) rather than imitating the recording:",
+        '',
+      );
+      for (const sh of s.shaders) out.push(`- [${sh.path}](${sh.path}): ${sh.api === 'webgpu' ? 'WebGPU WGSL' : `WebGL GLSL ${sh.stage} shader`}, ${sh.lines} lines`);
+      const live = (s.uniforms ?? []).slice(0, MAX_UNIFORMS_LISTED);
+      if (live.length) {
+        out.push('', 'Uniforms the page sets (most updated first; one set every frame is animated or follows the pointer):', '');
+        for (const u of live) out.push(`- \`${u.name}\` = \`${JSON.stringify(u.value)}\` (set ${u.updates}×)`);
+      }
+      out.push('');
     }
   }
   return out.join('\n');

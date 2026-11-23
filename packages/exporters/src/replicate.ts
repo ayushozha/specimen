@@ -338,9 +338,10 @@ function motionTransition(r: Replica, easing: string, extra: Record<string, unkn
   return JSON.stringify({ duration: spec.durationMs / 1000, delay: spec.delayMs / 1000, ease: cubicBezierOf(easing), ...extra });
 }
 
-export function motionFor(r: Replica): string {
+/** The pieces of a replica's Motion code: a name, hook lines, and the props for a motion element. */
+function motionParts(r: Replica): { comp: string; header: string; hooks: string[]; props: string } | null {
   const spec = r.spec;
-  if (!spec) return '';
+  if (!spec) return null;
   const name = r.name.replace(/[^A-Za-z0-9]+/g, ' ').trim().replace(/(^|\s)(\w)/g, (_m, _s, c: string) => c.toUpperCase()) || 'Effect';
   const comp = `${name.replace(/^\d/, 'E$&')}`;
   const header = `// ${commentText(r.name)} — ${commentText(r.selector)}\n`;
@@ -353,22 +354,38 @@ export function motionFor(r: Replica): string {
     const firstKeys = Object.values(spec.tracks)[0]!;
     const ease = offsets.slice(0, -1).map((o) => cubicBezierOf(firstKeys.find((k) => k.offset === o)?.easing ?? 'linear'));
     const transition = { duration: spec.durationMs / 1000, delay: spec.delayMs / 1000, times: offsets, ease, ...(r.trigger === 'loop' ? { repeat: 'Infinity' } : {}) };
-    return `${header}export function ${comp}(props) {\n  return <motion.div {...props} animate={${JSON.stringify(animate)}} transition={${JSON.stringify(transition).replace('"Infinity"', 'Infinity')}} />;\n}\n`;
+    return { comp, header, hooks: [], props: `animate={${JSON.stringify(animate)}} transition={${JSON.stringify(transition).replace('"Infinity"', 'Infinity')}}` };
   }
   const easing = Object.values(spec.tracks)[0]![0].easing;
   if (r.trigger === 'hover') {
-    return `${header}export function ${comp}(props) {\n  return <motion.div {...props} initial={${JSON.stringify(values(0))}} whileHover={${JSON.stringify(values(1))}} transition={${motionTransition(r, easing)}} />;\n}\n`;
+    return { comp, header, hooks: [], props: `initial={${JSON.stringify(values(0))}} whileHover={${JSON.stringify(values(1))}} transition={${motionTransition(r, easing)}}` };
   }
   if (r.trigger === 'scroll-reveal') {
-    return `${header}export function ${comp}(props) {\n  return <motion.div {...props} initial={${JSON.stringify(values(0))}} whileInView={${JSON.stringify(values(1))}} viewport={{ once: true, amount: 0.2 }} transition={${motionTransition(r, easing)}} />;\n}\n`;
+    return { comp, header, hooks: [], props: `initial={${JSON.stringify(values(0))}} whileInView={${JSON.stringify(values(1))}} viewport={{ once: true, amount: 0.2 }} transition={${motionTransition(r, easing)}}` };
   }
   if (r.trigger === 'scroll-linked' && r.scroll) {
     const from = values(0);
     const to = values(1);
-    const hooks = Object.keys(from).map((k) => `  const ${k} = useTransform(scrollY, [${r.scroll!.start}, ${r.scroll!.end}], [${from[k]}, ${to[k]}]);`);
-    return `${header}export function ${comp}(props) {\n  const { scrollY } = useScroll();\n${hooks.join('\n')}\n  return <motion.div {...props} style={{ ${Object.keys(from).join(', ')} }} />;\n}\n`;
+    const hooks = ['  const { scrollY } = useScroll();', ...Object.keys(from).map((k) => `  const ${k} = useTransform(scrollY, [${r.scroll!.start}, ${r.scroll!.end}], [${from[k]}, ${to[k]}]);`)];
+    return { comp, header, hooks, props: `style={{ ...props.style, ${Object.keys(from).join(', ')} }}` };
   }
-  return '';
+  return null;
+}
+
+export function motionFor(r: Replica): string {
+  const m = motionParts(r);
+  if (!m) return '';
+  return `${m.header}export function ${m.comp}(props) {\n${m.hooks.map((h) => `${h}\n`).join('')}  return <motion.div {...props} ${m.props} />;\n}\n`;
+}
+
+/**
+ * A replica as a Framer code override: applied to any layer in Framer (frames are motion elements),
+ * it gives that layer the captured effect with the captured timing.
+ */
+export function framerOverrideFor(r: Replica): string {
+  const m = motionParts(r);
+  if (!m) return '';
+  return `${m.header}export function with${m.comp}(Component): ComponentType {\n  return (props) => {\n${m.hooks.map((h) => `  ${h}\n`).join('')}    return <Component {...props} ${m.props} />;\n  };\n}\n`;
 }
 
 /** Whether a replica's code reproduces the original well enough to ship. */
@@ -377,8 +394,9 @@ export function isTrustworthy(r: Replica): boolean {
 }
 
 /** One file per target for a section's replicas (effects that fit poorly are left out). */
-export function replicaFiles(all: Replica[]): { css: string; gsap: string; motion: string } {
+export function replicaFiles(all: Replica[]): { css: string; gsap: string; motion: string; framer: string } {
   const replicas = all.filter(isTrustworthy);
+  const framer = replicas.filter((r) => r.source !== 'gsap').map(framerOverrideFor).filter(Boolean);
   const gsap = replicas.map((r) => r.gsap).filter(Boolean);
   const motion = replicas.map((r) => r.motion).filter(Boolean);
   return {
@@ -387,6 +405,9 @@ export function replicaFiles(all: Replica[]): { css: string; gsap: string; motio
       ? `// Generated by Specimen. Needs GSAP with ScrollTrigger and CustomEase (both free).\nimport { gsap } from "gsap";\nimport { ScrollTrigger } from "gsap/ScrollTrigger";\nimport { CustomEase } from "gsap/CustomEase";\ngsap.registerPlugin(ScrollTrigger, CustomEase);\n\n${gsap.join('\n')}`
       : '',
     motion: motion.length ? `// Generated by Specimen. Motion for React: npm install motion\nimport { motion, useScroll, useTransform } from "motion/react";\n\n${motion.join('\n')}` : '',
+    framer: framer.length
+      ? `// Generated by Specimen. Framer code overrides: in Framer, Assets ▸ Code ▸ New file, paste this, then pick an override for a layer in its Code Overrides panel.\nimport type { ComponentType } from "react";\nimport { useScroll, useTransform } from "framer-motion";\n\n${framer.join('\n')}`
+      : '',
   };
 }
 

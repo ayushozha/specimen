@@ -18,6 +18,7 @@ async function importFile(file: File): Promise<void> {
       wanted.add(s.screenshot);
       if (s.background) wanted.add(s.background);
       for (const v of s.variants) wanted.add(v.defaultImage).add(v.hoverImage);
+    for (const m of s.motion ?? []) wanted.add(typeof m === 'string' ? m : m.path);
     }
     const files: Record<string, Uint8Array> = {};
     for (const path of wanted) if (zip[path]) files[path] = zip[path];

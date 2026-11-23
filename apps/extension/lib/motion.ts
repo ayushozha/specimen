@@ -5,6 +5,7 @@ import {
   installHooks,
   probeMotionLibraries,
   readHooks,
+  readShaders,
   type AnimationInfo,
   type Breakpoint,
   type DeclarativeMotion,
@@ -82,6 +83,8 @@ export interface MotionSummary {
   scrollEffects: number;
   pointerEffects: number;
   toggles: number;
+  /** Shader programs the page compiled for its canvas effects (deep mode only). */
+  shaders: number;
   sections: Record<string, { animations: number; interactions: number; scrollEffects: number; pointer?: number }>;
 }
 
@@ -105,7 +108,7 @@ export interface MotionContext {
   scoped?: boolean;
 }
 
-export const MOTION_STEPS = 7;
+export const MOTION_STEPS = 8;
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 /** `r` grown around its centre to at least `min` px a side, kept inside the viewport. */
@@ -136,6 +139,7 @@ export async function captureMotion(ctx: MotionContext): Promise<{ summary: Moti
     scrollEffects: 0,
     pointerEffects: 0,
     toggles: 0,
+    shaders: 0,
     sections: Object.fromEntries(sections.map((s) => [s.id, { animations: 0, interactions: 0, scrollEffects: 0 }])),
   };
   const perSection = new Map<string, SectionMotion>(
@@ -494,6 +498,29 @@ export async function captureMotion(ctx: MotionContext): Promise<{ summary: Moti
       await adapter.call('hideSweepCursor').catch(() => {});
     }
     ctx.put('page/pointer.json', json(allTracks));
+  });
+
+  // After the sweep: every section has been on screen, so effects that start in view have compiled theirs.
+  await ctx.step('Reading shaders', async () => {
+    if (!caps.hooks) return;
+    const report = await adapter.evaluateMain(readShaders);
+    if (!report.shaders.length) return;
+    const selectors = report.shaders.map((sh) => (sh.canvas === null ? null : `[data-specimen-gl="${sh.canvas}"]`));
+    const owners = await sectionOf(selectors);
+    // Where each canvas sits on the page, so exports can put a live canvas back in its place.
+    const rects = await adapter.call('pageRectsOf', selectors.map((sel) => sel ?? '[data-specimen-gl="0"]'));
+    const list = report.shaders.map((sh, i) => {
+      const ext = sh.api === 'webgpu' ? 'wgsl' : 'glsl';
+      const path = `page/shaders/${String(i + 1).padStart(2, '0')}-${sh.api}-${sh.stage}.${ext}`;
+      ctx.put(path, new TextEncoder().encode(sh.source));
+      const section = owners[i];
+      if (section) ctx.addSectionFile(section, path);
+      return { path, api: sh.api, stage: sh.stage, canvas: sh.canvas, section, rect: sh.canvas === null ? null : rects[i], lines: sh.source.split('\n').length };
+    });
+    const uniforms = report.uniforms.map((u) => ({ ...u, values: u.values.sort((a, b) => b.updates - a.updates) }));
+    ctx.put('page/shaders.json', json({ shaders: list, uniforms }));
+    summary.shaders = list.length;
+    await adapter.call('clearShaderTags');
   });
 
   await ctx.step('Opening menus and accordions', async () => {

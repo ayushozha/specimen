@@ -78,6 +78,8 @@ describe('design tokens and DESIGN.md', () => {
             { label: 'Pointer stroke, frame by frame (cursor drawn in)', path: 'motion/01-hero-pointer-strip.png' },
             { label: 'Pointer stroke clip', path: 'motion/01-hero-pointer.mp4' },
           ],
+          shaders: [{ path: 'shaders/01-webgl-fragment.glsl', api: 'webgl', stage: 'fragment', lines: 42 }],
+          uniforms: [{ name: 'uMouse', value: [0.4, 0.6], updates: 312 }],
         },
       ],
       motionRecorded: true,
@@ -95,5 +97,8 @@ describe('design tokens and DESIGN.md', () => {
     expect(md).toContain('![Pointer stroke, frame by frame (cursor drawn in)](motion/01-hero-pointer-strip.png)');
     expect(md).toContain('- Pointer stroke clip: [motion/01-hero-pointer.mp4](motion/01-hero-pointer.mp4)');
     expect(md).toContain('Claude Code, Codex, Cursor');
+    expect(md).toContain("Shaders: the page's own code");
+    expect(md).toContain('- [shaders/01-webgl-fragment.glsl](shaders/01-webgl-fragment.glsl): WebGL GLSL fragment shader, 42 lines');
+    expect(md).toContain('- `uMouse` = `[0.4,0.6]` (set 312×)');
   });
 });

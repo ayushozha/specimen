@@ -4,6 +4,7 @@ export * from './svg';
 export * from './lottie';
 export * from './aftereffects';
 export * from './figma';
+export * from './framer';
 export * from './fit';
 export * from './replicate';
 export * from './design-md';

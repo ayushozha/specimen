@@ -16,9 +16,12 @@ import {
   type AeComp,
   type AnimationSpec,
   type FigmaDocument,
+  type FigmaMotionMedia,
   type FigmaSection,
 } from '@specimen/exporters';
-import { strToU8 } from 'fflate';
+import { strFromU8, strToU8 } from 'fflate';
+import { CONFIG } from './config';
+import { motionCues } from './outputs';
 import type { StepError } from './capture';
 import type { SectionMotion } from './motion';
 import { toPsd } from './psd';
@@ -101,6 +104,34 @@ export interface ExportSummary {
   fittedScore: number | null;
 }
 
+/** The viewport clips were recorded in (the desktop breakpoint). */
+const CLIP_SIZE = { width: CONFIG.breakpoints[0].width, height: CONFIG.breakpoints[0].height };
+
+/** A section's recorded motion for Figma: clips first (they play there), then filmstrips. */
+function motionMedia(id: string, motion: SectionMotion | undefined, ctx: ExportContext): FigmaMotionMedia[] {
+  const out: FigmaMotionMedia[] = [];
+  const pointer = motion?.pointer?.files ?? [];
+  for (const path of pointer.filter((f) => /\.(mp4|webm)$/.test(f))) out.push({ kind: 'video', path, label: 'Pointer sweep (plays in Figma)', ...CLIP_SIZE });
+  for (const ext of ['mp4', 'webm']) {
+    const path = `sections/${id}/scroll.${ext}`;
+    if (ctx.read(path)) out.push({ kind: 'video', path, label: 'Scrolling through (plays in Figma)', ...CLIP_SIZE });
+  }
+  for (const path of pointer.filter((f) => f.endsWith('.png'))) out.push({ kind: 'image', path, label: 'Pointer motion · frame by frame (cursor drawn in)', ...CLIP_SIZE });
+  return out;
+}
+
+/** A section's motion as short notes for a Figma annotation: the cues, then its shaders. */
+function motionNotes(id: string, ctx: ExportContext): string[] {
+  const notes = motionCues((path) => ctx.read(path), id).map((c) => `**${c.kind}** \`${c.target}\`: ${c.description}`);
+  const shaders = ctx.read('page/shaders.json');
+  if (shaders) {
+    for (const sh of (JSON.parse(strFromU8(shaders)) as { shaders: { path: string; section: string | null; api: string }[] }).shaders) {
+      if (sh.section === id) notes.push(`**shader** ${sh.api === 'webgpu' ? 'WebGPU WGSL' : 'WebGL GLSL'}: \`${sh.path}\` in the bundle`);
+    }
+  }
+  return notes;
+}
+
 export async function buildExports(ctx: ExportContext): Promise<ExportSummary> {
   const colors = namedColors(ctx.palette);
   ctx.put('exports/palette.ase', toAse(colors));
@@ -149,7 +180,8 @@ export async function buildExports(ctx: ExportContext): Promise<ExportSummary> {
       background: ctx.plates.has(section.id) ? `sections/${section.id}/desktop-background.png` : null,
       tree,
       variants: [],
-      motion: motion?.pointer?.files.filter((f) => f.endsWith('.png')) ?? [],
+      motion: motionMedia(section.id, motion, ctx),
+      notes: motionNotes(section.id, ctx),
     };
     for (const url of tree.images) if (ctx.assets.has(url)) figma.assets[url] = ctx.assets.get(url)!;
 
@@ -198,6 +230,7 @@ export async function buildExports(ctx: ExportContext): Promise<ExportSummary> {
         ctx.put(`exports/code/${section.id}.css`, strToU8(code.css));
         if (code.gsap) ctx.put(`exports/code/${section.id}.gsap.js`, strToU8(code.gsap));
         if (code.motion) ctx.put(`exports/code/${section.id}.motion.tsx`, strToU8(code.motion));
+        if (code.framer) ctx.put(`exports/code/${section.id}.framer.tsx`, strToU8(code.framer));
         const previews: { replica: Replica; image: string }[] = [];
         for (const r of replicas) {
           if (!r.rect || !r.spec || !isTrustworthy(r)) continue;

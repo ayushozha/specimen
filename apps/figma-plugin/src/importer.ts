@@ -208,7 +208,7 @@ export async function importDocument(figma: PluginAPI, doc: FigmaDocument, files
       ref.locked = true;
     }
     const offsetY = await addVariants(figma, section, root, image);
-    await addMotion(figma, section, root, files, offsetY);
+    annotate(section, root, await addMotion(figma, section, root, files, offsetY));
     roots.push(root);
     y += section.tree.height + SECTION_GAP;
   }
@@ -253,21 +253,54 @@ async function addVariants(figma: PluginAPI, section: FigmaSection, root: FrameN
   return offsetY;
 }
 
-/** Pointer strokes as filmstrips beside the section, under its hover variants: Figma can't play the motion, so it shows it frame by frame. */
-async function addMotion(figma: PluginAPI, section: FigmaSection, root: FrameNode, files: Files, offsetY: number): Promise<void> {
-  for (const path of section.motion ?? []) {
-    const bytes = files[path];
+/**
+ * Recorded motion beside the section, under its hover variants: clips as video layers that play in
+ * Figma, then filmstrips (frame by frame, cursor drawn in). Video layers need a Figma plan that
+ * allows video; where it is refused the filmstrip still shows the motion. Returns what was skipped.
+ */
+async function addMotion(figma: PluginAPI, section: FigmaSection, root: FrameNode, files: Files, offsetY: number): Promise<string[]> {
+  const skipped: string[] = [];
+  for (const entry of section.motion ?? []) {
+    const m = typeof entry === 'string' ? { kind: 'image' as const, path: entry, label: 'Pointer motion · frame by frame (cursor drawn in)', width: 0, height: 0 } : entry;
+    const bytes = files[m.path];
     if (!bytes?.length) continue;
-    const img = figma.createImage(bytes);
-    const { width, height } = await img.getSizeAsync();
+    let fill: Paint;
+    let width = m.width;
+    let height = m.height;
+    if (m.kind === 'video') {
+      try {
+        const video = await figma.createVideoAsync(bytes);
+        fill = { type: 'VIDEO', videoHash: video.hash, scaleMode: 'FIT' };
+      } catch {
+        skipped.push(`${section.name}: ${m.label}`);
+        continue;
+      }
+    } else {
+      const image = figma.createImage(bytes);
+      ({ width, height } = await image.getSizeAsync());
+      fill = { type: 'IMAGE', imageHash: image.hash, scaleMode: 'FIT' };
+    }
     const w = Math.min(width, root.width);
-    const strip = figma.createRectangle();
-    strip.name = 'Pointer motion · frame by frame (cursor drawn in)';
-    strip.resize(w, Math.max(1, Math.round((height * w) / width)));
-    strip.fills = [{ type: 'IMAGE', imageHash: img.hash, scaleMode: 'FIT' }];
-    strip.x = root.x + root.width + 80;
-    strip.y = root.y + offsetY;
-    offsetY += strip.height + 40;
+    const layer = figma.createRectangle();
+    layer.name = m.label;
+    layer.resize(w, Math.max(1, Math.round((height * w) / width)));
+    layer.fills = [fill];
+    layer.x = root.x + root.width + 80;
+    layer.y = root.y + offsetY;
+    offsetY += layer.height + 40;
+  }
+  return skipped;
+}
+
+/** The section's motion cues as a Dev Mode annotation, so developers see timing and easing on the frame. */
+function annotate(section: FigmaSection, root: FrameNode, skipped: string[]): void {
+  const lines = [...(section.notes ?? [])];
+  if (skipped.length) lines.push(`Clips not placed (video layers need a Figma plan that allows video): ${skipped.join(', ')}`);
+  if (!lines.length) return;
+  try {
+    root.annotations = [{ labelMarkdown: `**Motion**\n\n${lines.map((l) => `- ${l}`).join('\n')}` }];
+  } catch {
+    // Annotations are unavailable in this editor (e.g. FigJam); the motion layers are still placed.
   }
 }
 
