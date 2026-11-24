@@ -1,0 +1,126 @@
+<template>
+  <style>
+    @font-face {
+      font-family: Manrope;
+      src: url("assets/fonts/manrope-latin.woff2") format("woff2");
+      font-weight: 400 800;
+    }
+    #root {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      background: #fffaf5;
+      font-family: Manrope, sans-serif;
+    }
+    /* Window: site 1440 + panel 420 css px at 0.86, under a 44 px bar. */
+    #pick-win {
+      position: absolute;
+      left: 160px;
+      top: 220px;
+      width: 1600px;
+      height: 818px;
+      border-radius: 18px;
+      border: 1px solid #ded4e1;
+      background: #fffaf6;
+      overflow: hidden;
+      box-shadow: 0 30px 80px rgba(43, 40, 73, 0.16);
+      transform-origin: 50% 50%;
+    }
+    #pick-bar {
+      position: absolute;
+      left: 0;
+      top: 0;
+      right: 0;
+      height: 44px;
+      background: #f3edf3;
+      border-bottom: 1px solid #ded4e1;
+    }
+    #pick-bar i {
+      position: absolute;
+      top: 16px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #d1c4db;
+    }
+    .pick-site {
+      position: absolute;
+      left: 0;
+      top: 44px;
+      width: 1238px;
+      height: 774px;
+      object-fit: cover;
+    }
+    .pick-panel {
+      position: absolute;
+      left: 1238px;
+      top: 44px;
+      width: 362px;
+      height: 774px;
+      object-fit: cover;
+      object-position: top;
+      border-left: 1px solid #ded4e1;
+    }
+    #pick-cursor {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 52px;
+      height: 64px;
+    }
+    #pick-t {
+      position: absolute;
+      left: 160px;
+      top: 92px;
+      font-weight: 630;
+      font-size: 76px;
+      line-height: 1;
+      letter-spacing: -0.05em;
+      color: #2b2849;
+    }
+    #pick-t span {
+      display: inline-block;
+      opacity: 0;
+    }
+    #pick-t b {
+      font-weight: 630;
+      color: #64509b;
+    }
+  </style>
+  <div id="root" data-composition-id="pick" data-width="1920" data-height="1080">
+    <h2 id="pick-t" class="clip" data-start="0.7" data-duration="8.1" data-track-index="3"><span>Point</span> <span>at</span> <span>any</span> <span><b>section.</b></span></h2>
+    <div id="pick-win">
+      <div id="pick-bar"><i style="left: 18px"></i><i style="left: 38px"></i><i style="left: 58px"></i></div>
+      <!-- A: choose One element, then Pick (media 0.6–2.3). B: the picker on the page, then the click (media 4.3–11.6). -->
+      <video id="pick-site-a" class="pick-site clip" src="assets/clips/pick-site.mp4" data-start="0" data-duration="1.7" data-media-start="0.6" muted playsinline data-track-index="0"></video>
+      <video id="pick-panel-a" class="pick-panel clip" src="assets/clips/pick-panel.mp4" data-start="0" data-duration="1.7" data-media-start="0.6" muted playsinline data-track-index="1"></video>
+      <video id="pick-site-b" class="pick-site clip" src="assets/clips/pick-site.mp4" data-start="1.7" data-duration="7.3" data-media-start="3.7" muted playsinline data-track-index="0"></video>
+      <video id="pick-panel-b" class="pick-panel clip" src="assets/clips/pick-panel.mp4" data-start="1.7" data-duration="7.3" data-media-start="3.7" muted playsinline data-track-index="1"></video>
+    </div>
+    <svg id="pick-cursor" viewBox="0 0 26 32" aria-hidden="true">
+      <path d="M2 1.5 L2 26 L8.2 20.2 L12.6 30 L17 28 L12.7 18.4 L21.5 18.4 Z" fill="#111" stroke="#fff" stroke-width="2" stroke-linejoin="round" />
+    </svg>
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    // The window grows out of the icon the reveal left at the centre.
+    tl.fromTo("#pick-win", { scale: 0.125, y: -89, borderRadius: 140 }, { scale: 1, y: 0, borderRadius: 18, duration: 0.65, ease: "power2.inOut" }, 0);
+    document.querySelectorAll("#pick-t span").forEach((w, i) => {
+      tl.fromTo(w, { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.13, ease: "power4.out" }, 0.7 + i * 0.07);
+    });
+    tl.to("#pick-t span", { opacity: 0, filter: "blur(8px)", duration: 0.18, stagger: 0.03, ease: "power3.in" }, 8.55);
+    // Cursor: clicks in the panel (One element at 0.43, Pick at 1.35), then the logged path on the page.
+    const click = (at) => tl.to("#pick-cursor", { scale: 0.86, duration: 0.06, yoyo: true, repeat: 1, ease: "power1.inOut", transformOrigin: "4px 3px" }, at);
+    tl.fromTo("#pick-cursor", { x: 1700, y: 1120 }, { x: 1570, y: 565, duration: 0.4, ease: "power2.out" }, 0.0);
+    click(0.43);
+    tl.to("#pick-cursor", { x: 1579, y: 1007, duration: 0.6, ease: "power2.inOut" }, 0.6);
+    click(1.35);
+    tl.to("#pick-cursor", { x: 779.2, y: 650.3, duration: 0.3, ease: "power2.inOut" }, 1.35);
+    const path = [[1.721, 779.2, 650.3], [1.8, 779.2, 644.4], [1.868, 779.2, 632.6], [1.934, 779.2, 614.9], [2.001, 779.2, 591.3], [2.067, 779.2, 561.8], [2.134, 779.2, 526.7], [2.2, 779.2, 494.3], [2.267, 779.2, 467.7], [2.334, 779.2, 447.1], [2.4, 779.2, 432.3], [2.467, 779.2, 423.5], [2.534, 779.2, 420.5], [3.502, 778.3, 421.7], [3.567, 775.7, 425.2], [3.634, 771.4, 431.1], [3.7, 765.3, 439.4], [3.767, 757.5, 450.0], [3.834, 747.9, 462.9], [3.9, 737.6, 476.9], [3.967, 728.9, 488.7], [4.034, 721.9, 498.1], [4.1, 716.7, 505.2], [4.167, 713.2, 509.9], [4.217, 711.5, 512.2], [4.984, 711.4, 512.9], [5.05, 712.8, 516.0], [5.117, 715.4, 522.1], [5.184, 719.4, 531.2], [5.251, 724.8, 543.4], [5.317, 731.5, 558.6], [5.384, 739.5, 576.8], [5.45, 748.9, 598.2], [5.517, 759.5, 622.5], [5.583, 770.8, 648.2], [5.634, 780.9, 671.0], [5.701, 789.5, 690.8], [5.767, 796.9, 707.5], [5.818, 802.9, 721.2], [5.884, 807.6, 731.9], [5.951, 810.9, 739.5], [6.017, 812.9, 744.1], [6.067, 813.6, 745.6]];
+    for (let i = 1; i < path.length; i++) {
+      tl.to("#pick-cursor", { x: path[i][1], y: path[i][2], duration: path[i][0] - path[i - 1][0], ease: "none" }, path[i - 1][0]);
+    }
+    click(8.79);
+    window.__timelines["pick"] = tl;
+  </script>
+</template>

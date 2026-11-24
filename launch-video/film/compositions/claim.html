@@ -1,0 +1,50 @@
+<template>
+  <style>
+    @font-face {
+      font-family: Manrope;
+      src: url("assets/fonts/manrope-latin.woff2") format("woff2");
+      font-weight: 400 800;
+    }
+    #root {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      background: #fffaf5;
+      font-family: Manrope, sans-serif;
+    }
+    #claim-dark {
+      position: absolute;
+      inset: 0;
+      background: #211d3d;
+    }
+    #claim-t {
+      position: absolute;
+      left: 128px;
+      top: 330px;
+      font-weight: 630;
+      font-size: 150px;
+      line-height: 1.02;
+      letter-spacing: -0.07em;
+      color: #2b2849;
+    }
+    #claim-t span {
+      display: inline-block;
+      color: #d1c4db;
+    }
+  </style>
+  <div id="root" data-composition-id="claim" data-width="1920" data-height="1080">
+    <div id="claim-dark"></div>
+    <!-- Specimen's own headline. -->
+    <h2 id="claim-t" class="clip" data-start="0.3" data-duration="2.2" data-track-index="3"><span>Capture</span> <span>websites,</span><br /><span>section</span> <span>by</span> <span>section.</span></h2>
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    // Colour flood from the DESIGN.md world back to paper; the title inks in word by word.
+    tl.fromTo("#claim-dark", { opacity: 1 }, { opacity: 0, duration: 0.4, ease: "power2.inOut" }, 0);
+    document.querySelectorAll("#claim-t span").forEach((w, i) => {
+      tl.fromTo(w, { color: "#e7deea", opacity: 0 }, { color: "#2b2849", opacity: 1, duration: 0.22, ease: "power2.out" }, 0.3 + i * 0.08);
+    });
+    tl.to("#claim-t span", { opacity: 0, filter: "blur(8px)", duration: 0.2, stagger: 0.03, ease: "power3.in" }, 2.25);
+    window.__timelines["claim"] = tl;
+  </script>
+</template>

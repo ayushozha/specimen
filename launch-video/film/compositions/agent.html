@@ -1,0 +1,127 @@
+<template>
+  <style>
+    @font-face {
+      font-family: Manrope;
+      src: url("assets/fonts/manrope-latin.woff2") format("woff2");
+      font-weight: 400 800;
+    }
+    #root {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      background: #211d3d;
+      font-family: Manrope, sans-serif;
+    }
+    #ag-flood {
+      position: absolute;
+      inset: 0;
+      background: #fffaf5;
+    }
+    #ag-md {
+      position: absolute;
+      left: 128px;
+      top: 250px;
+      width: 1664px;
+      height: 800px;
+      overflow: hidden;
+    }
+    #ag-md-text {
+      font-family: "JetBrains Mono", monospace;
+      font-weight: 500;
+      font-size: 30px;
+      line-height: 1.55;
+      color: #d1c4db;
+    }
+    #ag-md-text div {
+      white-space: pre;
+    }
+    #ag-md-text .h {
+      color: #fffaf5;
+      font-weight: 700;
+    }
+    #ag-t {
+      position: absolute;
+      left: 128px;
+      top: 92px;
+      font-weight: 630;
+      font-size: 76px;
+      line-height: 1;
+      letter-spacing: -0.05em;
+      color: #fffaf5;
+    }
+    #ag-t span {
+      display: inline-block;
+      opacity: 0;
+    }
+    #ag-t b {
+      font-weight: 630;
+      color: #c9bad8;
+    }
+  </style>
+  <div id="root" data-composition-id="agent" data-width="1920" data-height="1080">
+    <div id="ag-md" data-layout-ignore>
+      <!-- The real DESIGN.md Specimen wrote for apple.com (Copy everything). -->
+      <div id="ag-md-text">
+        <div class="h"># Apple: design spec</div>
+        <div>&nbsp;</div>
+        <div>Captured from https://www.apple.com/ on 2026-11-24 by Specimen, at desktop 1440px, tablet 768px, mobile 390px.</div>
+        <div>Every value below was read from the live page; screenshots are the source of truth when a value and a screenshot disagree.</div>
+        <div>&nbsp;</div>
+        <div class="h">## Using this spec</div>
+        <div>&nbsp;</div>
+        <div>- **Claude Code, Codex, Cursor and other repo agents:** keep this folder in the repo and refer to it, e.g. “Build the hero exactly as in `DESIGN.md`, section 2.” Screenshots and highlights sit next to it.</div>
+        <div>- **Chat agents (Claude, ChatGPT, Grok, Gemini):** paste this file and attach the section screenshots it names.</div>
+        <div>- Machine-readable tokens: `tokens.json`.</div>
+        <div>&nbsp;</div>
+        <div class="h">## Colours</div>
+        <div>&nbsp;</div>
+        <div>| Role | Hex | Exact value | Variables | Uses |</div>
+        <div>| --- | --- | --- | --- | --- |</div>
+        <div>| background | `#ffffff` | `rgb(255, 255, 255)` | `--sk-body-background-color` `--sk-fill` | 29 |</div>
+        <div>| surface | `#f5f5f7` | `rgb(245, 245, 247)` | `--sk-fill-tertiary` | 71 |</div>
+        <div>| text | `#0066cc` | `rgb(0, 102, 204)` | `--sk-body-link-color` `--sk-glyph-blue` | 91 |</div>
+        <div>| text-muted | `#2997ff` | `rgb(41, 151, 255)` | – | 151 |</div>
+        <div>| accent | `#2997ff` | `rgb(41, 151, 255)` | – | 151 |</div>
+        <div>| border | `#0066cc` | `rgb(0, 102, 204)` | `--sk-body-link-color` `--sk-glyph-blue` | 91 |</div>
+        <div>| – | `#000000cc` | `rgba(0, 0, 0, 0.8)` | – | 174 |</div>
+        <div>| – | `#1d1d1f` | `rgb(29, 29, 31)` | `--sk-body-text-color` `--sk-fill-gray` | 167 |</div>
+        <div>| – | `#0000008f` | `rgba(0, 0, 0, 0.56)` | `--sk-glyph-gray-secondary-alpha` | 136 |</div>
+        <div>| – | `#000000b8` | `rgba(0, 0, 0, 0.72)` | `--sk-glyph-gray-secondary-alt-alpha` | 79 |</div>
+        <div>| – | `#000000` | `rgb(0, 0, 0)` | `--sk-focus-color-alt` `--sk-glyph` | 40 |</div>
+        <div>| – | `#00000099` | `rgba(0, 0, 0, 0.6)` | – | 32 |</div>
+        <div>| – | `#000000e0` | `rgba(0, 0, 0, 0.88)` | `--sk-fill-gray-alpha` `--sk-glyph-gray-alpha` | 23 |</div>
+        <div>| – | `#0000007a` | `rgba(0, 0, 0, 0.48)` | `--sk-fill-gray-secondary-alpha` `--sk-glyph-gray-tertiary-alpha` | 22 |</div>
+        <div>| – | `#1d1d1f66` | `rgba(29, 29, 31, 0.4)` | – | 18 |</div>
+        <div>| – | `#0071e3` | `rgb(0, 113, 227)` | `--sk-fill-blue` `--sk-focus-color` | 9 |</div>
+        <div>| – | `#00000080` | `rgba(0, 0, 0, 0.5)` | – | 9 |</div>
+        <div>| – | `#00000038` | `rgba(0, 0, 0, 0.22)` | – | 3 |</div>
+        <div>&nbsp;</div>
+        <div>Gradients:</div>
+        <div>- `radial-gradient(100% 33% at 0% 100%, rgba(0, 0, 0, 0.5) 0%, rgba(255, 255, 255, 0))`</div>
+        <div>- `linear-gradient(rgba(29, 29, 31, 0.4) 0%, rgba(29, 29, 31, 0) 70px, rgba(29, 29, 31, 0) calc(100% - 70px), rgba(29, 29, 31, 0.4) 100%)`</div>
+        <div>&nbsp;</div>
+        <div>Contrast: 1 text/background pairs are below WCAG AA (#f5f5f7 on #a5b8c3 1.88:1).</div>
+        <div>&nbsp;</div>
+        <div class="h">## Typography</div>
+        <div>&nbsp;</div>
+        <div>Fonts: `SF Pro Text`, `SF Pro Display`.</div>
+        <div>&nbsp;</div>
+        <div>| Font | Size / line height | Weight | Letter spacing | Uses |</div>
+        <div>| --- | --- | --- | --- | --- |</div>
+      </div>
+    </div>
+    <h2 id="ag-t" class="clip" data-start="0.35" data-duration="3.15" data-track-index="3"><span>Your</span> <span>agent</span> <span>gets</span> <span>a</span> <span><b>DESIGN.md.</b></span></h2>
+    <div id="ag-flood"></div>
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    // Colour flood from paper into the agent's dark world.
+    tl.fromTo("#ag-flood", { opacity: 1 }, { opacity: 0, duration: 0.4, ease: "power2.inOut" }, 0);
+    tl.fromTo("#ag-md", { opacity: 0, scale: 1.04 }, { opacity: 1, scale: 1, duration: 0.5, ease: "expo.out" }, 0.2);
+    tl.fromTo("#ag-md-text", { y: 0 }, { y: -560, duration: 2.9, ease: "none" }, 0.6);
+    document.querySelectorAll("#ag-t span").forEach((w, i) => {
+      tl.fromTo(w, { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.13, ease: "power4.out" }, 0.35 + i * 0.07);
+    });
+    window.__timelines["agent"] = tl;
+  </script>
+</template>

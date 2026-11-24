@@ -1,0 +1,76 @@
+<template>
+  <style>
+    @font-face {
+      font-family: Manrope;
+      src: url("assets/fonts/manrope-latin.woff2") format("woff2");
+      font-weight: 400 800;
+    }
+    #root {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      background: #fffaf5;
+      font-family: Manrope, sans-serif;
+    }
+    #rev-lockup {
+      position: absolute;
+      left: 128px;
+      top: 330px;
+      height: 200px;
+      display: flex;
+      align-items: center;
+      gap: 48px;
+    }
+    #rev-icon {
+      width: 200px;
+      height: 200px;
+      border-radius: 46px;
+      box-shadow: 0 24px 60px rgba(43, 40, 73, 0.22);
+    }
+    #rev-word {
+      font-weight: 680;
+      font-size: 168px;
+      letter-spacing: -0.06em;
+      color: #2b2849;
+      line-height: 1;
+      padding-bottom: 18px;
+    }
+    #rev-line {
+      position: absolute;
+      left: 376px;
+      top: 580px;
+      font-weight: 600;
+      font-size: 64px;
+      letter-spacing: -0.04em;
+      color: #57516a;
+    }
+    #rev-line span {
+      display: inline-block;
+      opacity: 0;
+    }
+    #rev-line b {
+      font-weight: 600;
+      color: #64509b;
+    }
+  </style>
+  <div id="root" data-composition-id="reveal" data-width="1920" data-height="1080">
+    <div id="rev-lockup">
+      <img id="rev-icon" src="assets/ui/icon-128.png" alt="Specimen icon" />
+      <div id="rev-word">Specimen</div>
+    </div>
+    <div id="rev-line"><span>captures</span> <span>the</span> <span><b>real</b></span> <span>thing.</span></div>
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    tl.fromTo("#rev-icon", { scale: 0.4, opacity: 0, rotation: -8 }, { scale: 1, opacity: 1, rotation: 0, duration: 0.7, ease: "expo.out" }, 0.1);
+    tl.fromTo("#rev-word", { clipPath: "inset(0 100% 0 0)" }, { clipPath: "inset(0 0% 0 0)", duration: 0.5, ease: "power3.out" }, 0.4);
+    document.querySelectorAll("#rev-line span").forEach((w, i) => {
+      tl.fromTo(w, { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.13, ease: "power4.out" }, 0.8 + i * 0.07);
+    });
+    // Out: the words go, the icon flies to the centre and grows into the browser window (next scene).
+    tl.to(["#rev-word", "#rev-line"], { opacity: 0, filter: "blur(8px)", duration: 0.2, ease: "power3.in" }, 2.2);
+    tl.to("#rev-icon", { x: 732, y: 110, duration: 0.5, ease: "power2.inOut" }, 2.25);
+    tl.to("#rev-icon", { scale: 1.6, opacity: 0, duration: 0.25, ease: "power3.in" }, 2.75);
+    window.__timelines["reveal"] = tl;
+  </script>
+</template>

@@ -1,0 +1,113 @@
+<template>
+  <style>
+    @font-face {
+      font-family: Manrope;
+      src: url("assets/fonts/manrope-latin.woff2") format("woff2");
+      font-weight: 400 800;
+    }
+    #root {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      background: #fffaf5;
+      font-family: Manrope, sans-serif;
+    }
+    #cap-panel {
+      position: absolute;
+      left: 1330px;
+      top: 60px;
+      width: 470px;
+      height: 990px;
+      border-radius: 24px;
+      overflow: hidden;
+      border: 1px solid #ded4e1;
+      background: #fffaf6;
+      box-shadow: 0 30px 80px rgba(43, 40, 73, 0.16);
+    }
+    #cap-panel video {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 470px;
+      height: 971px;
+      object-fit: cover;
+      object-position: top;
+    }
+    .cap-shot {
+      position: absolute;
+      opacity: 0;
+    }
+    .cap-shot img {
+      display: block;
+      width: 100%;
+      border-radius: 14px;
+      border: 1px solid #ded4e1;
+      box-shadow: 0 22px 50px rgba(43, 40, 73, 0.16);
+    }
+    .cap-shot p {
+      margin-top: 14px;
+      font-weight: 650;
+      font-size: 30px;
+      letter-spacing: -0.02em;
+      color: #57516a;
+    }
+    #cap-t {
+      position: absolute;
+      left: 128px;
+      top: 92px;
+      font-weight: 630;
+      font-size: 76px;
+      line-height: 1;
+      letter-spacing: -0.05em;
+      color: #2b2849;
+    }
+    #cap-t span {
+      display: inline-block;
+      opacity: 0;
+    }
+    #cap-t b {
+      font-weight: 630;
+      color: #64509b;
+    }
+    #cap-cursor {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 52px;
+      height: 64px;
+    }
+  </style>
+  <div id="root" data-composition-id="capture" data-width="1920" data-height="1080">
+    <h2 id="cap-t" class="clip" data-start="0.5" data-duration="7.3" data-track-index="3"><span>Every</span> <span>section,</span> <span>at</span> <span><b>three</b></span> <span>widths.</span></h2>
+    <div id="cap-desktop" class="cap-shot" style="left: 128px; top: 280px; width: 760px"><img src="assets/capture/hero-desktop.png" alt="Captured hero at 1440 px" /><p>1440 px</p></div>
+    <div id="cap-tablet" class="cap-shot" style="left: 700px; top: 400px; width: 330px"><img src="assets/capture/hero-tablet.png" alt="Captured hero at 768 px" /><p>768 px</p></div>
+    <div id="cap-mobile" class="cap-shot" style="left: 990px; top: 500px; width: 220px"><img src="assets/capture/hero-mobile.png" alt="Captured hero at 390 px" /><p>390 px</p></div>
+    <div id="cap-panel">
+      <!-- The real run: Capture whole page, the checklist (14x), then the live preview (2.2x). -->
+      <video id="cap-start" class="clip" src="assets/clips/whole-start-panel.mp4" data-start="0" data-duration="1.6" data-media-start="0.3" muted playsinline data-track-index="0"></video>
+      <video id="cap-mid" class="clip" src="assets/clips/whole-mid-panel.mp4" data-start="1.6" data-duration="3.4" data-media-start="0" muted playsinline data-track-index="0"></video>
+      <video id="cap-live" class="clip" src="assets/clips/whole-live-panel.mp4" data-start="5" data-duration="3" data-media-start="2.2" muted playsinline data-track-index="0"></video>
+    </div>
+    <svg id="cap-cursor" viewBox="0 0 26 32" aria-hidden="true">
+      <path d="M2 1.5 L2 26 L8.2 20.2 L12.6 30 L17 28 L12.7 18.4 L21.5 18.4 Z" fill="#111" stroke="#fff" stroke-width="2" stroke-linejoin="round" />
+    </svg>
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    // From the pick scene's window into the panel: the panel arrives from the right.
+    tl.fromTo("#cap-panel", { x: 260, opacity: 0 }, { x: 0, opacity: 1, duration: 0.5, ease: "expo.out" }, 0);
+    tl.fromTo("#cap-cursor", { x: 1700, y: 760 }, { x: 1565, y: 1017, duration: 0.3, ease: "power2.out" }, 0.0);
+    tl.to("#cap-cursor", { scale: 0.86, duration: 0.06, yoyo: true, repeat: 1, ease: "power1.inOut", transformOrigin: "4px 3px" }, 0.35);
+    tl.to("#cap-cursor", { x: 1960, y: 1120, duration: 0.5, ease: "power3.in" }, 0.8);
+    document.querySelectorAll("#cap-t span").forEach((w, i) => {
+      tl.fromTo(w, { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.13, ease: "power4.out" }, 0.5 + i * 0.07);
+    });
+    // The three widths land as the checklist runs.
+    [["#cap-desktop", 2.0], ["#cap-tablet", 2.9], ["#cap-mobile", 3.8]].forEach(([sel, at]) => {
+      tl.fromTo(sel, { opacity: 0, y: 40, scale: 0.94 }, { opacity: 1, y: 0, scale: 1, duration: 0.6, ease: "expo.out" }, at);
+    });
+    tl.to("#cap-t span", { opacity: 0, filter: "blur(8px)", duration: 0.18, stagger: 0.03, ease: "power3.in" }, 7.55);
+    tl.to([".cap-shot", "#cap-panel"], { opacity: 0, x: -60, duration: 0.3, stagger: 0.04, ease: "power3.in" }, 7.6);
+    window.__timelines["capture"] = tl;
+  </script>
+</template>

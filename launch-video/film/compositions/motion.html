@@ -1,0 +1,130 @@
+<template>
+  <style>
+    @font-face {
+      font-family: Manrope;
+      src: url("assets/fonts/manrope-latin.woff2") format("woff2");
+      font-weight: 400 800;
+    }
+    #root {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      background: #fffaf5;
+      font-family: Manrope, sans-serif;
+    }
+    #mo-t {
+      position: absolute;
+      left: 128px;
+      top: 92px;
+      font-weight: 630;
+      font-size: 76px;
+      line-height: 1;
+      letter-spacing: -0.05em;
+      color: #2b2849;
+    }
+    #mo-t span {
+      display: inline-block;
+      opacity: 0;
+    }
+    #mo-t b {
+      font-weight: 630;
+      color: #64509b;
+    }
+    #mo-frame {
+      position: absolute;
+      left: 128px;
+      top: 250px;
+      width: 1040px;
+      height: 650px;
+      border-radius: 18px;
+      overflow: hidden;
+      border: 1px solid #ded4e1;
+      box-shadow: 0 30px 80px rgba(43, 40, 73, 0.16);
+      background: #fffaf5;
+    }
+    #mo-clip {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    #mo-tag {
+      position: absolute;
+      left: 128px;
+      top: 922px;
+      font-weight: 650;
+      font-size: 30px;
+      color: #57516a;
+      opacity: 0;
+    }
+    #mo-spec {
+      position: absolute;
+      left: 1240px;
+      top: 250px;
+      width: 552px;
+    }
+    #mo-spec h3 {
+      font-weight: 700;
+      font-size: 40px;
+      letter-spacing: -0.03em;
+      color: #2b2849;
+      opacity: 0;
+    }
+    #mo-spec p {
+      margin-top: 12px;
+      font-weight: 600;
+      font-size: 30px;
+      line-height: 1.35;
+      color: #57516a;
+      opacity: 0;
+    }
+    #mo-code {
+      margin-top: 36px;
+      padding: 30px 32px;
+      border-radius: 18px;
+      background: #211d3d;
+      font-family: "JetBrains Mono", monospace;
+      font-weight: 500;
+      font-size: 28px;
+      line-height: 1.5;
+      color: #fffaf5;
+      white-space: pre;
+    }
+    #mo-code div {
+      opacity: 0;
+    }
+    #mo-code .k {
+      color: #c9bad8;
+    }
+  </style>
+  <div id="root" data-composition-id="motion" data-width="1920" data-height="1080">
+    <h2 id="mo-t" class="clip" data-start="0.3" data-duration="3.4" data-track-index="3"><span>With</span> <span>the</span> <span><b>motion</b></span> <span>it</span> <span>recorded.</span></h2>
+    <div id="mo-frame">
+      <video id="mo-clip" class="clip" src="assets/clips/page-intro.mp4" data-start="0.2" data-duration="3.8" data-media-start="0" muted playsinline data-track-index="0"></video>
+    </div>
+    <div id="mo-tag">Page load, recorded</div>
+    <div id="mo-spec">
+      <h3>apple.com nav · fade and slide</h3>
+      <p>opacity, transform<br />320 ms after 200 ms</p>
+      <div id="mo-code"><div><span class="k">gsap</span>.timeline({ delay: 0.2 })</div><div>  .to("… div &gt; h2", {</div><div>    opacity: 1, y: 0,</div><div>    duration: 0.32,</div><div>    ease: "M0,0 C0.4,0</div><div>          0.6,1 1,1" });</div></div>
+    </div>
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    tl.fromTo("#mo-frame", { opacity: 0, scale: 0.96 }, { opacity: 1, scale: 1, duration: 0.6, ease: "expo.out" }, 0);
+    document.querySelectorAll("#mo-t span").forEach((w, i) => {
+      tl.fromTo(w, { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.13, ease: "power4.out" }, 0.3 + i * 0.07);
+    });
+    tl.fromTo("#mo-tag", { opacity: 0 }, { opacity: 1, duration: 0.2, ease: "power2.out" }, 0.9);
+    tl.fromTo("#mo-spec h3", { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.2, ease: "power4.out" }, 0.9);
+    tl.fromTo("#mo-spec p", { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.2, ease: "power4.out" }, 1.1);
+    tl.fromTo("#mo-code", { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.5, ease: "expo.out" }, 1.4);
+    document.querySelectorAll("#mo-code div").forEach((l, i) => {
+      tl.fromTo(l, { opacity: 0 }, { opacity: 1, duration: 0.08, ease: "none" }, 1.5 + i * 0.1);
+    });
+    tl.to("#mo-t span", { opacity: 0, filter: "blur(8px)", duration: 0.18, stagger: 0.03, ease: "power3.in" }, 3.65);
+    tl.to(["#mo-frame", "#mo-tag", "#mo-spec"], { opacity: 0, y: -40, duration: 0.3, stagger: 0.04, ease: "power3.in" }, 3.7);
+    window.__timelines["motion"] = tl;
+  </script>
+</template>

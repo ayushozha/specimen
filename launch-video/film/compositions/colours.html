@@ -1,0 +1,102 @@
+<template>
+  <style>
+    @font-face {
+      font-family: Manrope;
+      src: url("assets/fonts/manrope-latin.woff2") format("woff2");
+      font-weight: 400 800;
+    }
+    #root {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      background: #fffaf5;
+      font-family: Manrope, sans-serif;
+    }
+    #col-t {
+      position: absolute;
+      left: 128px;
+      top: 92px;
+      font-weight: 630;
+      font-size: 76px;
+      line-height: 1;
+      letter-spacing: -0.05em;
+      color: #2b2849;
+    }
+    #col-t span {
+      display: inline-block;
+      opacity: 0;
+    }
+    #col-t b {
+      font-weight: 630;
+      color: #64509b;
+    }
+    #col-strip {
+      position: absolute;
+      left: 128px;
+      top: 280px;
+      width: 1664px;
+      height: 520px;
+      display: flex;
+      border-radius: 22px;
+      overflow: hidden;
+      border: 1px solid #ded4e1;
+    }
+    .col-band {
+      position: relative;
+      height: 100%;
+    }
+    .col-band div {
+      position: absolute;
+      left: 26px;
+      bottom: 26px;
+    }
+    .col-band code {
+      display: block;
+      font-family: "JetBrains Mono", monospace;
+      font-weight: 500;
+      font-size: 30px;
+    }
+    .col-band span {
+      display: block;
+      margin-top: 6px;
+      font-weight: 650;
+      font-size: 28px;
+    }
+    #col-note {
+      position: absolute;
+      left: 128px;
+      top: 840px;
+      font-weight: 600;
+      font-size: 34px;
+      color: #57516a;
+      opacity: 0;
+    }
+  </style>
+  <div id="root" data-composition-id="colours" data-width="1920" data-height="1080">
+    <h2 id="col-t" class="clip" data-start="0.3" data-duration="3.3" data-track-index="3"><span>Every</span> <span>colour,</span> <span><b>exactly</b></span> <span>as</span> <span>written.</span></h2>
+    <!-- Values Specimen read from its own site (palette.json / DESIGN.md). -->
+    <div id="col-strip">
+      <div class="col-band" id="col-ink" style="width: 400px; background: #1d1d1f; color: #f5f5f7"><div><code>#1d1d1f</code><span>--sk-body-text-color</span></div></div>
+      <div class="col-band" id="col-fill" style="width: 340px; background: #f5f5f7; color: #1d1d1f"><div><code>#f5f5f7</code><span>--sk-fill-tertiary</span></div></div>
+      <div class="col-band" id="col-link" style="width: 300px; background: #0066cc; color: #ffffff"><div><code>#0066cc</code><span>--sk-body-link-color</span></div></div>
+      <div class="col-band" id="col-accent" style="width: 224px; background: #2997ff; color: #1d1d1f"><div><code>#2997ff</code><span>151 uses</span></div></div>
+      <div class="col-band" id="col-blue" style="width: 200px; background: #0071e3; color: #ffffff"><div><code>#0071e3</code><span>--sk-fill-blue</span></div></div>
+      <div class="col-band" id="col-white" style="width: 200px; background: #ffffff; color: #1d1d1f"><div><code>#ffffff</code><span>background</span></div></div>
+    </div>
+    <div id="col-note">With their CSS variables.</div>
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    document.querySelectorAll("#col-t span").forEach((w, i) => {
+      tl.fromTo(w, { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.13, ease: "power4.out" }, 0.3 + i * 0.07);
+    });
+    // Each band is printed in, left to right, on the half beat.
+    document.querySelectorAll(".col-band").forEach((b, i) => {
+      tl.fromTo(b, { clipPath: "inset(0 0 100% 0)" }, { clipPath: "inset(0 0 0% 0)", duration: 0.35, ease: "expo.out" }, 0.7 + i * 0.2);
+    });
+    tl.fromTo("#col-note", { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.2, ease: "power4.out" }, 1.2);
+    tl.to("#col-t span", { opacity: 0, filter: "blur(8px)", duration: 0.18, stagger: 0.03, ease: "power3.in" }, 3.2);
+    tl.to(["#col-strip", "#col-note"], { opacity: 0, scale: 0.97, duration: 0.3, ease: "power3.in" }, 3.25);
+    window.__timelines["colours"] = tl;
+  </script>
+</template>
