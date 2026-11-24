@@ -7,6 +7,7 @@ test('the panel walks through Choose, Capturing with a live preview, and Use it'
   test.setTimeout(240_000);
   const { context, extensionId } = await launchWithExtension();
   try {
+    await context.grantPermissions(['clipboard-read', 'clipboard-write']);
     const { panel } = await openSiteAndPanel(context, extensionId, 'http://localhost:4321/landing.html');
     await panel.setViewportSize({ width: 420, height: 900 });
 
@@ -42,12 +43,23 @@ test('the panel walks through Choose, Capturing with a live preview, and Use it'
     await panel.getByRole('button', { name: 'Code agent' }).click();
     await expect(panel.getByText(/^DESIGN\.md for Claude Code/)).toBeVisible({ timeout: 30_000 });
     await panel.screenshot(shot('3-export-agent'));
+    // Copy everything follows Which part: one section chosen, only that section goes to the agent.
+    await panel.getByRole('option', { name: 'Features' }).click();
+    await panel.getByRole('button', { name: 'Copy everything' }).click();
+    await expect(panel.getByRole('button', { name: 'Copied' })).toBeVisible({ timeout: 30_000 });
+    const md = await panel.evaluate(() => navigator.clipboard.readText());
+    expect(md).toContain('### 1. Features');
+    expect(md).not.toContain('Pricing');
+    await panel.getByRole('option', { name: /^All \d+$/ }).click();
     await panel.getByRole('button', { name: 'Other' }).click();
     await panel.screenshot(shot('3-export-other'));
     for (const tab of ['Colours', 'Motion', 'Stack', 'Sections'] as const) {
       await inspect(panel, tab);
       await panel.screenshot({ ...shot(`4-inspect-${tab.toLowerCase()}`), fullPage: true });
     }
+    // Sections lists this capture's own sections, not the live page's, with nothing to recapture there.
+    await expect(panel.locator('.result .history-item')).toHaveCount(5);
+    await expect(panel.locator('.result').getByRole('button', { name: 'Capture', exact: true })).toHaveCount(0);
 
     // History lists the capture and opens it again.
     await panel.getByRole('button', { name: 'History: earlier captures' }).click();

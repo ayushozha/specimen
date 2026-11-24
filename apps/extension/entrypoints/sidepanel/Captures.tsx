@@ -236,7 +236,7 @@ export function ExportView({ item, onError }: { item: CaptureItem; onError: (mes
             className="primary"
             label="Copy everything"
             title="DESIGN.md, palette, stack, motion and effect code as one markdown document"
-            text={() => everythingMarkdown(result, item.stack)}
+            text={() => everythingMarkdown(result, item.stack, ids)}
             onError={onError}
           />
           {spec ? (

@@ -460,7 +460,6 @@ export function App() {
             onNew={() => setView('choose')}
             onError={setError}
             onHighlight={(sel) => highlight(sel ? ({ selector: sel, name: '' } as Section) : null)}
-            sections={sectionsView}
             recordRow={recordRow('Missed an effect?')}
             recordings={recordings.map((item) => (
               <RecordingCard key={item.key} item={item} onRemove={() => setRecordings((l) => l.filter((r) => r.key !== item.key))} onError={setError} />
@@ -731,7 +730,6 @@ function ResultsView(props: {
   onNew: () => void;
   onError: (message: string | null) => void;
   onHighlight: (selector: string | null) => void;
-  sections: React.ReactNode;
   recordRow: React.ReactNode;
   recordings: React.ReactNode[];
 }) {
@@ -802,7 +800,7 @@ function ResultsView(props: {
                 <StackView stack={item.analysis.stack} />
               </>
             )}
-            {inspect === 'sections' && (props.sections ?? <p className="muted">Scan the page to list its sections.</p>)}
+            {inspect === 'sections' && <CapturedSectionsView item={item} />}
           </div>
         )}
       </div>
@@ -890,6 +888,34 @@ function MotionTab({ item, onError, recordRow, recordings }: { item: CaptureItem
       </ul>
       {recordRow}
       {recordings}
+    </>
+  );
+}
+
+/** The sections this capture holds, from its own bundle; changing what to capture lives in Choose. */
+function CapturedSectionsView({ item }: { item: CaptureItem }) {
+  const sections = capturedSections(item.result);
+  const thumbs = useImageUrls(item.result.files, sections.map((s) => s.shot));
+  return (
+    <>
+      <ul className="list">
+        {sections.map((s) => (
+          <li key={s.id} className="history-item">
+            <img src={thumbs[s.shot]} alt="" />
+            <span className="grow">
+              <span className="name" style={{ display: 'block' }}>
+                {s.name}
+              </span>
+              <span className="muted small">
+                {s.width}×{s.height}
+              </span>
+            </span>
+          </li>
+        ))}
+      </ul>
+      <p className="muted small" style={{ margin: 0 }}>
+        To capture other sections, start a new capture and choose Some sections.
+      </p>
     </>
   );
 }
