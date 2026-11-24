@@ -37,7 +37,7 @@
 
 ## What it does
 
-Specimen opens in the browser's side panel and reads a page the way the browser renders it. Nothing runs until you ask. One button, **Capture everything**, scans the page and captures it, and the panel shows the result as one page of blocks: **Screenshots and exports** (a preview and its outputs: a copy that pastes into Figma, Paper, Sketch, Penpot, Framer or Illustrator, design files, and a `DESIGN.md` folder for coding agents), **Palette**, **Motion** (pointer-effect filmstrips and the page-load and scroll recordings), **Stack** and **Sections**. **Record motion** is on by default: it reloads the page, sweeps the pointer over every section to find trails, followers and canvas effects, hovers and opens menus. If the page reacts to the mouse in a way the sweep misses, **Record interaction** under Motion records you moving it, with the cursor drawn in. **Scan page** first if you want to choose sections; **Capture** on one section recaptures just that one, and **Cancel** stops a capture and puts the page back. Earlier captures stay under **Earlier captures**.
+Specimen opens in the browser's side panel and reads a page the way the browser renders it. Nothing runs until you ask. The panel walks through three steps. **Choose** what to capture: the **Whole page**, **Some sections** (scan the page, then tick the ones you want, or **Pick element** to add any element), or **One element** you click on the page. **Include motion** is on by default: it reloads the page, sweeps the pointer over every section to find trails, followers and canvas effects, hovers and opens menus. **Capture** shows a checklist of each part as it runs and every screenshot as it is taken, with **Cancel**, which stops the capture and puts the page back. **Use it** has two tabs. **Export** asks where the capture is going (Figma, Framer, a coding agent, or another tool: Paper, Sketch, Penpot, Illustrator, Photoshop, Canva, After Effects) and gives the right action for it, plus the whole bundle as a `.zip`. **Inspect** shows **Colours**, **Motion** (pointer effects with the cursor drawn in, and the page-load and scroll recordings), **Stack** and **Sections**. If the page reacts to the mouse in a way the sweep misses, **Record interaction** records you moving it, with the cursor drawn in. Earlier captures are under the **History** button.
 
 What moves on the page travels as far as each tool allows:
 - **Coding agents** get the motion as text (timing, easing, from → to), filmstrips, the rebuilt effect code, and, for canvas effects, **the page's own WebGL and WebGPU shader code** with the uniform values it set, listed per section in `DESIGN.md` and included in **Copy everything**.
@@ -63,14 +63,14 @@ What moves on the page travels as far as each tool allows:
 
 <table>
   <tr>
-    <td width="33%"><img src="docs/assets/panel-one-capture.png" alt="One capture shown as blocks: screenshots and exports, palette, motion, stack and sections"></td>
-    <td width="33%"><img src="docs/assets/panel-palette.png" alt="Palette block showing roles, swatches and a Display P3 colour with its CSS variable"></td>
-    <td width="33%"><img src="docs/assets/panel-pointer-effect.png" alt="Motion block with a canvas pointer effect, its filmstrip with the cursor drawn in, and the page recordings"></td>
+    <td width="33%"><img src="docs/assets/panel-export.png" alt="Export tab: choose which sections, then the destination, Figma here, with one main action"></td>
+    <td width="33%"><img src="docs/assets/panel-colours.png" alt="Colours tab: role colours, every swatch, and the text pairs that fail WCAG AA"></td>
+    <td width="33%"><img src="docs/assets/panel-capturing.png" alt="Capturing: a live preview of each section as it is captured, and a checklist of the capture's parts"></td>
   </tr>
   <tr>
-    <td align="center"><sub>One capture, every part as a block</sub></td>
-    <td align="center"><sub>Palette</sub></td>
-    <td align="center"><sub>Motion: pointer sweep and recordings</sub></td>
+    <td align="center"><sub>Export: pick where it goes</sub></td>
+    <td align="center"><sub>Inspect: colours</sub></td>
+    <td align="center"><sub>Capturing, with a live preview</sub></td>
   </tr>
 </table>
 
@@ -95,11 +95,11 @@ pnpm install
 pnpm build:all
 ```
 
-**Chrome, Brave, Edge, Arc, Opera, Vivaldi:** open `chrome://extensions`, turn on **Developer mode**, **Load unpacked** and choose `apps/extension/.output/chrome-mv3`. Click the Specimen button: the side panel opens; click **Capture everything** to start. While it's connected, the browser shows a "started debugging this browser" bar (see [Privacy and security](#privacy-and-security)).
+**Chrome, Brave, Edge, Arc, Opera, Vivaldi:** open `chrome://extensions`, turn on **Developer mode**, **Load unpacked** and choose `apps/extension/.output/chrome-mv3`. Click the Specimen button: the side panel opens; choose what to capture and click **Capture whole page** to start. While it's connected, the browser shows a "started debugging this browser" bar (see [Privacy and security](#privacy-and-security)).
 
 **Firefox 140+:** open `about:debugging#/runtime/this-firefox`, **Load Temporary Add-on** and pick `apps/extension/.output/firefox-mv3/manifest.json`. The button opens the sidebar.
 
-**Safari (macOS):** `pnpm safari:project`, open `apps/safari/Specimen/Specimen.xcodeproj` in Xcode and run it, then turn on Specimen in Safari → Settings → Extensions (enable **Allow unsigned extensions** in the Develop menu for local builds). The button opens the panel in a window docked beside the page. Keep the selected tab active while capturing. If you switch tabs or navigate during capture, return to the page and select **Scan page** again.
+**Safari (macOS):** `pnpm safari:project`, open `apps/safari/Specimen/Specimen.xcodeproj` in Xcode and run it, then turn on Specimen in Safari → Settings → Extensions (enable **Allow unsigned extensions** in the Develop menu for local builds). The button opens the panel in a window docked beside the page. Keep the selected tab active while capturing. If you switch tabs or navigate during capture, return to the page and capture again; Specimen scans the page again first.
 
 **Figma plugin (optional):** in Figma desktop, **Plugins → Development → Import plugin from manifest** and pick `apps/figma-plugin/manifest.json`. In Specimen, use **Figma → Plugin file**, run the plugin and drop the file on it. Paste (**Figma → Copy**, then ⌘V) needs no plugin.
 
@@ -174,7 +174,7 @@ node apps/cli/src/cli.ts check captures/*.specimen.zip
 node apps/cli/src/cli.ts media captures/example.com_2026-11-18T14-02-11.specimen.zip --out media
 ```
 
-- `capture` takes URLs or `--urls file.txt`, runs **Scan page** and **Capture everything** for each (with motion unless `--no-motion`) and never overwrites a file.
+- `capture` takes URLs or `--urls file.txt`, scans each page and captures every section (with motion unless `--no-motion`) and never overwrites a file.
 - `diff` reports added and removed sections, a pixel diff of every section with highlighted images, colour and CSS variable changes, tech-stack changes and motion totals (`diff/index.html`, `diff/diff.json`).
 - `check` reports a bundle's errors, stack and motion, and how closely each SVG export matches its screenshot. Bundles from others are opened with scripts off and no network.
 - `media` downloads the original videos a capture references; HLS and DASH streams go through `ffmpeg`.
@@ -186,7 +186,7 @@ Run `npx playwright install chromium` once before the first capture.
 ```
  Panel (React)               Adapter                                  The page
  ─────────────               ───────                                  ────────
- Capture everything  ──►  Chromium: DevTools Protocol            ──►  isolated world: @specimen/core
+ Capture whole page ──►  Chromium: DevTools Protocol            ──►  isolated world: @specimen/core
                           Firefox, Safari: scripting, tabs,           sections · palette · stack · HTML
                           windows (no DevTools)                       layout tree · motion tracer · hover
                                                                  ──►  page world: library probes, deep-mode
@@ -195,7 +195,7 @@ Run `npx playwright install chromium` once before the first capture.
           ◄── zip (fflate) with a report
 ```
 
-- **Deep mode.** With **Record motion** on, capture reloads the page with small hooks installed before the site's own scripts, to record which elements react to the pointer and which are watched for scrolling into view. The reload is recorded as the page-load video.
+- **Deep mode.** With **Include motion** on, capture reloads the page with small hooks installed before the site's own scripts, to record which elements react to the pointer and which are watched for scrolling into view. The reload is recorded as the page-load video.
 - **Frame-exact motion.** CSS animations and hover transitions are paused and stepped frame by frame through the Web Animations API, with one screenshot per frame, so clips are smooth at any frame rate.
 - **Exact colours.** Colours come from computed CSS, not pixels. Pixels are sampled only for images and video.
 - **Replication.** Effects read from the page (CSS keyframes, transitions, GSAP settings) are copied exactly. Motion with no readable source is fitted to a named easing, a cubic-bezier or a spring, scored against the recording, and replayed in a browser by the tests.
@@ -240,7 +240,7 @@ pnpm test:e2e
 ```
 
 - **Unit tests (44):** colour maths, median cut, motion maths, easing fits (named, bezier, spring), every exporter including the agent DESIGN.md (callouts, tokens), generated-code safety, and the Figma importer against a recording stand-in for Figma's API.
-- **Browser tests (41):** the core in a real page, including the picker's box model and keys and scrolling against a smooth-scroll library; a canvas ink effect found, timed and recorded with the cursor; Record interaction; Cancel putting the page back; the full extension capturing the fixture; nothing running before Scan page; a one-section capture and every output (SVG, HTML and image copies read back from the clipboard, the plugin file, the agent spec); every export opened the way its tool would (SVG pixel-compared to the screenshot, PSD parsed, Lottie played in lottie-web, the After Effects script parsed); generated CSS replayed and compared to the original curve; the Firefox/Safari code path run inside Chromium; the CLI's batch capture, diff and HLS download; and a hostile page that tries to inject scripts, steal typed values, get user activation and escape file paths.
+- **Browser tests (56):** the core in a real page, including the picker's box model and keys and scrolling against a smooth-scroll library; a canvas ink effect found, timed and recorded with the cursor; Record interaction; Cancel putting the page back; the full extension capturing the fixture; nothing running before you ask; the panel's Choose, Capturing (with its live preview) and Use it steps, History, and dark mode; a one-section capture and every output (SVG, HTML and image copies read back from the clipboard, the plugin file, the agent spec); every export opened the way its tool would (SVG pixel-compared to the screenshot, PSD parsed, Lottie played in lottie-web, the After Effects script parsed); generated CSS replayed and compared to the original curve; the Firefox/Safari code path run inside Chromium; the CLI's batch capture, diff and HLS download; and a hostile page that tries to inject scripts, steal typed values, get user activation and escape file paths.
 
 Run `npx playwright install chromium` once. The Firefox build is checked with `npx web-ext lint --source-dir apps/extension/.output/firefox-mv3` (0 errors) and the Safari app with `xcodebuild`.
 

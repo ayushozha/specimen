@@ -14,11 +14,21 @@ export async function launchWithExtension(): Promise<{ context: BrowserContext; 
   return { context, extensionId: new URL(worker.url()).host };
 }
 
-/** Scans the page from the panel (nothing runs before this) and sets Record motion (on by default) as asked. */
+/** The panel's capture button, whichever scope is chosen: whole page, all sections or some of them. */
+export const captureButton = (panel: Page) => panel.getByRole('button', { name: /^Capture (whole page|all \d+|\d+ of \d+)$/ });
+
+/** Opens one of the Inspect tabs (Colours, Motion, Stack, Sections) of the capture shown. */
+export async function inspect(panel: Page, tab: 'Colours' | 'Motion' | 'Stack' | 'Sections'): Promise<void> {
+  await panel.getByRole('tab', { name: 'Inspect' }).click();
+  await panel.getByRole('tab', { name: new RegExp(`^${tab}`) }).click();
+}
+
+/** Chooses Some sections and scans the page (nothing runs before this), and sets Include motion (on by default) as asked. */
 export async function scan(panel: Page, options: { motion?: boolean } = {}): Promise<void> {
+  await panel.getByRole('radio', { name: /Some sections/ }).check();
   await panel.getByRole('button', { name: 'Scan page' }).click();
-  await expect(panel.getByRole('button', { name: 'Capture everything' })).toBeEnabled({ timeout: 60_000 });
-  await panel.getByLabel(/Record motion/).setChecked(!!options.motion);
+  await expect(captureButton(panel)).toBeEnabled({ timeout: 60_000 });
+  await panel.getByRole('switch', { name: /Include motion/ }).setChecked(!!options.motion);
 }
 
 /**
@@ -64,7 +74,7 @@ export async function captureBundle(url: string): Promise<Record<string, Uint8Ar
           }),
         ),
     );
-    await panel.locator('.primary').click();
+    await captureButton(panel).click();
     const { unzipSync } = await import('fflate');
     return unzipSync(Buffer.from(await zip, 'base64'));
   } finally {

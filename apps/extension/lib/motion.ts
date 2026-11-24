@@ -177,6 +177,9 @@ export async function captureMotion(ctx: MotionContext): Promise<{ summary: Moti
 
   await ctx.step('Recording page load (deep mode)', async () => {
     if (!caps.hooks) return;
+    // Reload from the top: browsers restore the scroll position, and a page reloaded scrolled down
+    // (after hovering a section in the panel, say) fires its scroll reveals at load, so none get traced.
+    await adapter.evaluateMain(() => window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior }));
     if (caps.screencast) await adapter.startScreencast(desktop.width * scale, desktop.height * scale);
     await adapter.reloadWithHooks(`(${installHooks.toString()})();`, m.loadTimeoutMs);
     await sleep(m.introMs);

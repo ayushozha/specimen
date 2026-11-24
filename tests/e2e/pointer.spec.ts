@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { strFromU8 } from 'fflate';
-import { launchWithExtension, openSiteAndPanel, pngSize, scan } from './helpers';
+import { captureButton, inspect, launchWithExtension, openSiteAndPanel, pngSize, scan } from './helpers';
 
 
 test('a canvas the pointer paints into is found, timed and recorded with the cursor drawn in', async () => {
@@ -32,10 +32,13 @@ test('a canvas the pointer paints into is found, timed and recorded with the cur
     expect(Object.keys(files).some((k) => /sections\/.+\/pointer\.(mp4|webm)$/.test(k))).toBe(true);
     expect(pngSize(files[`sections/${id}/pointer-strip.png`]).width).toBeGreaterThan(1000);
 
-    // The Motion block shows it, and the agent spec describes it.
+    // The Motion tab shows it, and the agent spec describes it.
+    await inspect(panel, 'Motion');
     await expect(panel.getByText(/The pointer paints into a canvas; the trail fades in about \d+ms/)).toBeVisible();
     await panel.setViewportSize({ width: 420, height: 1600 });
     await panel.screenshot({ path: 'test-results/panel-pointer-effect.png', fullPage: true });
+    await panel.getByRole('tab', { name: 'Export' }).click();
+    await panel.getByRole('button', { name: 'Code agent' }).click();
     await panel.getByRole('button', { name: 'Copy prompt' }).click();
   } finally {
     await context.close();
@@ -55,13 +58,14 @@ test('every screen of a tall section gets a stroke, with a visible cursor that i
           window.addEventListener('specimen:done', (e) => resolve(Object.keys((e as CustomEvent<{ files: Record<string, unknown> }>).detail.files))),
         ),
     );
-    await panel.getByRole('button', { name: 'Capture everything' }).click();
+    await panel.getByRole('button', { name: 'Capture whole page' }).click();
     const files = await done;
     expect(await sawCursor).toBe(true);
     expect(await site.locator('[data-specimen-cursor]').count(), 'the sweep cursor is removed').toBe(0);
     const story = files.find((f) => /^sections\/[^/]+\/pointer\.json$/.test(f));
     expect(story, 'the ink on the second screen is found').toMatch(/ink-lives-further-down/);
-    // The Motion block plays the clip in place.
+    // The Motion tab plays the clip in place.
+    await inspect(panel, 'Motion');
     await expect(panel.getByLabel(/^Pointer sweep over /)).toBeVisible();
   } finally {
     await context.close();
@@ -115,7 +119,7 @@ test('Cancel stops a capture and puts the page back', async () => {
   try {
     const { site, panel } = await openSiteAndPanel(context, extensionId, 'http://localhost:4321/landing.html');
     await scan(panel, { motion: true });
-    await panel.getByRole('button', { name: 'Capture everything' }).click();
+    await captureButton(panel).click();
     const cancel = panel.getByRole('button', { name: 'Cancel' });
     await expect(cancel).toBeVisible();
     await panel.waitForTimeout(1500);
@@ -125,7 +129,7 @@ test('Cancel stops a capture and puts the page back', async () => {
     await expect(panel.getByText('Capture cancelled. The page is back as it was.')).toBeVisible({ timeout: 60_000 });
     await expect(panel.locator('.capture')).toHaveCount(0);
     await panel.screenshot({ path: 'test-results/panel-cancelled.png' });
-    await expect(panel.getByRole('button', { name: 'Capture everything' })).toBeEnabled();
+    await expect(captureButton(panel)).toBeEnabled();
     expect(await site.evaluate(() => [document.querySelectorAll('[data-specimen-hidden]').length, innerWidth])).toEqual([0, 1200]);
   } finally {
     await context.close();

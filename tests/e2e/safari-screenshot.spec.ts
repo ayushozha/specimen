@@ -1,6 +1,6 @@
 import { expect, test, type BrowserContext } from '@playwright/test';
 import { CaptureTargetChangedError, SafariCaptureTarget } from '../../apps/extension/lib/safari-screenshot';
-import { launchWithExtension, scan } from './helpers';
+import { captureButton, launchWithExtension, scan } from './helpers';
 
 function event<Args extends unknown[]>() {
   const listeners = new Set<(...args: Args) => void>();
@@ -134,10 +134,11 @@ test('Safari rescans before the next capture when the original document is repla
   try {
     const { site, panel } = await openSafariTestPanel(context, extensionId);
     await site.reload();
-    // The old scan is dropped, and Capture everything scans the new document before capturing it.
+    // The old scan is dropped, and Capture whole page scans the new document before capturing it.
     await expect(panel.getByText('The page changed; the next capture scans it again.')).toBeVisible();
     const done = panel.evaluate(() => new Promise<boolean>((resolve) => window.addEventListener('specimen:done', () => resolve(true))));
-    await panel.getByRole('button', { name: 'Capture everything' }).click();
+    await panel.getByRole('radio', { name: /Whole page/ }).check();
+    await panel.getByRole('button', { name: 'Capture whole page' }).click();
     expect(await done).toBe(true);
     await expect(panel.getByText('The page changed; the next capture scans it again.')).toHaveCount(0);
   } finally {
@@ -182,13 +183,13 @@ test('Safari rejects the capture even when raster plate cleanup also fails', asy
       }) as typeof chrome.tabs.get;
     });
 
-    await panel.getByRole('button', { name: 'Capture everything' }).click();
+    await captureButton(panel).click();
     await expect(panel.getByText('The selected tab changed during capture. Return to it and scan again.')).toBeVisible({ timeout: 60_000 });
     await expect(panel.locator('body')).toHaveAttribute('data-plate-cleanup-failed', 'true');
     await expect(panel.locator('body')).toHaveAttribute('data-capture-completed', 'false');
-    // The next Capture everything scans the page again by itself.
+    // The scan is dropped: choosing sections again needs a fresh one.
     await expect(panel.getByText('The page changed; the next capture scans it again.')).toBeVisible();
-    await expect(panel.getByRole('button', { name: 'Capture everything' })).toBeEnabled();
+    await expect(panel.getByRole('button', { name: 'Scan page' })).toBeEnabled();
   } finally {
     await context.close();
   }
