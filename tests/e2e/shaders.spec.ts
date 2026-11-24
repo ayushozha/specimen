@@ -21,7 +21,7 @@ test('shaders are captured with their section and uniforms, and reach DESIGN.md 
           }),
         ),
     );
-    await panel.getByRole('button', { name: 'Capture everything' }).click();
+    await panel.getByRole('button', { name: 'Capture whole page' }).click();
     const raw = await done;
     const files = Object.fromEntries(Object.entries(raw).map(([k, v]) => [k, new Uint8Array(v)]));
     const report = JSON.parse(strFromU8(files['page/shaders.json']));
@@ -43,6 +43,7 @@ test('shaders are captured with their section and uniforms, and reach DESIGN.md 
     expect(await site.locator('[data-specimen-gl]').count()).toBe(0);
     expect(JSON.parse(strFromU8(files['manifest.json'])).motion.shaders).toBe(3);
 
+    await panel.getByRole('button', { name: 'Code agent' }).click();
     await panel.getByRole('button', { name: 'Copy everything' }).click();
     await expect(panel.getByRole('button', { name: 'Copied' })).toBeVisible({ timeout: 30_000 });
     const md = await panel.evaluate(() => navigator.clipboard.readText());
@@ -63,10 +64,11 @@ test('the Framer component renders the section and runs its shader live under th
     await context.grantPermissions(['clipboard-read', 'clipboard-write']);
     const { panel } = await openSiteAndPanel(context, extensionId, 'http://localhost:4321/shader.html');
     const done = panel.evaluate(() => new Promise<void>((resolve) => window.addEventListener('specimen:done', () => resolve())));
-    await panel.getByRole('button', { name: 'Capture everything' }).click();
+    await panel.getByRole('button', { name: 'Capture whole page' }).click();
     await done;
     await panel.getByRole('option', { name: /A glow follows the pointer/ }).click();
-    await panel.getByRole('listitem').filter({ hasText: 'Framer' }).first().getByRole('button', { name: 'Copy component' }).click();
+    await panel.getByRole('button', { name: 'Framer', exact: true }).click();
+    await panel.getByRole('button', { name: 'Copy component' }).click();
     await expect.poll(() => panel.evaluate(() => navigator.clipboard.readText())).toContain('addPropertyControls');
     const tsx = await panel.evaluate(() => navigator.clipboard.readText());
     expect(tsx).toContain('uniform vec2 uMouse;');

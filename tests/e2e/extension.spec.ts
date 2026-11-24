@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { strFromU8, unzipSync } from 'fflate';
-import { launchWithExtension, openSiteAndPanel, pngSize, scan } from './helpers';
+import { captureButton, inspect, launchWithExtension, openSiteAndPanel, pngSize, scan } from './helpers';
 
 test('Capture everything produces a complete bundle', async () => {
   const { context, extensionId } = await launchWithExtension();
@@ -14,13 +14,13 @@ test('Capture everything produces a complete bundle', async () => {
     const panel = await context.newPage();
     await panel.goto(`chrome-extension://${extensionId}/sidepanel.html?tabId=${tab.id}`);
 
-    // Nothing runs on open: no scrolling, no cookie banner dismissed, until Scan page.
-    await expect(panel.getByRole('button', { name: 'Scan page' })).toBeVisible();
+    // Nothing runs on open: no scrolling, no cookie banner dismissed, until asked.
+    await expect(panel.getByRole('button', { name: 'Capture whole page' })).toBeVisible();
     await panel.waitForTimeout(1000);
     expect(await site.evaluate(() => [(window as unknown as { __consent?: string }).__consent ?? null, scrollY])).toEqual([null, 0]);
     await scan(panel, { motion: true });
-    const button = panel.getByRole('button', { name: 'Capture everything' });
-    await expect(panel.getByText('5 sections')).toBeVisible();
+    const button = captureButton(panel);
+    await expect(panel.getByText('5 sections', { exact: true })).toBeVisible();
     await expect(panel.getByText('Cookie banner: clicked “Reject all”.')).toBeVisible();
     await panel.screenshot({ path: 'test-results/panel-sections.png' });
 
@@ -37,8 +37,9 @@ test('Capture everything produces a complete bundle', async () => {
     );
     await button.click();
     const files = unzipSync(Buffer.from(await zipBase64, 'base64'));
-    // The capture shows its outputs under Screenshots and exports; nothing downloads by itself.
-    await expect(panel.getByRole('heading', { name: 'Design tools' })).toBeVisible();
+    // The capture opens on Export; nothing downloads by itself.
+    await expect(panel.getByRole('tab', { name: 'Export', selected: true })).toBeVisible();
+    await panel.getByRole('button', { name: 'Code agent' }).click();
     await expect(panel.getByText(/^DESIGN\.md for Claude Code/)).toBeVisible({ timeout: 30_000 });
     await panel.screenshot({ path: 'test-results/panel-done.png' });
 
@@ -103,19 +104,20 @@ test('Capture everything produces a complete bundle', async () => {
     // The sweep crosses every section, but card hover effects are not mistaken for a pointer trail.
     expect(files['sections/03-features/pointer.json'], 'hover cards are not a pointer effect').toBeUndefined();
 
-    // One capture, every part shown as its own block on one page: no tabs.
-    await expect(panel.getByRole('tab')).toHaveCount(0);
-    for (const block of ['Screenshots and exports', 'Palette', 'Motion', 'Stack', 'Sections']) await expect(panel.getByRole('heading', { name: block, exact: true })).toBeVisible();
-    await expect(panel.getByText('Hover and focus effects')).toBeVisible();
+    // Inspect: one tab per part of the capture.
+    await inspect(panel, 'Motion');
+    await expect(panel.getByText('Hover and focus', { exact: true })).toBeVisible();
     await expect(panel.getByText(/Elements follow the pointer/)).toBeVisible();
     await expect(panel.locator('.clip video')).toHaveCount(2);
     await expect(panel.getByText('The page changed.'), 'our own deep-mode reload is not reported').toHaveCount(0);
     await panel.screenshot({ path: 'test-results/panel-motion.png' });
 
-    // The palette block renders the captured colours.
+    // The Colours tab renders the captured colours.
+    await inspect(panel, 'Colours');
     await panel.getByRole('button', { name: /^#[0-9a-f]{6}, used/ }).first().click();
     await expect(panel.getByText('Exact values')).toBeVisible();
     await panel.screenshot({ path: 'test-results/panel-palette.png', fullPage: true });
+    await inspect(panel, 'Stack');
     await expect(panel.getByText('GSAP', { exact: true })).toBeVisible();
     await panel.screenshot({ path: 'test-results/panel-stack.png', fullPage: true });
   } finally {
@@ -128,19 +130,19 @@ test('Capture everything scans and captures in one click, with motion on by defa
   const { context, extensionId } = await launchWithExtension();
   try {
     const { panel } = await openSiteAndPanel(context, extensionId, 'http://localhost:4321/landing.html');
-    await expect(panel.getByLabel(/Record motion/)).toBeChecked();
+    await expect(panel.getByRole('switch', { name: /Include motion/ })).toBeChecked();
     const done = panel.evaluate(
       () =>
         new Promise<string[]>((resolve) =>
           window.addEventListener('specimen:done', (e) => resolve(Object.keys((e as CustomEvent<{ files: Record<string, unknown> }>).detail.files))),
         ),
     );
-    // No Scan page first: the one button does both.
-    await panel.getByRole('button', { name: 'Capture everything' }).click();
+    // No scan first: the one button does both.
+    await panel.getByRole('button', { name: 'Capture whole page' }).click();
     const files = await done;
     expect(files).toContain('manifest.json');
     expect(files.some((f) => /^sections\/02-ship-exact-designs\/pointer\.(mp4|webm)$/.test(f)), 'the pointer sweep ran without being asked').toBe(true);
-    for (const block of ['Screenshots and exports', 'Palette', 'Motion', 'Stack', 'Sections']) await expect(panel.getByRole('heading', { name: block, exact: true })).toBeVisible();
+    for (const tab of ['Export', 'Inspect']) await expect(panel.getByRole('tab', { name: tab })).toBeVisible();
     await panel.setViewportSize({ width: 420, height: 2400 });
     await panel.screenshot({ path: 'test-results/panel-one-capture.png', fullPage: true });
   } finally {
@@ -164,8 +166,9 @@ test('Capture a section picks one element and captures only it, with its motion'
         ),
     );
     // No scan first: the button scans, then waits for a click on the page.
-    await panel.getByRole('button', { name: /^Capture a section/ }).click();
-    await expect(panel.getByRole('button', { name: /Click a section, header or button/ })).toBeVisible({ timeout: 60_000 });
+    await panel.getByRole('radio', { name: /One element/ }).check();
+    await panel.getByRole('button', { name: 'Pick an element to capture' }).click();
+    await expect(panel.getByRole('button', { name: /Click an element on the page/ })).toBeVisible({ timeout: 60_000 });
     await site.locator('a.btn').hover();
     await site.mouse.down();
     await site.mouse.up();
@@ -178,16 +181,20 @@ test('Capture a section picks one element and captures only it, with its motion'
     // Nothing from the rest of the page was probed.
     expect(r.files.filter((f) => /^sections\/[^/]+\/interactions\.json$/.test(f) && !f.startsWith(`sections/${id}/`))).toEqual([]);
 
-    // Copy everything puts one markdown document on the clipboard.
+    // Copy everything (for a code agent) puts one markdown document on the clipboard.
+    await panel.getByRole('button', { name: 'Code agent' }).click();
     await panel.getByRole('button', { name: 'Copy everything' }).click();
     await expect(panel.getByRole('button', { name: 'Copied' })).toBeVisible({ timeout: 30_000 });
     const md = await panel.evaluate(() => navigator.clipboard.readText());
     expect(md).toContain('## Stack');
     expect(md).toContain('## Motion');
+    await inspect(panel, 'Motion');
     await panel.getByRole('button', { name: 'Copy motion' }).click();
     await expect.poll(() => panel.evaluate(() => navigator.clipboard.readText())).toMatch(/^## Motion/);
+    await inspect(panel, 'Stack');
     await panel.getByRole('button', { name: 'Copy stack' }).click();
     await expect.poll(() => panel.evaluate(() => navigator.clipboard.readText())).toMatch(/^## Stack/);
+    await inspect(panel, 'Colours');
     await panel.getByRole('button', { name: 'Copy CSS' }).click();
     await expect.poll(() => panel.evaluate(() => navigator.clipboard.readText())).toMatch(/^:root \{/);
     await panel.setViewportSize({ width: 420, height: 900 });
@@ -208,7 +215,7 @@ test('Pick element adds the clicked element as a section, and the button cancels
     const panel = await context.newPage();
     await panel.goto(`chrome-extension://${extensionId}/sidepanel.html?tabId=${tab.id}`);
     await scan(panel);
-    await expect(panel.getByText('5 sections')).toBeVisible();
+    await expect(panel.getByText('5 sections', { exact: true })).toBeVisible();
 
     await panel.getByRole('button', { name: 'Pick element' }).click();
     const picking = panel.getByRole('button', { name: /Click an element/ });
@@ -216,7 +223,7 @@ test('Pick element adds the clicked element as a section, and the button cancels
     await site.locator('.features .card').nth(1).hover();
     await site.mouse.down();
     await site.mouse.up();
-    await expect(panel.getByText('6 sections')).toBeVisible();
+    await expect(panel.getByText('6 sections', { exact: true })).toBeVisible();
     await expect(panel.getByText('Exact', { exact: true })).toBeVisible();
 
     await panel.getByRole('button', { name: 'Pick element' }).click();
@@ -241,30 +248,30 @@ test('a single section capture gives paste-ready copies for design tools and a D
     await panel.goto(`chrome-extension://${extensionId}/sidepanel.html?tabId=${tab.id}`);
     await scan(panel);
 
-    // One section, no motion: lands in Captures as its own card.
+    // One section, no motion: opens on Export.
     await panel.getByRole('listitem').filter({ hasText: 'Features' }).getByRole('button', { name: 'Capture' }).click();
     const card = panel.locator('.capture').first();
     await expect(card.locator('.capture-head .name')).toHaveText('Features', { timeout: 60_000 });
     await expect(card.getByText(/no motion/)).toBeVisible();
-    await expect(card.getByText(/^DESIGN\.md for Claude Code/)).toBeVisible({ timeout: 30_000 });
     await panel.screenshot({ path: 'test-results/panel-captures.png', fullPage: true });
 
     const clipboardText = () => panel.evaluate(() => navigator.clipboard.readText());
     const clipboardTypes = () => panel.evaluate(async () => (await navigator.clipboard.read()).flatMap((i) => i.types));
 
-    // Figma, Sketch, Penpot, Framer, Illustrator: SVG markup with everything inside.
-    await card.getByRole('listitem').filter({ hasText: 'Figma' }).getByRole('button', { name: 'Copy' }).click();
+    // Figma, Sketch, Penpot, Illustrator: SVG markup with everything inside.
+    await card.getByRole('button', { name: 'Copy for Figma' }).click();
     await expect(card.getByRole('status')).toHaveText('Copied. Paste in Figma with ⌘V');
     const svg = await clipboardText();
     expect(svg.startsWith('<svg')).toBe(true);
     expect(svg).toContain('href="data:image/');
     expect(svg).not.toMatch(/(href=|url\()["']?\.\.\//);
+    await card.getByRole('button', { name: 'Other' }).click();
     await card.getByRole('button', { name: 'Copy SVG' }).click();
     await expect(card.getByRole('status')).toHaveText('Copied SVG. Paste with ⌘V');
     expect(await clipboardText()).toBe(svg);
 
     // Paper: HTML with its images inline.
-    await card.getByRole('listitem').filter({ hasText: 'Paper' }).getByRole('button', { name: 'Copy' }).click();
+    await card.getByRole('button', { name: 'Copy HTML' }).click();
     await expect(card.getByRole('status')).toHaveText('Copied. Paste in Paper with ⌘V');
     expect(await clipboardTypes()).toEqual(expect.arrayContaining(['text/html', 'text/plain']));
     const html = await panel.evaluate(async () => {
@@ -280,13 +287,16 @@ test('a single section capture gives paste-ready copies for design tools and a D
     expect(await clipboardTypes()).toContain('image/png');
 
     // Figma plugin input: figma.json and the images it uses.
-    const [plugin] = await Promise.all([panel.waitForEvent('download'), card.getByRole('button', { name: 'Plugin file' }).click()]);
+    await card.getByRole('button', { name: 'Figma' }).click();
+    const [plugin] = await Promise.all([panel.waitForEvent('download'), card.getByRole('button', { name: 'Save plugin file' }).click()]);
     expect(plugin.suggestedFilename()).toBe('localhost-landing-03-features.figma.zip');
     const pluginFiles = unzipSync(new Uint8Array(await (await import('node:fs/promises')).readFile((await plugin.path())!)));
     expect(JSON.parse(strFromU8(pluginFiles['exports/figma.json'])).sections.map((s: { id: string }) => s.id)).toEqual(['03-features']);
     expect(pluginFiles['sections/03-features/desktop.png']).toBeTruthy();
 
     // Agent spec: a folder where the browser can write one, else the same folder as a zip.
+    await card.getByRole('button', { name: 'Code agent' }).click();
+    await expect(card.getByText(/^DESIGN\.md for Claude Code/)).toBeVisible({ timeout: 30_000 });
     await panel.evaluate(() => delete (window as unknown as { showDirectoryPicker?: unknown }).showDirectoryPicker);
     const [spec] = await Promise.all([panel.waitForEvent('download'), card.getByRole('button', { name: 'Save to folder' }).click()]);
     const specFiles = unzipSync(new Uint8Array(await (await import('node:fs/promises')).readFile((await spec.path())!)));

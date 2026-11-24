@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { strFromU8, unzipSync } from 'fflate';
-import { launchWithExtension, pngSize, scan } from './helpers';
+import { captureButton, launchWithExtension, pngSize, scan } from './helpers';
 
 // Runs the Firefox/Safari code path (standard extension APIs, no DevTools Protocol) inside Chromium.
 test('the Firefox/Safari adapter captures sections, hover and motion without DevTools', async () => {
@@ -19,7 +19,7 @@ test('the Firefox/Safari adapter captures sections, hover and motion without Dev
     const panel = await opened;
     const progress = setInterval(async () => console.log('progress:', await panel.locator('.progress').innerText().catch(() => '-')), 10_000);
     await scan(panel, { motion: true });
-    await expect(panel.getByText('5 sections')).toBeVisible();
+    await expect(panel.getByText('5 sections', { exact: true })).toBeVisible();
 
     const zip = panel.evaluate(
       () =>
@@ -32,7 +32,7 @@ test('the Firefox/Safari adapter captures sections, hover and motion without Dev
           }),
         ),
     );
-    await panel.getByRole('button', { name: 'Capture everything' }).click();
+    await captureButton(panel).click();
     const files = unzipSync(Buffer.from(await zip, 'base64'));
     const manifest = JSON.parse(strFromU8(files['manifest.json']));
     console.log('fallback errors:', JSON.stringify(manifest.errors));

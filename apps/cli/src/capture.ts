@@ -49,6 +49,7 @@ export async function captureUrl(context: BrowserContext, extensionId: string, u
     await page.waitForLoadState();
     const button = page.locator('.primary');
     // The panel waits for a person to start scanning; so does the CLI, one step at a time.
+    await page.getByRole('radio', { name: /Some sections/ }).check({ timeout: options.timeoutMs ?? 60_000 });
     await page.getByRole('button', { name: 'Scan page' }).click({ timeout: options.timeoutMs ?? 60_000 });
     await page.waitForFunction(() => {
       const b = document.querySelector('.primary');
@@ -56,7 +57,7 @@ export async function captureUrl(context: BrowserContext, extensionId: string, u
     }, null, { timeout: options.timeoutMs ?? 120_000 });
     const failed = await page.locator('.notice.error').textContent().catch(() => null);
     if (failed) throw new Error(failed);
-    if (options.motion ?? true) await page.getByLabel(/Record motion/).check();
+    await page.getByRole('switch', { name: /Include motion/ }).setChecked(options.motion ?? true);
 
     const result = page.evaluate(
       () =>
@@ -75,7 +76,7 @@ export async function captureUrl(context: BrowserContext, extensionId: string, u
         }),
     );
     const ticker = setInterval(async () => {
-      const step = await page.locator('.progress .small').textContent().catch(() => null);
+      const step = await page.locator('.progress .step-now').textContent().catch(() => null);
       if (step) options.onProgress?.(url, step);
     }, 1000);
     try {

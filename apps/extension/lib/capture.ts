@@ -30,12 +30,16 @@ export interface Analysis {
   cookieBanner: string | null;
 }
 
+/** The part of a capture a step belongs to, in the order they run. */
+export type Phase = 'scan' | 'motion' | 'shots' | 'assets' | 'exports';
+
 export interface Progress {
   step: string;
+  phase: Phase;
   done: number;
   total: number;
-  /** The section just captured at the widest breakpoint, for a live preview. */
-  latest?: { name: string; png: Uint8Array };
+  /** The section screenshot just taken, at any breakpoint, for a live preview. */
+  latest?: { name: string; breakpoint: string; png: Uint8Array };
 }
 
 export interface StepError {
@@ -87,7 +91,7 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 /** Prepares the page and reads sections, palette and tech stack. Fast; no screenshots. */
 export async function analyse(adapter: PageAdapter, onProgress: (p: Progress) => void = () => {}): Promise<Analysis & { sheets: StyleSheetText[] }> {
   const total = 6;
-  const tick = (step: string, done: number) => onProgress({ step, done, total });
+  const tick = (step: string, done: number) => onProgress({ step, phase: 'scan', done, total });
 
   tick('Preparing page', 0);
   const { url, title } = await adapter.pageInfo();
@@ -148,6 +152,7 @@ export async function capture(
   let motion: MotionSummary | null = null;
   const total = breakpoints.length * (sections.length + 1) + (wholePage ? 4 : 2) + 1 + (withMotion ? MOTION_STEPS : 0);
   let done = 0;
+  let phase: Phase = 'motion';
   const signal = request.signal;
   const checkTarget = () => {
     if (adapter.captureTargetChanged) throw new CaptureTargetChangedError();
@@ -155,7 +160,7 @@ export async function capture(
   const step = async (name: string, fn: () => Promise<void>) => {
     checkTarget();
     signal?.throwIfAborted();
-    onProgress({ step: name, done, total });
+    onProgress({ step: name, phase, done, total });
     try {
       await fn();
     } catch (err) {
@@ -189,6 +194,7 @@ export async function capture(
       }));
     }
 
+    phase = 'shots';
     for (const [bpIndex, bp] of breakpoints.entries()) {
       let measured: Section[] = sections;
       await step(`Full page at ${bp.name} (${bp.width}px)`, async () => {
@@ -236,8 +242,8 @@ export async function capture(
             if (bpIndex === 0) {
               shots.set(section.id, png);
               desktopRects.set(section.id, section.rect);
-              onProgress({ step: `${planned.name} at ${bp.name}`, done, total, latest: { name: planned.name, png } });
             }
+            onProgress({ step: `${planned.name} at ${bp.name}`, phase, done, total, latest: { name: planned.name, breakpoint: bp.name, png } });
             // HTML is serialised once, at the first (widest) breakpoint, while still frozen.
             if (freeze && section.selector) {
               const { html, resources: used } = await adapter.call('serializeElement', section.selector, analysis.sheets);
@@ -272,6 +278,7 @@ export async function capture(
       }
     }
 
+    phase = 'assets';
     await step('Restoring viewport', async () => {
       await adapter.setViewport(null, 1);
     });
@@ -316,6 +323,7 @@ export async function capture(
       }
     });
 
+    phase = 'exports';
     await step('Building exports (Figma, SVG, Photoshop, After Effects, Lottie)', async () => {
       exportSummary = await buildExports({
         sections,
@@ -372,7 +380,7 @@ export async function capture(
   put('index.html', strToU8(renderReport(manifest, analysis)));
   manifest.files = [...Object.keys(files), 'manifest.json'].sort();
   put('manifest.json', json(manifest));
-  onProgress({ step: 'Zipping', done: total, total });
+  onProgress({ step: 'Zipping', phase: 'exports', done: total, total });
 
   const flat = Object.fromEntries(Object.entries(files).map(([path, f]) => [path, (Array.isArray(f) ? f[0] : f) as Uint8Array]));
   return { filename: bundleName(analysis.url), zip: zipSync(files), files: flat, manifest };

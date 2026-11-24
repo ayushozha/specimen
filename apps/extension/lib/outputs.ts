@@ -355,17 +355,20 @@ export async function writeToFolder(files: Record<string, Uint8Array>, folder = 
 // ---------------------------------------------------------------------------------------------
 // Copy as text
 
-/** The motion of the captured sections as markdown: cues per section, then the rebuilt effect code. */
-export function motionMarkdown(result: CaptureResult): string {
+/** The captured sections, or only `ids` of them. */
+const chosenSections = (result: CaptureResult, ids?: string[]) => capturedSections(result).filter((s) => !ids || ids.includes(s.id));
+
+/** The motion of the captured sections (or `ids`) as markdown: cues per section, then the rebuilt effect code. */
+export function motionMarkdown(result: CaptureResult, ids?: string[]): string {
   const parts: string[] = ['## Motion', ''];
-  for (const s of capturedSections(result)) {
+  for (const s of chosenSections(result, ids)) {
     const cues = motionCues(result, s.id);
     if (!cues.length) continue;
     parts.push(`### ${s.name}`, '', ...cues.map((c) => `- **${c.kind}** \`${c.target}\`: ${c.description}`), '');
   }
   if (parts.length === 2) parts.push(result.manifest.motion ? 'No motion found in these sections.' : 'Motion was not recorded for this capture.', '');
   const code = Object.keys(result.files)
-    .filter((p) => p.startsWith('exports/code/') && /\.(css|gsap\.js|motion\.tsx)$/.test(p))
+    .filter((p) => p.startsWith('exports/code/') && /\.(css|gsap\.js|motion\.tsx)$/.test(p) && (!ids || ids.some((id) => p.startsWith(`exports/code/${id}.`))))
     .sort();
   if (code.length) {
     parts.push('## Effect code', '');
@@ -385,19 +388,19 @@ export function stackMarkdown(stack: StackItem[]): string {
  * DESIGN.md (palette, type, spacing, every section and its motion cues) followed by the stack and
  * the rebuilt effect code. Screenshots and clips stay files: the clipboard carries text.
  */
-export async function everythingMarkdown(result: CaptureResult, stack: StackItem[]): Promise<string> {
-  const spec = await agentSpec(result, stack);
-  return [spec.markdown.trim(), '', stackMarkdown(stack), motionMarkdown(result), shaderMarkdown(result)].join('\n');
+export async function everythingMarkdown(result: CaptureResult, stack: StackItem[], ids?: string[]): Promise<string> {
+  const spec = await agentSpec(result, stack, ids);
+  return [spec.markdown.trim(), '', stackMarkdown(stack), motionMarkdown(result, ids), shaderMarkdown(result, ids)].join('\n');
 }
 
 /** Pasted shader code stops here; the rest is in the saved spec folder. */
 const MAX_PASTED_SHADER_CHARS = 300_000;
 
-/** The captured sections' shader code as markdown code blocks. */
-export function shaderMarkdown(result: CaptureResult): string {
+/** The captured sections' (or `ids`') shader code as markdown code blocks. */
+export function shaderMarkdown(result: CaptureResult, ids?: string[]): string {
   const parts: string[] = [];
   let budget = MAX_PASTED_SHADER_CHARS;
-  for (const s of capturedSections(result)) {
+  for (const s of chosenSections(result, ids)) {
     for (const sh of sectionShaders(result, s.id).shaders) {
       const code = strFromU8(result.files[sh.source]);
       if (code.length > budget) {

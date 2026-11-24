@@ -1,6 +1,6 @@
 import type { StackItem } from '@specimen/core';
-import { useEffect, useMemo, useState } from 'react';
-import type { CaptureResult } from '../../lib/capture';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import type { Analysis, CaptureResult } from '../../lib/capture';
 import {
   agentSpec,
   baseName,
@@ -9,6 +9,7 @@ import {
   copyImage,
   copySvg,
   downloadFile,
+  everythingMarkdown,
   figmaImportZip,
   framerComponent,
   framerOverrides,
@@ -25,6 +26,8 @@ export interface CaptureItem {
   key: number;
   result: CaptureResult;
   stack: StackItem[];
+  /** The scan the capture was made from: its palette, sections and stack. */
+  analysis: Analysis;
 }
 
 export interface RecordingItem {
@@ -33,23 +36,100 @@ export interface RecordingItem {
 }
 
 /** Object URLs for PNG bytes, revoked when the component goes away. */
-function useImageUrls(files: Record<string, Uint8Array>, paths: string[]): Record<string, string> {
-  const urls = useMemo(() => Object.fromEntries(paths.map((p) => [p, URL.createObjectURL(new Blob([files[p] as BlobPart], { type: 'image/png' }))])), [files, paths.join('|')]);
+export function useImageUrls(files: Record<string, Uint8Array>, paths: string[]): Record<string, string> {
+  const urls = useMemo(
+    () => Object.fromEntries(paths.filter((p) => files[p]).map((p) => [p, URL.createObjectURL(new Blob([files[p] as BlobPart], { type: 'image/png' }))])),
+    [files, paths.join('|')],
+  );
   useEffect(() => () => Object.values(urls).forEach((u) => URL.revokeObjectURL(u)), [urls]);
   return urls;
 }
 
-export function CaptureCard({ item, onRemove, onError }: { item: CaptureItem; onRemove: () => void; onError: (message: string) => void }) {
+/** Runs an export, shows what happened for a moment, and reports failures. */
+function useRunner(onError: (message: string) => void) {
+  const [flash, setFlash] = useState<string | null>(null);
+  const timer = useRef<number>(0);
+  useEffect(() => () => clearTimeout(timer.current), []);
+  const run = async (label: string, fn: () => Promise<unknown> | unknown) => {
+    try {
+      const out = await fn();
+      setFlash(typeof out === 'string' ? out : label);
+      clearTimeout(timer.current);
+      timer.current = window.setTimeout(() => setFlash(null), 2500);
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') return;
+      onError(err instanceof Error ? err.message : String(err));
+    }
+  };
+  return { flash, run };
+}
+
+/** Copies text built on click, and says so for a moment. */
+export function CopyButton({
+  label,
+  title,
+  className = 'action',
+  text,
+  onError,
+}: {
+  label: string;
+  title?: string;
+  className?: string;
+  text: () => string | Promise<string>;
+  onError: (message: string | null) => void;
+}) {
+  const [copied, setCopied] = useState(false);
+  const timer = useRef<number>(0);
+  useEffect(() => () => clearTimeout(timer.current), []);
+  return (
+    <button
+      className={className}
+      title={title}
+      onClick={async () => {
+        try {
+          // The write starts inside the click and resolves when the text is built: Safari only allows
+          // clipboard writes during the gesture, and long builds (Copy everything) would miss it.
+          const built = Promise.resolve(text());
+          if (typeof ClipboardItem === 'function') await navigator.clipboard.write([new ClipboardItem({ 'text/plain': built.then((t) => new Blob([t], { type: 'text/plain' })) })]);
+          else await navigator.clipboard.writeText(await built);
+          setCopied(true);
+          onError(null);
+          clearTimeout(timer.current);
+          timer.current = window.setTimeout(() => setCopied(false), 1500);
+        } catch (err) {
+          onError(`Couldn't copy: ${err instanceof Error ? err.message : String(err)}`);
+        }
+      }}
+    >
+      {copied ? 'Copied' : label}
+    </button>
+  );
+}
+
+const DESTINATIONS = [
+  ['figma', 'Figma'],
+  ['framer', 'Framer'],
+  ['agent', 'Code agent'],
+  ['other', 'Other'],
+] as const;
+type Destination = (typeof DESTINATIONS)[number][0];
+
+/**
+ * Export: choose which part, then where it's going. Each destination shows one main action and the
+ * few others that make sense for it, each saying what you get.
+ */
+export function ExportView({ item, onError }: { item: CaptureItem; onError: (message: string | null) => void }) {
   const { result } = item;
   const sections = useMemo(() => capturedSections(result), [result]);
   const [scope, setScope] = useState<string>(sections.length === 1 ? sections[0].id : 'all');
+  const [dest, setDest] = useState<Destination>('figma');
   const ids = scope === 'all' ? sections.map((s) => s.id) : [scope];
   const one = ids.length === 1 ? ids[0] : null;
   const thumbs = useImageUrls(result.files, sections.map((s) => s.shot));
-  const [flash, setFlash] = useState<string | null>(null);
+  const { flash, run } = useRunner(onError);
   const [spec, setSpec] = useState<{ preview: SpecPreview; highlight: string | null; markdown: string; files: Record<string, Uint8Array> } | null>(null);
 
-  // The agent spec is built up front so its preview shows what you'll get.
+  // The agent spec is built up front so its description says what you'll get.
   useEffect(() => {
     let alive = true;
     let url: string | null = null;
@@ -68,40 +148,20 @@ export function CaptureCard({ item, onRemove, onError }: { item: CaptureItem; on
     };
   }, [result, scope]);
 
-  const run = async (label: string, fn: () => Promise<unknown> | unknown) => {
-    try {
-      const out = await fn();
-      setFlash(typeof out === 'string' ? out : label);
-      setTimeout(() => setFlash(null), 2500);
-    } catch (err) {
-      if (err instanceof DOMException && err.name === 'AbortError') return;
-      onError(err instanceof Error ? err.message : String(err));
-    }
-  };
-
   const svg = () => (one ? sectionSvg(result, one) : stackedSvg(result, ids));
   const overrides = framerOverrides(result, ids);
   const name = baseName(result, one ?? undefined);
   const host = result.filename.replace(/_.*$/, '');
-  const m = result.manifest;
-  const motion = m.motion;
+  const motion = result.manifest.motion;
+  const firstOnly = one ? undefined : 'Uses the first section; pick one above for another';
+
+  const copyForFigma = () => run('Copied. Paste in Figma with ⌘V', async () => copySvg(svg() ?? fail()));
+  const savePlugin = () => run('Saved the plugin file', () => downloadFile(`${name}.figma.zip`, figmaImportZip(result, ids) ?? fail()));
+  const saveSvg = () => run('Saved SVG', () => downloadFile(`${name}.svg`, svg() ?? fail()));
 
   return (
-    <article className="capture">
-      <header className="capture-head">
-        <div className="grow">
-          <div className="name">{sections.length === 1 ? sections[0].name : host}</div>
-          <div className="muted small">
-            {sections.length} {sections.length === 1 ? 'section' : 'sections'} · {new Date(m.capturedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })} ·{' '}
-            {motion ? `motion: ${motion.animations} animations, ${motion.interactions} hover` : 'no motion'}
-            {m.errors.length ? ` · ${m.errors.length} steps failed` : ''}
-          </div>
-        </div>
-        <button className="ghost small icon" onClick={onRemove} aria-label="Remove capture">
-          ×
-        </button>
-      </header>
-
+    <div className="panel">
+      <span className="eyebrow">Which part</span>
       <div className="thumbs" role="listbox" aria-label="Sections in this capture">
         {sections.length > 1 && (
           <button role="option" aria-selected={scope === 'all'} className={`thumb all ${scope === 'all' ? 'on' : ''}`} onClick={() => setScope('all')}>
@@ -111,7 +171,16 @@ export function CaptureCard({ item, onRemove, onError }: { item: CaptureItem; on
         {sections.map((s) => (
           <button key={s.id} role="option" aria-selected={scope === s.id} className={`thumb ${scope === s.id ? 'on' : ''}`} onClick={() => setScope(s.id)} title={s.name}>
             <img src={thumbs[s.shot]} alt="" />
-            <span className="small">{s.name}</span>
+            <span>{s.name}</span>
+          </button>
+        ))}
+      </div>
+
+      <span className="eyebrow">Where is it going?</span>
+      <div className="dests">
+        {DESTINATIONS.map(([id, label]) => (
+          <button key={id} aria-pressed={dest === id} onClick={() => setDest(id)}>
+            {label}
           </button>
         ))}
       </div>
@@ -122,139 +191,181 @@ export function CaptureCard({ item, onRemove, onError }: { item: CaptureItem; on
         </div>
       )}
 
-      <h4>Design tools</h4>
-      <ul className="list tools">
-        <Tool name="Figma" hint="Paste as editable layers, or import with the Specimen plugin (auto layout, variables, hover variants)">
-          <button className="small" onClick={() => run('Copied. Paste in Figma with ⌘V', async () => copySvg(svg() ?? fail()))}>
-            Copy
+      {dest === 'figma' && (
+        <div className="card">
+          <button className="primary" onClick={copyForFigma}>
+            Copy for Figma
           </button>
-          <button className="small" onClick={() => run('Saved the plugin file', () => downloadFile(`${name}.figma.zip`, figmaImportZip(result, ids) ?? fail()))}>
-            Plugin file
-          </button>
-        </Tool>
-        <Tool name="Paper" hint="Paste HTML; Paper turns it into layers">
-          <button className="small" onClick={() => run('Copied. Paste in Paper with ⌘V', async () => copyHtml(ids.map((id) => sectionHtml(result, id) ?? '').join('\n') || fail()))}>
-            Copy
-          </button>
-        </Tool>
-        <Tool name="Framer" hint="Code component: the section exactly, with its WebGL shader running live. Overrides give your layers the captured hover, reveal and scroll motion">
+          <span className="muted">Paste with ⌘V as editable layers.</span>
+          <Option title="Plugin file" note="Import with the Specimen plugin: auto layout, variables, hover variants, and clips that play.">
+            <button className="action" onClick={savePlugin}>
+              Save plugin file
+            </button>
+          </Option>
+          <Option title="SVG" note="One self-contained file with its images and fonts inside.">
+            <button className="action" onClick={saveSvg}>
+              Save .svg
+            </button>
+          </Option>
+        </div>
+      )}
+
+      {dest === 'framer' && (
+        <div className="card">
           <button
-            className="small"
+            className="primary"
+            title={firstOnly}
             onClick={() => run('Copied. In Framer: Assets ▸ Code ▸ New file, paste', () => navigator.clipboard.writeText(framerComponent(result, one ?? ids[0]) ?? fail()))}
-            title={one ? undefined : 'Copies the first section; pick one above for another'}
           >
             Copy component
           </button>
+          <span className="muted">A code component that renders the section exactly; a WebGL shader on it runs live.</span>
           {overrides && (
-            <button className="small" onClick={() => run('Copied. Paste into a Framer code file, then pick an override for a layer', () => navigator.clipboard.writeText(overrides))}>
-              Overrides
-            </button>
+            <Option title="Motion overrides" note="Gives your own layers the captured hover, reveal and scroll motion.">
+              <button className="action" onClick={() => run('Copied. Paste into a Framer code file, then pick an override for a layer', () => navigator.clipboard.writeText(overrides))}>
+                Copy overrides
+              </button>
+            </Option>
           )}
-        </Tool>
-        <Tool name="Sketch · Penpot · Framer · Illustrator" hint="Self-contained SVG: images and fonts inside">
-          <button className="small" onClick={() => run('Copied SVG. Paste with ⌘V', async () => copySvg(svg() ?? fail()))}>
-            Copy SVG
-          </button>
-          <button className="small" onClick={() => run('Saved SVG', () => downloadFile(`${name}.svg`, svg() ?? fail()))}>
-            .svg
-          </button>
-        </Tool>
-        <Tool name="Photoshop" hint="Layered PSD: groups, background, editable text">
-          <button
-            className="small"
-            onClick={() =>
-              run('Saved PSD', () =>
-                one
-                  ? downloadFile(`${name}.psd`, result.files[`exports/psd/${one}.psd`] ?? fail())
-                  : downloadFile(`${name}-psd.zip`, zipSync(Object.fromEntries(ids.filter((id) => result.files[`exports/psd/${id}.psd`]).map((id) => [`${id}.psd`, result.files[`exports/psd/${id}.psd`]])), { level: 0 })),
-              )
-            }
-          >
-            .psd
-          </button>
-        </Tool>
-        <Tool name="Canva · Keynote · Slides · Notion" hint="Pixel-exact image of the section">
-          <button
-            className="small"
-            onClick={() => run('Image copied. Paste with ⌘V', async () => copyImage(result.files[`sections/${one ?? ids[0]}/desktop.png`] ?? fail()))}
-            title={one ? undefined : 'Copies the first section; pick one above for another'}
-          >
-            Copy image
-          </button>
-        </Tool>
-        {motion && (
-          <Tool name="After Effects · Lottie" hint="Recorded animations as an AE script and Lottie files">
-            <button className="small" onClick={() => run('Saved AE script', () => downloadFile(`${host}.jsx`, result.files['exports/after-effects/specimen.jsx'] ?? fail()))}>
-              .jsx
-            </button>
-            <button
-              className="small"
-              onClick={() =>
-                run('Saved Lottie files', () => {
-                  const lottie = Object.keys(result.files).filter((p) => p.startsWith('exports/lottie/') && ids.some((id) => p.includes(`/${id}-`)));
-                  if (!lottie.length) fail('No animations in this selection');
-                  downloadFile(`${name}-lottie.zip`, zipSync(Object.fromEntries(lottie.map((p) => [p.split('/').pop()!, result.files[p]]))));
-                })
-              }
-            >
-              Lottie
+        </div>
+      )}
+
+      {dest === 'agent' && (
+        <div className="card">
+          <CopyButton
+            className="primary"
+            label="Copy everything"
+            title="DESIGN.md, palette, stack, motion and effect code as one markdown document"
+            text={() => everythingMarkdown(result, item.stack, ids)}
+            onError={onError}
+          />
+          {spec ? (
+            <>
+              <span className="muted">
+                DESIGN.md for Claude Code, Codex, Cursor and other agents: exact colours, type scale, spacing, {spec.preview.sections}{' '}
+                {spec.preview.sections === 1 ? 'section' : 'sections'} with {spec.preview.screenshots} screenshots, {spec.preview.highlights} numbered{' '}
+                {spec.preview.highlights === 1 ? 'highlight' : 'highlights'}
+                {spec.preview.motionCues ? `, ${spec.preview.motionCues} motion and hover cues` : motion ? ', no motion in this selection' : ' (motion not recorded)'}
+                {spec.preview.videos ? `, ${spec.preview.videos} recordings` : ''}.
+              </span>
+              {spec.highlight && <img className="spec-shot" src={spec.highlight} alt="Highlighted section preview" />}
+              <Option title="Prompt" note="DESIGN.md as text, for Claude, ChatGPT or Grok in a chat.">
+                <button className="action" onClick={() => run('Copied. Paste into Claude, ChatGPT or Grok, and attach the screenshot', () => navigator.clipboard.writeText(spec.markdown))}>
+                  Copy prompt
+                </button>
+              </Option>
+              <Option title="Folder" note="DESIGN.md with screenshots and highlights, for agents that read files.">
+                <button
+                  className="action"
+                  onClick={() =>
+                    run('Saved', async () => {
+                      const where = await writeToFolder(spec.files);
+                      if (where) return `Saved to ${where}`;
+                      downloadFile(`${name}-design-spec.zip`, zipSync(Object.fromEntries(Object.entries(spec.files).map(([p, d]) => [`design-spec/${p}`, d]))));
+                      return 'Saved design-spec.zip';
+                    })
+                  }
+                >
+                  Save to folder
+                </button>
+              </Option>
+              {one && (
+                <Option title="Screenshot" note="Attach it with the prompt in a chat agent.">
+                  <button className="action" onClick={() => run('Screenshot copied', () => copyImage(result.files[`sections/${one}/desktop.png`]))}>
+                    Copy screenshot
+                  </button>
+                </Option>
+              )}
+            </>
+          ) : (
+            <span className="muted">Preparing DESIGN.md…</span>
+          )}
+        </div>
+      )}
+
+      {dest === 'other' && (
+        <ul className="tool-list">
+          <Tool name="Paper" hint="Pastes HTML; Paper turns it into layers.">
+            <button className="action" onClick={() => run('Copied. Paste in Paper with ⌘V', async () => copyHtml(ids.map((id) => sectionHtml(result, id) ?? '').join('\n') || fail()))}>
+              Copy HTML
             </button>
           </Tool>
-        )}
-      </ul>
-
-      <h4>Coding agents</h4>
-      <div className="spec">
-        {spec ? (
-          <>
-            {spec.highlight && <img className="spec-shot" src={spec.highlight} alt="Highlighted section preview" />}
-            <div className="small">
-              <strong>DESIGN.md</strong> for Claude Code, Codex, Cursor and other agents: exact colours, type scale, spacing, {spec.preview.sections}{' '}
-              {spec.preview.sections === 1 ? 'section' : 'sections'} with {spec.preview.screenshots} screenshots, {spec.preview.highlights} numbered {spec.preview.highlights === 1 ? 'highlight' : 'highlights'}
-              {spec.preview.motionCues ? `, ${spec.preview.motionCues} motion and hover cues` : motion ? ', no motion in this selection' : ' (motion not recorded)'}
-              {spec.preview.videos ? `, ${spec.preview.videos} recordings` : ''}.
-            </div>
-            <div className="actions wrap">
+          <Tool name="Sketch · Penpot · Illustrator" hint="Self-contained SVG: images and fonts inside.">
+            <button className="action" onClick={() => run('Copied SVG. Paste with ⌘V', async () => copySvg(svg() ?? fail()))}>
+              Copy SVG
+            </button>
+            <button className="action" onClick={saveSvg}>
+              .svg
+            </button>
+          </Tool>
+          <Tool name="Photoshop" hint="Layered PSD: groups, background, editable text.">
+            <button
+              className="action"
+              onClick={() =>
+                run('Saved PSD', () =>
+                  one
+                    ? downloadFile(`${name}.psd`, result.files[`exports/psd/${one}.psd`] ?? fail())
+                    : downloadFile(`${name}-psd.zip`, zipSync(Object.fromEntries(ids.filter((id) => result.files[`exports/psd/${id}.psd`]).map((id) => [`${id}.psd`, result.files[`exports/psd/${id}.psd`]])), { level: 0 })),
+                )
+              }
+            >
+              Save .psd
+            </button>
+          </Tool>
+          <Tool name="Canva · Keynote · Slides · Notion" hint="Pixel-exact image of the section.">
+            <button className="action" title={firstOnly} onClick={() => run('Image copied. Paste with ⌘V', async () => copyImage(result.files[`sections/${one ?? ids[0]}/desktop.png`] ?? fail()))}>
+              Copy image
+            </button>
+          </Tool>
+          {motion && (
+            <Tool name="After Effects · Lottie" hint="Recorded animations as an AE script and Lottie files.">
+              <button className="action" onClick={() => run('Saved AE script', () => downloadFile(`${host}.jsx`, result.files['exports/after-effects/specimen.jsx'] ?? fail()))}>
+                .jsx
+              </button>
               <button
-                className="small"
+                className="action"
                 onClick={() =>
-                  run('Saved', async () => {
-                    const where = await writeToFolder(spec.files);
-                    if (where) return `Saved to ${where}`;
-                    downloadFile(`${name}-design-spec.zip`, zipSync(Object.fromEntries(Object.entries(spec.files).map(([p, d]) => [`design-spec/${p}`, d]))));
-                    return 'Saved design-spec.zip';
+                  run('Saved Lottie files', () => {
+                    const lottie = Object.keys(result.files).filter((p) => p.startsWith('exports/lottie/') && ids.some((id) => p.includes(`/${id}-`)));
+                    if (!lottie.length) fail('No animations in this selection');
+                    downloadFile(`${name}-lottie.zip`, zipSync(Object.fromEntries(lottie.map((p) => [p.split('/').pop()!, result.files[p]]))));
                   })
                 }
               >
-                Save to folder
+                Lottie
               </button>
-              <button className="small" onClick={() => run('Copied. Paste into Claude, ChatGPT or Grok, and attach the screenshot', () => navigator.clipboard.writeText(spec.markdown))}>
-                Copy prompt
-              </button>
-              {one && (
-                <button className="small" onClick={() => run('Screenshot copied', () => copyImage(result.files[`sections/${one}/desktop.png`]))}>
-                  Copy screenshot
-                </button>
-              )}
-            </div>
-          </>
-        ) : (
-          <div className="muted small">Preparing the spec…</div>
-        )}
-      </div>
+            </Tool>
+          )}
+        </ul>
+      )}
 
-      <button className="link small" onClick={() => run('Saved the full bundle', () => downloadFile(result.filename, result.zip))}>
-        Download everything (.zip)
-      </button>
-    </article>
+      <div className="download">
+        <span className="grow small muted">Everything in one file: report, images, HTML, clips and specs.</span>
+        <button className="action" onClick={() => run('Saved the full bundle', () => downloadFile(result.filename, result.zip))}>
+          Download .zip
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function Option({ title, note, children }: { title: string; note: string; children: React.ReactNode }) {
+  return (
+    <div className="card-row">
+      <div className="grow">
+        <strong>{title}</strong>
+        <span className="muted small">{note}</span>
+      </div>
+      {children}
+    </div>
   );
 }
 
 function Tool({ name, hint, children }: { name: string; hint: string; children: React.ReactNode }) {
   return (
-    <li className="row tool">
+    <li>
       <div className="grow">
-        <div className="name">{name}</div>
+        <strong>{name}</strong>
         <div className="muted small">{hint}</div>
       </div>
       <div className="actions">{children}</div>
@@ -273,10 +384,12 @@ const PAGE_CLIPS = [
   ['page/scroll-desktop', 'Scrolling the page'],
 ] as const;
 const videoUrl = (bytes: Uint8Array, path: string) => URL.createObjectURL(new Blob([bytes as BlobPart], { type: path.endsWith('.mp4') ? 'video/mp4' : 'video/webm' }));
+/** Shows a frame from inside the clip as its poster: the first frame is often blank while the page loads. */
+const POSTER_AT = '#t=0.6';
 
 /**
- * What the capture recorded moving: pointer effects (filmstrip with the cursor drawn in, and the
- * clip), and the page-load and scroll recordings.
+ * What the capture recorded moving: pointer effects (the clip with the cursor drawn in, or its
+ * filmstrip), and the page-load and scroll recordings.
  */
 export function MotionPreviews({ result, onError }: { result: CaptureResult; onError: (message: string) => void }) {
   const sections = useMemo(() => result.manifest.sections.filter((s) => result.files[`sections/${s.id}/pointer-strip.png`]), [result]);
@@ -291,10 +404,13 @@ export function MotionPreviews({ result, onError }: { result: CaptureResult; onE
   );
   // Each section's pointer clip plays in place, so the effect is seen moving, not as a thumbnail strip.
   const pointerClips = useMemo(
-    () => Object.fromEntries(sections.flatMap((s) => {
-      const path = Object.keys(result.files).find((p) => p.startsWith(`sections/${s.id}/pointer.`) && VIDEO.test(p));
-      return path ? [[s.id, path]] : [];
-    })),
+    () =>
+      Object.fromEntries(
+        sections.flatMap((s) => {
+          const path = Object.keys(result.files).find((p) => p.startsWith(`sections/${s.id}/pointer.`) && VIDEO.test(p));
+          return path ? [[s.id, path]] : [];
+        }),
+      ),
     [sections, result],
   );
   const urls = useMemo(
@@ -312,11 +428,10 @@ export function MotionPreviews({ result, onError }: { result: CaptureResult; onE
 
   return (
     <>
-      <h3>Pointer effects</h3>
       {sections.length === 0 && (
         <p className="muted small">
-          Specimen swept the pointer over each section and the page didn't visibly react. If it does react to the mouse (a trail, a follower, a tilt), record it with
-          Record interaction below.
+          Specimen swept the pointer over each section and the page didn't visibly react. If it does react to the mouse (a trail, a follower, a tilt), record it yourself
+          below.
         </p>
       )}
       {sections.map((s) => {
@@ -324,13 +439,19 @@ export function MotionPreviews({ result, onError }: { result: CaptureResult; onE
         const raw = result.files[`sections/${s.id}/pointer.json`];
         const info = raw ? (JSON.parse(new TextDecoder().decode(raw)) as { kind: string; fadeMs: number | null }) : null;
         return (
-          <div key={s.id} className="spec">
-            <div className="name small">{s.name}</div>
+          <div key={s.id} className="effect">
+            <div>
+              <div className="eyebrow">Pointer effect · {s.name}</div>
+              <strong>
+                {info?.kind === 'canvas' ? 'The pointer paints into a canvas' : info?.kind === 'pixels' ? 'The pointer changes the pixels under it' : 'Elements follow the pointer'}
+                {info?.fadeMs != null ? `; the trail fades in about ${info.fadeMs}ms` : info && info.kind !== 'dom' ? '; the trail stays' : ''}.
+              </strong>
+              <div className="note">Cursor drawn in. Included in DESIGN.md.</div>
+            </div>
             {clip ? (
               // Plays on hover: several full-size clips decoding at once is heavy for a side panel.
               <video
-                className="recording"
-                src={urls[clip]}
+                src={urls[clip] + POSTER_AT}
                 preload="metadata"
                 muted
                 loop
@@ -341,36 +462,38 @@ export function MotionPreviews({ result, onError }: { result: CaptureResult; onE
                 onMouseLeave={(e) => e.currentTarget.pause()}
               />
             ) : (
-              <img className="spec-shot strip" src={strips[`sections/${s.id}/pointer-strip.png`]} alt="Pointer stroke, frame by frame" />
+              <img src={strips[`sections/${s.id}/pointer-strip.png`]} alt="Pointer stroke, frame by frame" />
             )}
-            <div className="small">
-              {info?.kind === 'canvas' ? 'The pointer paints into a canvas' : info?.kind === 'pixels' ? 'The pointer changes the pixels under it' : 'Elements follow the pointer'}
-              {info?.fadeMs != null ? `; the trail fades in about ${info.fadeMs}ms` : info && info.kind !== 'dom' ? '; the trail stays' : ''}. Included in DESIGN.md.
-            </div>
             {clip && (
               <div className="actions">
-                <button className="small" onClick={() => save(`${baseName(result, s.id)}-pointer.${clip.split('.').pop()}`, result.files[clip])}>
-                  Clip with cursor
+                <button className="small light" onClick={() => save(`${baseName(result, s.id)}-pointer.${clip.split('.').pop()}`, result.files[clip])}>
+                  Save clip with cursor
                 </button>
               </div>
             )}
           </div>
         );
       })}
-      {pageClips.length > 0 && <h3>Recordings</h3>}
-      {pageClips.map((c) => (
-        <figure key={c.path} className="clip">
-          <video className="recording" src={urls[c.path]} preload="metadata" controls muted loop playsInline />
-          <figcaption className="muted small">{c.label}</figcaption>
-        </figure>
-      ))}
+      {pageClips.length > 0 && (
+        <>
+          <span className="eyebrow">Recordings</span>
+          <div className="clips">
+            {pageClips.map((c) => (
+              <figure key={c.path} className="clip">
+                <video className="recording" src={urls[c.path] + POSTER_AT} preload="metadata" controls muted loop playsInline />
+                <figcaption className="small">{c.label}</figcaption>
+              </figure>
+            ))}
+          </div>
+        </>
+      )}
     </>
   );
 }
 
 export function RecordingCard({ item, onRemove, onError }: { item: RecordingItem; onRemove: () => void; onError: (message: string) => void }) {
   const r = item.recording;
-  const [flash, setFlash] = useState<string | null>(null);
+  const { flash, run } = useRunner(onError);
   const video = useMemo(() => (r.video ? URL.createObjectURL(new Blob([r.video.data as BlobPart], { type: r.video.ext === 'mp4' ? 'video/mp4' : 'video/webm' })) : null), [r]);
   useEffect(() => () => void (video && URL.revokeObjectURL(video)), [video]);
   const host = (() => {
@@ -381,19 +504,9 @@ export function RecordingCard({ item, onRemove, onError }: { item: RecordingItem
     }
   })();
   const stamp = r.at.replace(/[:.]/g, '-').slice(0, 19);
-  const run = async (label: string, fn: () => Promise<unknown> | unknown) => {
-    try {
-      const out = await fn();
-      setFlash(typeof out === 'string' ? out : label);
-      setTimeout(() => setFlash(null), 2500);
-    } catch (err) {
-      if (err instanceof DOMException && err.name === 'AbortError') return;
-      onError(err instanceof Error ? err.message : String(err));
-    }
-  };
   const files = () => interactionFiles(r);
   return (
-    <article className="capture">
+    <article className="capture capture-recording">
       <header className="capture-head">
         <div className="grow">
           <div className="name">Interaction · {host}</div>
@@ -413,17 +526,17 @@ export function RecordingCard({ item, onRemove, onError }: { item: RecordingItem
       )}
       <div className="actions wrap">
         {r.video && (
-          <button className="small" onClick={() => run('Saved the clip', () => downloadFile(`${host}-interaction-${stamp}.${r.video!.ext}`, r.video!.data))}>
+          <button className="action" onClick={() => run('Saved the clip', () => downloadFile(`${host}-interaction-${stamp}.${r.video!.ext}`, r.video!.data))}>
             Clip with cursor
           </button>
         )}
         {r.strip && (
-          <button className="small" onClick={() => run('Filmstrip copied', () => copyImage(r.strip!))}>
+          <button className="action" onClick={() => run('Filmstrip copied', () => copyImage(r.strip!))}>
             Copy filmstrip
           </button>
         )}
         <button
-          className="small"
+          className="action"
           onClick={() =>
             run('Saved', async () => {
               const where = await writeToFolder(files(), `interaction-${stamp}`);
@@ -435,7 +548,7 @@ export function RecordingCard({ item, onRemove, onError }: { item: RecordingItem
         >
           Save for agents
         </button>
-        <button className="small" onClick={() => run('Copied. Paste into your agent and attach the filmstrip', () => navigator.clipboard.writeText(new TextDecoder().decode(files()['INTERACTION.md'])))}>
+        <button className="action" onClick={() => run('Copied. Paste into your agent and attach the filmstrip', () => navigator.clipboard.writeText(new TextDecoder().decode(files()['INTERACTION.md'])))}>
           Copy prompt
         </button>
       </div>
