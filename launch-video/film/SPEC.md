@@ -29,7 +29,7 @@ SHOTS (as built, 60 s):
   12.0–20.0 SWEEP. Window grows from the icon: the real panel ("Drawing pointer strokes over sections") beside the page
             while Specimen's own pointer paints the ink. "It sweeps the pointer for you."
   20.0–27.0 RECORDED. pointer.mp4 plays; the Inspect · Motion card: "The pointer paints into a canvas; the trail fades in
-            about 916ms." Badge: trail fades in 916 ms.
+            about 916ms." Badge: "This capture: trail fades in 916 ms" (the fade is measured per capture; another run gave 775 ms).
   27.0–33.0 SHADER. The page's own WGSL: the splat at uPoint (ink lands at the pointer) and the uDissipation fade.
             "29 WebGPU shaders, read from the page with their uniforms."
   33.0–41.0 EDGES. Specimen's replay page playing its rebuilt effects. A loop read from its CSS (44000ms linear,

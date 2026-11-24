@@ -3,7 +3,7 @@
 ## Creative calls
 - The film is about motion, at the person's direction: what other tools reduce to a screenshot, Specimen records (pointer effects, canvas and WebGPU trails, loops, reveals) and rebuilds as code. The first cut, which followed apple.com through Figma, Photoshop and After Effects, is in git history (commit `e04633a`). Its After Effects shot is reused here.
 - The page is a site with a pen-and-ink hero: a WebGPU fluid simulation whose ink follows the pointer. Its name is hidden: an init script hides the logo link on every load (Specimen reloads the page to record motion), the panel's host labels are blanked while filming, and no shot shows the parts of the page that name the company. `record-motion.mjs` takes the pattern to hide as `HIDE`.
-- Every motion shot is real output: Specimen's own pointer sweep painting the ink, its `pointer.mp4` with the cursor drawn in, the fade time it measured (916 ms), the WGSL it read from the page (29 shaders; the splat and dissipation lines are quoted verbatim), the CSS and GSAP it wrote, its replay page playing that code, and a Record interaction stroke.
+- Every motion shot is real output: Specimen's own pointer sweep painting the ink, its `pointer.mp4` with the cursor drawn in, the fade time it measured in this capture (916 ms; another capture of the same page measured 775 ms, so the badge says it's per capture), the WGSL it read from the page (29 shaders; the splat and dissipation lines are quoted verbatim), the CSS and GSAP it wrote, its replay page playing that code, and a Record interaction stroke.
 - Music: the same HeyGen catalog bed (130 BPM), dipped under the "screenshot" beat. Effects from earshot.
 
 ## Measured
