@@ -144,7 +144,7 @@ scene('fade', 'night', """
     <div id="fade-card" class="card"><img id="fade-img" src="assets/ui/motion-card.png" alt=""></div>
     <div id="fade-hl"></div>
     <div id="fade-num" class="t-display">775<small> ms</small></div>
-    <div id="fade-sub" class="t-body">until the ink fades. Measured, not guessed.</div>
+    <div id="fade-sub" class="t-body">This capture: the ink fades in 775 ms.</div>
     <svg id="fade-curve" viewBox="0 0 860 160"><path id="fade-path" d="M0 12 C 200 12, 260 150, 860 150" fill="none" stroke="#d9c8f2" stroke-width="8" stroke-linecap="butt" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/></svg>
 """, """
     // The card scrolls from the counts to the pointer-effect card, then holds on its line.
