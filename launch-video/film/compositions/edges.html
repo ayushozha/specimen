@@ -1,0 +1,144 @@
+<template>
+  <style>
+    @font-face {
+      font-family: Manrope;
+      src: url("assets/fonts/manrope-latin.woff2") format("woff2");
+      font-weight: 400 800;
+    }
+    #root {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      background: #fffaf5;
+      font-family: Manrope, sans-serif;
+    }
+    .t {
+      position: absolute;
+      left: 128px;
+      top: 92px;
+      font-weight: 630;
+      font-size: 76px;
+      line-height: 1;
+      letter-spacing: -0.05em;
+      color: #2b2849;
+    }
+    .t span {
+      display: inline-block;
+      opacity: 0;
+    }
+    .t b {
+      font-weight: 630;
+      color: #64509b;
+    }
+    .frame {
+      position: absolute;
+      border-radius: 18px;
+      overflow: hidden;
+      border: 1px solid #ded4e1;
+      box-shadow: 0 30px 80px rgba(43, 40, 73, 0.16);
+      background: #fffaf6;
+    }
+    .frame video,
+    .frame img {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .tag {
+      position: absolute;
+      font-weight: 650;
+      font-size: 30px;
+      color: #57516a;
+      opacity: 0;
+    }
+    .cursor {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 52px;
+      height: 64px;
+    }
+    .code {
+      position: absolute;
+      padding: 30px 34px;
+      border-radius: 18px;
+      background: #211d3d;
+      font-family: "JetBrains Mono", monospace;
+      font-weight: 500;
+      font-size: 28px;
+      line-height: 1.5;
+      color: #fffaf5;
+    }
+    .code div {
+      white-space: pre;
+      opacity: 0;
+    }
+    .code .c {
+      color: #a99cc4;
+    }
+    .code .k {
+      color: #f0b6d4;
+    }
+    .badge {
+      position: absolute;
+      padding: 10px 20px;
+      border-radius: 12px;
+      background: #f0eaf6;
+      color: #64509b;
+      font-weight: 700;
+      font-size: 30px;
+      opacity: 0;
+    }
+    #ed-t1, #ed-t2 { font-size: 70px; }
+    #ed-a, #ed-b { font-size: 24px; padding: 24px 28px; }
+  </style>
+  <div id="root" data-composition-id="edges" data-width="1920" data-height="1080">
+    <h2 id="ed-t1" class="t clip" data-start="0.3" data-duration="3.6" data-track-index="3"><span>A</span> <span>loop:</span> <span>read</span> <span>from</span> <span>its</span> <span>CSS.</span></h2>
+    <h2 id="ed-t2" class="t clip" data-start="4.2" data-duration="3.5" data-track-index="3"><span>A</span> <span>reveal:</span> <span>fitted,</span> <span><b>100%</b></span> <span>match.</span></h2>
+    <div id="ed-frame" class="frame" style="left: 128px; top: 250px; width: 900px; height: 420px; background: #fff">
+      <!-- Specimen's replay page: each effect played from the code it wrote. -->
+      <video id="ed-replay" class="clip" src="assets/motion/replay.mp4" data-start="0.2" data-duration="4.5" data-media-start="0" muted playsinline data-track-index="0" style="object-fit: cover; object-position: top"></video>
+      <video id="ed-replay2" class="clip" src="assets/motion/replay.mp4" data-start="4.7" data-duration="3.3" data-media-start="0.6" muted playsinline data-track-index="0" style="object-fit: cover; object-position: top"></video>
+    </div>
+    <div id="ed-tag" class="tag" style="left: 128px; top: 694px">Replayed from Specimen's rebuilt code</div>
+    <div id="ed-a" class="code" style="left: 1080px; top: 250px; width: 712px">
+      <div class="c">// marquee: the page's own keyframes</div>
+      <div>animation: 44000ms linear infinite;</div>
+      <div>transform: translateX(-50%);</div>
+    </div>
+    <div id="ed-b" class="code" style="left: 1080px; top: 560px; width: 712px">
+      <div class="c">// Scroll reveal (match 100%)</div>
+      <div>CustomEase.create("reveal",</div>
+      <div>  "M0,0 C<span class="k">0.1,0.604 0.504,1.399</span> 1,1");</div>
+      <div>gsap.fromTo(el, { y: 0 }, { y: -140,</div>
+      <div>  duration: 0.134, ease: "reveal" });</div>
+    </div>
+    <div id="ed-badge-a" class="badge" style="left: 1080px; top: 440px">Read from the page</div>
+    <div id="ed-badge-b" class="badge" style="left: 1080px; top: 900px">Fitted to the recording</div>
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    const words = (sel, at) => document.querySelectorAll(sel + " span").forEach((w, i) => {
+      tl.fromTo(w, { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.13, ease: "power4.out" }, at + i * 0.07);
+    });
+    const out = (sel, at) => tl.to(sel + " span", { opacity: 0, filter: "blur(8px)", duration: 0.18, stagger: 0.03, ease: "power3.in" }, at);
+    const lines = (sel, at, gap) => document.querySelectorAll(sel + " div").forEach((l, i) => tl.fromTo(l, { opacity: 0 }, { opacity: 1, duration: 0.08, ease: "none" }, at + i * gap));
+    const pop = (sel, at) => tl.fromTo(sel, { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.2, ease: "power4.out" }, at);
+    tl.fromTo("#ed-frame", { opacity: 0, scale: 0.96 }, { opacity: 1, scale: 1, duration: 0.6, ease: "expo.out" }, 0);
+    pop("#ed-tag", 0.8);
+    words("#ed-t1", 0.3); out("#ed-t1", 3.75);
+    tl.fromTo("#ed-a", { opacity: 0, x: 60 }, { opacity: 1, x: 0, duration: 0.5, ease: "expo.out" }, 0.9);
+    lines("#ed-a", 1.0, 0.15);
+    pop("#ed-badge-a", 1.6);
+    words("#ed-t2", 4.2);
+    tl.fromTo("#ed-b", { opacity: 0, x: 60 }, { opacity: 1, x: 0, duration: 0.5, ease: "expo.out" }, 4.4);
+    lines("#ed-b", 4.5, 0.15);
+    pop("#ed-badge-b", 5.4);
+    out("#ed-t2", 7.55);
+    tl.to(["#ed-frame", "#ed-tag", "#ed-a", "#ed-b", "#ed-badge-a", "#ed-badge-b"], { opacity: 0, duration: 0.3, ease: "power3.in" }, 7.6);
+    window.__timelines["edges"] = tl;
+  </script>
+</template>

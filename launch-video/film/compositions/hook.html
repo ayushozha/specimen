@@ -1,51 +1,113 @@
 <template>
   <style>
+    @font-face {
+      font-family: Manrope;
+      src: url("assets/fonts/manrope-latin.woff2") format("woff2");
+      font-weight: 400 800;
+    }
     #root {
       position: absolute;
       inset: 0;
       overflow: hidden;
       background: #fffaf5;
+      font-family: Manrope, sans-serif;
     }
-    #hook-cam {
+    .t {
+      position: absolute;
+      left: 128px;
+      top: 92px;
+      font-weight: 630;
+      font-size: 76px;
+      line-height: 1;
+      letter-spacing: -0.05em;
+      color: #2b2849;
+    }
+    .t span {
+      display: inline-block;
+      opacity: 0;
+    }
+    .t b {
+      font-weight: 630;
+      color: #64509b;
+    }
+    .frame {
+      position: absolute;
+      border-radius: 18px;
+      overflow: hidden;
+      border: 1px solid #ded4e1;
+      box-shadow: 0 30px 80px rgba(43, 40, 73, 0.16);
+      background: #fffaf6;
+    }
+    .frame video,
+    .frame img {
       position: absolute;
       left: 0;
       top: 0;
-      width: 1920px;
-      height: 1200px;
-      transform-origin: 1390px 540px;
-    }
-    #hook-site {
-      position: absolute;
-      left: 0;
-      top: 0;
-      width: 1920px;
-      height: 1200px;
+      width: 100%;
+      height: 100%;
       object-fit: cover;
     }
-    #hook-cursor {
+    .tag {
+      position: absolute;
+      font-weight: 650;
+      font-size: 30px;
+      color: #57516a;
+      opacity: 0;
+    }
+    .cursor {
       position: absolute;
       left: 0;
       top: 0;
       width: 52px;
       height: 64px;
     }
+    .code {
+      position: absolute;
+      padding: 30px 34px;
+      border-radius: 18px;
+      background: #211d3d;
+      font-family: "JetBrains Mono", monospace;
+      font-weight: 500;
+      font-size: 28px;
+      line-height: 1.5;
+      color: #fffaf5;
+    }
+    .code div {
+      white-space: pre;
+      opacity: 0;
+    }
+    .code .c {
+      color: #a99cc4;
+    }
+    .code .k {
+      color: #f0b6d4;
+    }
+    .badge {
+      position: absolute;
+      padding: 10px 20px;
+      border-radius: 12px;
+      background: #f0eaf6;
+      color: #64509b;
+      font-weight: 700;
+      font-size: 30px;
+      opacity: 0;
+    }
   </style>
   <div id="root" data-composition-id="hook" data-width="1920" data-height="1080">
-    <div id="hook-cam">
-      <video id="hook-site" class="clip" src="assets/clips/pick-site.mp4" data-start="0" data-duration="4" data-media-start="5.6" muted playsinline data-track-index="0"></video>
-      <svg id="hook-cursor" viewBox="0 0 26 32" aria-hidden="true">
-        <path d="M2 1.5 L2 26 L8.2 20.2 L12.6 30 L17 28 L12.7 18.4 L21.5 18.4 Z" fill="#111" stroke="#fff" stroke-width="2" stroke-linejoin="round" />
-      </svg>
+    <div id="hook-cam" style="position: absolute; left: -68px; top: 0; width: 2057px; height: 1080px">
+      <!-- Specimen's own recording of the pointer effect (pointer.mp4, cursor drawn in). Logo hidden while filming. -->
+      <video id="hook-ink" class="clip" src="assets/motion/ink-pointer.mp4" data-start="0" data-duration="4.5" data-media-start="1.0" muted playsinline data-track-index="0" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover"></video>
     </div>
   </div>
   <script>
     const tl = gsap.timeline({ paused: true });
-    // Cursor path logged while recording (site px x 4/3), so the overlay sits where the real pointer was.
-    const path = [[0, 950.5, 255], [0.034, 947.9, 259.1], [0.1, 938.4, 271.9], [0.167, 926.3, 288.3], [0.234, 911.5, 308.4], [0.3, 895.5, 330.1], [0.367, 882.0, 348.4], [0.434, 871.2, 363.0], [0.5, 863.1, 373.9], [0.567, 857.7, 381.2], [0.617, 855.0, 384.9], [1.384, 854.9, 385.9], [1.45, 857.0, 390.6], [1.517, 861.1, 400.1], [1.584, 867.4, 414.2], [1.651, 875.6, 433.1], [1.717, 886.0, 456.7], [1.784, 898.4, 485.0], [1.85, 913.0, 518.1], [1.917, 929.5, 555.8], [1.983, 947.0, 595.6], [2.034, 962.6, 631.0], [2.101, 976.0, 661.7], [2.167, 987.4, 687.7], [2.218, 996.8, 708.9], [2.284, 1004.0, 725.4], [2.351, 1009.2, 737.2], [2.417, 1012.3, 744.3], [2.467, 1013.3, 746.7]];
-    tl.set("#hook-cursor", { x: path[0][1], y: path[0][2] }, 0);
-    for (let i = 1; i < path.length; i++) {
-      tl.to("#hook-cursor", { x: path[i][1], y: path[i][2], duration: path[i][0] - path[i - 1][0], ease: "none" }, path[i - 1][0]);
-    }
+    const words = (sel, at) => document.querySelectorAll(sel + " span").forEach((w, i) => {
+      tl.fromTo(w, { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.13, ease: "power4.out" }, at + i * 0.07);
+    });
+    const out = (sel, at) => tl.to(sel + " span", { opacity: 0, filter: "blur(8px)", duration: 0.18, stagger: 0.03, ease: "power3.in" }, at);
+    const lines = (sel, at, gap) => document.querySelectorAll(sel + " div").forEach((l, i) => tl.fromTo(l, { opacity: 0 }, { opacity: 1, duration: 0.08, ease: "none" }, at + i * gap));
+    const pop = (sel, at) => tl.fromTo(sel, { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.2, ease: "power4.out" }, at);
+    tl.fromTo("#hook-cam", { scale: 1 }, { scale: 1.06, duration: 4.5, ease: "none", transformOrigin: "50% 45%" }, 0);
     window.__timelines["hook"] = tl;
   </script>
 </template>

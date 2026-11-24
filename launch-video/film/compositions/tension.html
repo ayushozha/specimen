@@ -12,110 +12,115 @@
       background: #fffaf5;
       font-family: Manrope, sans-serif;
     }
-    #ten-cam {
+    .t {
       position: absolute;
-      left: 0;
-      top: 0;
-      width: 1920px;
-      height: 1200px;
-      transform-origin: 1390px 540px;
-      transform: scale(1.14);
+      left: 128px;
+      top: 92px;
+      font-weight: 630;
+      font-size: 76px;
+      line-height: 1;
+      letter-spacing: -0.05em;
+      color: #2b2849;
     }
-    #ten-site {
-      position: absolute;
-      left: 0;
-      top: 0;
-      width: 1920px;
-      height: 1200px;
-      object-fit: cover;
+    .t span {
+      display: inline-block;
+      opacity: 0;
     }
-    #ten-paper {
-      position: absolute;
-      inset: 0;
-      background: #fffaf5;
+    .t b {
+      font-weight: 630;
+      color: #64509b;
     }
-    #ten-card {
+    .frame {
       position: absolute;
-      left: 0;
-      top: 0;
-      width: 1920px;
-      height: 923px;
-      border-radius: 40px;
+      border-radius: 18px;
       overflow: hidden;
-      box-shadow: 0 30px 80px rgba(43, 40, 73, 0.18);
-      transform-origin: 0 0;
+      border: 1px solid #ded4e1;
+      box-shadow: 0 30px 80px rgba(43, 40, 73, 0.16);
+      background: #fffaf6;
     }
-    #ten-card video,
-    #ten-card img {
+    .frame video,
+    .frame img {
       position: absolute;
-      inset: 0;
+      left: 0;
+      top: 0;
       width: 100%;
       height: 100%;
       object-fit: cover;
     }
-    #ten-flash {
+    .tag {
       position: absolute;
-      inset: 0;
-      background: #ffffff;
-      opacity: 0;
-    }
-    #ten-file {
-      position: absolute;
-      left: 980px;
-      top: 690px;
-      font: 600 30px/1 Manrope, sans-serif;
+      font-weight: 650;
+      font-size: 30px;
       color: #57516a;
       opacity: 0;
     }
-    .ten-t {
+    .cursor {
       position: absolute;
-      left: 128px;
-      top: 400px;
-      width: 820px;
-      font-weight: 630;
-      font-size: 76px;
-      line-height: 1.04;
-      letter-spacing: -0.05em;
-      color: #2b2849;
+      left: 0;
+      top: 0;
+      width: 52px;
+      height: 64px;
     }
-    .ten-t span {
-      display: inline-block;
+    .code {
+      position: absolute;
+      padding: 30px 34px;
+      border-radius: 18px;
+      background: #211d3d;
+      font-family: "JetBrains Mono", monospace;
+      font-weight: 500;
+      font-size: 28px;
+      line-height: 1.5;
+      color: #fffaf5;
+    }
+    .code div {
+      white-space: pre;
       opacity: 0;
     }
+    .code .c {
+      color: #a99cc4;
+    }
+    .code .k {
+      color: #f0b6d4;
+    }
+    .badge {
+      position: absolute;
+      padding: 10px 20px;
+      border-radius: 12px;
+      background: #f0eaf6;
+      color: #64509b;
+      font-weight: 700;
+      font-size: 30px;
+      opacity: 0;
+    }
+    #ten-t1, #ten-t2 { top: 400px; width: 820px; line-height: 1.04; }
   </style>
   <div id="root" data-composition-id="tension" data-width="1920" data-height="1080">
-    <div id="ten-cam">
-      <video id="ten-site" class="clip" src="assets/clips/pick-site.mp4" data-start="0" data-duration="1" data-media-start="9.6" muted playsinline data-track-index="0"></video>
+    <div id="ten-paper" style="position: absolute; inset: 0; background: #fffaf5"></div>
+    <div id="ten-card" class="frame" style="left: 0; top: 0; width: 2057px; height: 1080px; border-radius: 40px; transform-origin: 0 0">
+      <img id="ten-still" src="assets/motion/hero-still.png" alt="The hero as a still" />
+      <img id="ten-flat" class="clip" src="assets/motion/hero-flat.png" alt="" data-start="1" data-duration="3.5" data-track-index="2" style="opacity: 0" />
     </div>
-    <div id="ten-paper"></div>
-    <div id="ten-card">
-      <img id="ten-card-still" src="assets/ui/tile.png" alt="The captured iPhone tile from apple.com" />
-      <img id="ten-card-flat" class="clip" src="assets/ui/tile-flat.png" alt="" data-start="1" data-duration="3.5" data-track-index="2" style="opacity: 0" />
-    </div>
-    <div id="ten-flash"></div>
-    <div id="ten-file">Screenshot 2026-11-24 at 11.02.14.png</div>
-    <h2 id="ten-t1" class="ten-t clip" data-start="0.5" data-duration="1.9" data-track-index="3"><span>A</span> <span>screenshot</span> <span>keeps</span> <span>the</span> <span>pixels.</span></h2>
-    <h2 id="ten-t2" class="ten-t clip" data-start="2.4" data-duration="2.1" data-track-index="3"><span>No</span> <span>motion.</span> <span>No</span> <span>layers.</span> <span>No</span> <span>code.</span></h2>
+    <div id="ten-flash" style="position: absolute; inset: 0; background: #fff; opacity: 0"></div>
+    <div id="ten-file" class="tag" style="left: 980px; top: 720px">Screenshot 2026-11-24 at 12.46.03.png</div>
+    <h2 id="ten-t1" class="t clip" data-start="0.5" data-duration="1.9" data-track-index="3" style="top: 400px; width: 820px; line-height: 1.04"><span>A</span> <span>screenshot</span> <span>keeps</span> <span>the</span> <span>pixels.</span></h2>
+    <h2 id="ten-t2" class="t clip" data-start="2.4" data-duration="2.1" data-track-index="3" style="top: 400px; width: 820px; line-height: 1.04"><span>The</span> <span>motion</span> <span>never</span> <span>makes</span> <span>it</span> <span><b>out.</b></span></h2>
   </div>
   <script>
     const tl = gsap.timeline({ paused: true });
-    // The card starts exactly where the hook's camera left it, then lifts onto paper.
-    tl.fromTo("#ten-paper", { opacity: 0 }, { opacity: 1, duration: 0.6, ease: "power2.inOut" }, 0);
-    tl.fromTo("#ten-card", { x: 0, y: 128, scale: 1 }, { x: 980, y: 250, scale: 0.448, duration: 0.7, ease: "expo.out" }, 0.05);
-    // Shutter at 1.0: the card freezes and goes flat.
-    tl.fromTo("#ten-flash", { opacity: 0 }, { opacity: 0.85, duration: 0.05, ease: "none" }, 1.0);
-    tl.to("#ten-flash", { opacity: 0, duration: 0.3, ease: "power2.out" }, 1.05);
-    tl.fromTo("#ten-card-flat", { opacity: 0 }, { opacity: 1, duration: 0.5, ease: "power2.inOut" }, 1.4);
-    tl.fromTo("#ten-file", { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.2, ease: "power4.out" }, 1.3);
     const words = (sel, at) => document.querySelectorAll(sel + " span").forEach((w, i) => {
       tl.fromTo(w, { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.13, ease: "power4.out" }, at + i * 0.07);
     });
     const out = (sel, at) => tl.to(sel + " span", { opacity: 0, filter: "blur(8px)", duration: 0.18, stagger: 0.03, ease: "power3.in" }, at);
-    words("#ten-t1", 0.5);
-    out("#ten-t1", 2.15);
-    words("#ten-t2", 2.4);
-    out("#ten-t2", 4.2);
-    // Exit: the flat card drops away.
+    const lines = (sel, at, gap) => document.querySelectorAll(sel + " div").forEach((l, i) => tl.fromTo(l, { opacity: 0 }, { opacity: 1, duration: 0.08, ease: "none" }, at + i * gap));
+    const pop = (sel, at) => tl.fromTo(sel, { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.2, ease: "power4.out" }, at);
+    tl.fromTo("#ten-paper", { opacity: 0 }, { opacity: 1, duration: 0.5, ease: "power2.inOut" }, 0);
+    tl.fromTo("#ten-card", { x: -68, y: 0, scale: 1 }, { x: 980, y: 260, scale: 0.418, duration: 0.7, ease: "expo.out" }, 0.05);
+    tl.fromTo("#ten-flash", { opacity: 0 }, { opacity: 0.85, duration: 0.05, ease: "none" }, 1.0);
+    tl.to("#ten-flash", { opacity: 0, duration: 0.3, ease: "power2.out" }, 1.05);
+    tl.fromTo("#ten-flat", { opacity: 0 }, { opacity: 1, duration: 0.5, ease: "power2.inOut" }, 1.4);
+    pop("#ten-file", 1.3);
+    words("#ten-t1", 0.5); out("#ten-t1", 2.15);
+    words("#ten-t2", 2.4); out("#ten-t2", 4.2);
     tl.to(["#ten-card", "#ten-file"], { y: "+=90", opacity: 0, duration: 0.35, ease: "power3.in" }, 4.15);
     window.__timelines["tension"] = tl;
   </script>

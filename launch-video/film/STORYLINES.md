@@ -1,5 +1,7 @@
 # Storylines
 
+**Built now: the motion cut.** At the person's direction the film follows motion instead of one section: a pen-and-ink hero (name hidden) whose WebGPU trail Specimen records with its own pointer sweep, the shader code it reads, and loops and reveals rebuilt as code that replays. Shot list in `SPEC.md`. Storyline A below was the first cut (commit `e04633a`).
+
 Recommended: **A**, because it follows one real section from the page into the tools people use, which is the product's promise in one take.
 
 ## A · One section, all the way (built)

@@ -13,6 +13,6 @@ with tempfile.NamedTemporaryFile('w', suffix='.txt', delete=False) as f:
         f.write(f"file '{os.path.abspath(os.path.join(d, f'{t:07d}.jpg'))}'\nduration {(min(nxt, b) - max(t, a)) / 1000 / speed:.4f}\n")
     f.write(f"file '{os.path.abspath(os.path.join(d, f'{frames[-1]:07d}.jpg'))}'\n")
     lst = f.name
-vf = 'fps=30' + (f',scale={width}:-2:flags=lanczos' if width else '') + ',format=yuv420p'
+vf = 'fps=30' + (f',scale={width}:-2:flags=lanczos' if width else ',scale=trunc(iw/2)*2:trunc(ih/2)*2') + ',format=yuv420p'
 subprocess.run(['ffmpeg', '-v', 'error', '-y', '-f', 'concat', '-safe', '0', '-i', lst, '-vf', vf, '-c:v', 'libx264', '-crf', '14', '-preset', 'slow', '-g', '15', '-movflags', '+faststart', out], check=True)
 print(out, subprocess.run(['ffprobe', '-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', out], capture_output=True, text=True).stdout.strip())

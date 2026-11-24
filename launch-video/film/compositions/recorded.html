@@ -1,0 +1,125 @@
+<template>
+  <style>
+    @font-face {
+      font-family: Manrope;
+      src: url("assets/fonts/manrope-latin.woff2") format("woff2");
+      font-weight: 400 800;
+    }
+    #root {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      background: #fffaf5;
+      font-family: Manrope, sans-serif;
+    }
+    .t {
+      position: absolute;
+      left: 128px;
+      top: 92px;
+      font-weight: 630;
+      font-size: 76px;
+      line-height: 1;
+      letter-spacing: -0.05em;
+      color: #2b2849;
+    }
+    .t span {
+      display: inline-block;
+      opacity: 0;
+    }
+    .t b {
+      font-weight: 630;
+      color: #64509b;
+    }
+    .frame {
+      position: absolute;
+      border-radius: 18px;
+      overflow: hidden;
+      border: 1px solid #ded4e1;
+      box-shadow: 0 30px 80px rgba(43, 40, 73, 0.16);
+      background: #fffaf6;
+    }
+    .frame video,
+    .frame img {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .tag {
+      position: absolute;
+      font-weight: 650;
+      font-size: 30px;
+      color: #57516a;
+      opacity: 0;
+    }
+    .cursor {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 52px;
+      height: 64px;
+    }
+    .code {
+      position: absolute;
+      padding: 30px 34px;
+      border-radius: 18px;
+      background: #211d3d;
+      font-family: "JetBrains Mono", monospace;
+      font-weight: 500;
+      font-size: 28px;
+      line-height: 1.5;
+      color: #fffaf5;
+    }
+    .code div {
+      white-space: pre;
+      opacity: 0;
+    }
+    .code .c {
+      color: #a99cc4;
+    }
+    .code .k {
+      color: #f0b6d4;
+    }
+    .badge {
+      position: absolute;
+      padding: 10px 20px;
+      border-radius: 12px;
+      background: #f0eaf6;
+      color: #64509b;
+      font-weight: 700;
+      font-size: 30px;
+      opacity: 0;
+    }
+  </style>
+  <div id="root" data-composition-id="recorded" data-width="1920" data-height="1080">
+    <h2 id="rec-t" class="t clip" data-start="0.3" data-duration="6.4" data-track-index="3"><span>Recorded,</span> <span><b>cursor</b></span> <span>and</span> <span>all.</span></h2>
+    <div id="rec-frame" class="frame" style="left: 128px; top: 250px; width: 1100px; height: 578px">
+      <video id="rec-ink" class="clip" src="assets/motion/ink-pointer.mp4" data-start="0.2" data-duration="4.87" data-media-start="0" muted playsinline data-track-index="0"></video>
+      <img id="rec-hold" class="clip" src="assets/motion/hero-still.png" alt="" data-start="5.07" data-duration="1.93" data-track-index="0" />
+    </div>
+    <div id="rec-tag" class="tag" style="left: 128px; top: 852px">pointer.mp4 · the pointer path · where it changed</div>
+    <div id="rec-card" class="frame" style="left: 1290px; top: 250px; width: 502px; height: 421px; background: #fffaf5">
+      <img src="assets/motion/inspect-motion.png" alt="Specimen's Inspect · Motion tab: the pointer paints into a canvas; the trail fades in about 916ms" style="position: absolute; left: -12px; top: -604px; width: 526px; height: auto; object-fit: initial" />
+    </div>
+    <div id="rec-fade" class="badge" style="left: 1290px; top: 712px">Trail fades in 916 ms</div>
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    const words = (sel, at) => document.querySelectorAll(sel + " span").forEach((w, i) => {
+      tl.fromTo(w, { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.13, ease: "power4.out" }, at + i * 0.07);
+    });
+    const out = (sel, at) => tl.to(sel + " span", { opacity: 0, filter: "blur(8px)", duration: 0.18, stagger: 0.03, ease: "power3.in" }, at);
+    const lines = (sel, at, gap) => document.querySelectorAll(sel + " div").forEach((l, i) => tl.fromTo(l, { opacity: 0 }, { opacity: 1, duration: 0.08, ease: "none" }, at + i * gap));
+    const pop = (sel, at) => tl.fromTo(sel, { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.2, ease: "power4.out" }, at);
+    tl.fromTo("#rec-frame", { opacity: 0, scale: 0.96 }, { opacity: 1, scale: 1, duration: 0.6, ease: "expo.out" }, 0);
+    words("#rec-t", 0.3);
+    pop("#rec-tag", 0.9);
+    tl.fromTo("#rec-card", { opacity: 0, x: 80 }, { opacity: 1, x: 0, duration: 0.6, ease: "expo.out" }, 1.6);
+    pop("#rec-fade", 2.6);
+    out("#rec-t", 6.55);
+    tl.to(["#rec-frame", "#rec-tag", "#rec-card", "#rec-fade"], { opacity: 0, y: -40, duration: 0.3, stagger: 0.03, ease: "power3.in" }, 6.6);
+    window.__timelines["recorded"] = tl;
+  </script>
+</template>

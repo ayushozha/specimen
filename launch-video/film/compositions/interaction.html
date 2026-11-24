@@ -1,0 +1,122 @@
+<template>
+  <style>
+    @font-face {
+      font-family: Manrope;
+      src: url("assets/fonts/manrope-latin.woff2") format("woff2");
+      font-weight: 400 800;
+    }
+    #root {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      background: #fffaf5;
+      font-family: Manrope, sans-serif;
+    }
+    .t {
+      position: absolute;
+      left: 128px;
+      top: 92px;
+      font-weight: 630;
+      font-size: 76px;
+      line-height: 1;
+      letter-spacing: -0.05em;
+      color: #2b2849;
+    }
+    .t span {
+      display: inline-block;
+      opacity: 0;
+    }
+    .t b {
+      font-weight: 630;
+      color: #64509b;
+    }
+    .frame {
+      position: absolute;
+      border-radius: 18px;
+      overflow: hidden;
+      border: 1px solid #ded4e1;
+      box-shadow: 0 30px 80px rgba(43, 40, 73, 0.16);
+      background: #fffaf6;
+    }
+    .frame video,
+    .frame img {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .tag {
+      position: absolute;
+      font-weight: 650;
+      font-size: 30px;
+      color: #57516a;
+      opacity: 0;
+    }
+    .cursor {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 52px;
+      height: 64px;
+    }
+    .code {
+      position: absolute;
+      padding: 30px 34px;
+      border-radius: 18px;
+      background: #211d3d;
+      font-family: "JetBrains Mono", monospace;
+      font-weight: 500;
+      font-size: 28px;
+      line-height: 1.5;
+      color: #fffaf5;
+    }
+    .code div {
+      white-space: pre;
+      opacity: 0;
+    }
+    .code .c {
+      color: #a99cc4;
+    }
+    .code .k {
+      color: #f0b6d4;
+    }
+    .badge {
+      position: absolute;
+      padding: 10px 20px;
+      border-radius: 12px;
+      background: #f0eaf6;
+      color: #64509b;
+      font-weight: 700;
+      font-size: 30px;
+      opacity: 0;
+    }
+  </style>
+  <div id="root" data-composition-id="interaction" data-width="1920" data-height="1080">
+    <h2 id="in-t" class="t clip" data-start="0.3" data-duration="5.4" data-track-index="3"><span>Missed</span> <span>one?</span> <span><b>Record</b></span> <span>it</span> <span>yourself.</span></h2>
+    <div id="in-frame" class="frame" style="left: 128px; top: 250px; width: 1100px; height: 543px">
+      <video id="in-video" class="clip" src="assets/motion/interaction.mp4" data-start="0.2" data-duration="5.8" data-media-start="0" muted playsinline data-track-index="0"></video>
+    </div>
+    <div id="in-tag" class="tag" style="left: 128px; top: 818px">Your stroke, recorded with the cursor and its path</div>
+    <div id="in-box" class="frame" style="left: 1290px; top: 250px; width: 502px; height: 122px; background: #fffaf5">
+      <img src="assets/motion/inspect-motion-full.png" alt="Missed an effect? Record interaction" style="position: absolute; left: -16px; top: -1452px; width: 534px; height: auto; object-fit: initial" />
+    </div>
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    const words = (sel, at) => document.querySelectorAll(sel + " span").forEach((w, i) => {
+      tl.fromTo(w, { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.13, ease: "power4.out" }, at + i * 0.07);
+    });
+    const out = (sel, at) => tl.to(sel + " span", { opacity: 0, filter: "blur(8px)", duration: 0.18, stagger: 0.03, ease: "power3.in" }, at);
+    const lines = (sel, at, gap) => document.querySelectorAll(sel + " div").forEach((l, i) => tl.fromTo(l, { opacity: 0 }, { opacity: 1, duration: 0.08, ease: "none" }, at + i * gap));
+    const pop = (sel, at) => tl.fromTo(sel, { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.2, ease: "power4.out" }, at);
+    tl.fromTo("#in-frame", { opacity: 0, scale: 0.96 }, { opacity: 1, scale: 1, duration: 0.6, ease: "expo.out" }, 0);
+    words("#in-t", 0.3);
+    tl.fromTo("#in-box", { opacity: 0, x: 80 }, { opacity: 1, x: 0, duration: 0.6, ease: "expo.out" }, 0.9);
+    pop("#in-tag", 1.4);
+    out("#in-t", 5.55);
+    tl.to(["#in-frame", "#in-tag", "#in-box"], { opacity: 0, duration: 0.3, ease: "power3.in" }, 5.6);
+    window.__timelines["interaction"] = tl;
+  </script>
+</template>

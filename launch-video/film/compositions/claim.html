@@ -34,8 +34,8 @@
   </style>
   <div id="root" data-composition-id="claim" data-width="1920" data-height="1080">
     <div id="claim-dark"></div>
-    <!-- Specimen's own headline. -->
-    <h2 id="claim-t" class="clip" data-start="0.3" data-duration="2.2" data-track-index="3"><span>Capture</span> <span>websites,</span><br /><span>section</span> <span>by</span> <span>section.</span></h2>
+    
+    <h2 id="claim-t" class="clip" data-start="0.3" data-duration="2.7" data-track-index="3"><span>Capture</span> <span>the</span> <span>motion,</span><br /><span>not</span> <span>just</span> <span>pixels.</span></h2>
   </div>
   <script>
     const tl = gsap.timeline({ paused: true });
@@ -44,7 +44,7 @@
     document.querySelectorAll("#claim-t span").forEach((w, i) => {
       tl.fromTo(w, { color: "#e7deea", opacity: 0 }, { color: "#2b2849", opacity: 1, duration: 0.22, ease: "power2.out" }, 0.3 + i * 0.08);
     });
-    tl.to("#claim-t span", { opacity: 0, filter: "blur(8px)", duration: 0.2, stagger: 0.03, ease: "power3.in" }, 2.25);
+    tl.to("#claim-t span", { opacity: 0, filter: "blur(8px)", duration: 0.2, stagger: 0.03, ease: "power3.in" }, 2.75);
     window.__timelines["claim"] = tl;
   </script>
 </template>

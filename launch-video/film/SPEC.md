@@ -1,9 +1,11 @@
 # SPEC · Specimen launch film (storyline A)
 
-SUBJECT: the page being captured is apple.com (the person's choice, 2026-11-24). The film's own look stays Specimen's;
-         Apple's site appears only as the page Specimen captures, never as a brand on the end card.
-
-GOAL:    a designer or developer who has never heard of Specimen wants to install it to take a section they love into Figma, Framer or their coding agent.
+SUBJECT: motion first (the person's direction, 2026-11-24): Specimen records what moves and rebuilds it as code,
+         where other tools stop at a screenshot. The page is a site with a pen-and-ink hero whose WebGPU ink trail
+         follows the pointer. Its name is hidden everywhere: the logo link is hidden by an init script while filming,
+         the panel's host labels are blanked, and no shot shows the parts of the page that name it.
+GOAL:    a designer or developer sees Specimen record a pointer-driven WebGPU effect, read its shader code, and
+         rebuild loops and reveals as code that replays, and wants to install it.
 OUTPUT:  HyperFrames, 1920 x 1080, 30 fps.
 TIME:    60 s x 30 = 1800 frames. Music: HeyGen catalog track at 130 BPM, looped, dipped under the tension beat.
 
@@ -21,22 +23,22 @@ MOTION:  arrive expo.out 0.6 s; camera power2.inOut 0.5 s; exits power3.in 0.3 s
          Titles: per word blur 6px→0 + opacity, 0.13 s each, 0.07 s apart; land and hold dead still; exit blur-out 0.2 s.
          Cursor: 64 px tall (6% of frame), eases power2.inOut between logged points, clicks are a 0.08 s scale 0.86 dip.
 SHOTS (as built, 60 s):
-  0.0–4.0   HOOK. apple.com full-bleed, real picker footage: the outline jumps from the page to a button
-            ("Learn more") to the hero tile, labelled a.tile-link 1440 × 692.
-  4.0–8.5   TENSION. The tile lifts onto paper, a shutter flash, it goes flat with a screenshot filename.
-            "A screenshot keeps the pixels." / "No motion. No layers. No code." Music dips.
-  8.5–11.5  REVEAL. Icon + "Specimen" + "captures the real thing."; the icon flies to centre.
-  11.5–20.5 PICK. The window grows out of the icon: page + side panel in sync; One element, Pick, roam, click.
-  20.5–27.0 CAPTURE. Whole-page run (checklist at 30x, live preview); the tile lands at 1440/768/390.
-  27.0–31.0 MOTION. Page-load recording + apple's nav fade (320 ms after 200 ms) + rebuilt GSAP code.
-  31.0–34.5 COLOURS. Six apple.com colours with their --sk-* variables, printed in on the half beat.
-  34.5–38.1 EXPORTS. Real Export tab: Framer, Code agent, Figma clicks. "Then take it into any tool."
-  38.0–42.0 FIGMA. Real Figma (web) after pasting Copy for Figma: frame + layers named from the HTML.
-  42.0–46.5 PHOTOSHOP. Real Photoshop: the exported PSD, live type layer "iPhone" (SF Pro Display Bold 56 pt).
-  46.5–51.0 AFTER EFFECTS. Real After Effects: comps built by specimen.jsx, playhead stepping through keys.
-  51.0–54.5 AGENT. Dark world: apple.com's real DESIGN.md scrolls. "Your agent gets a DESIGN.md."
-  54.5–57.0 CLAIM. "Capture websites, section by section." (Specimen's own headline)
-  57.0–60.0 END CARD. Icon drops, wordmark wipes, specimen.ayushojha.com, browsers.
+  0.0–4.5   HOOK. Specimen's own recording of the hero: the pointer drags ink across the sky, cursor drawn in.
+  4.5–9.0   TENSION. The hero as a screenshot goes flat. "A screenshot keeps the pixels." / "The motion never makes it out."
+  9.0–12.0  REVEAL. Icon + "Specimen" + "records the motion."
+  12.0–20.0 SWEEP. Window grows from the icon: the real panel ("Drawing pointer strokes over sections") beside the page
+            while Specimen's own pointer paints the ink. "It sweeps the pointer for you."
+  20.0–27.0 RECORDED. pointer.mp4 plays; the Inspect · Motion card: "The pointer paints into a canvas; the trail fades in
+            about 916ms." Badge: trail fades in 916 ms.
+  27.0–33.0 SHADER. The page's own WGSL: the splat at uPoint (ink lands at the pointer) and the uDissipation fade.
+            "29 WebGPU shaders, read from the page with their uniforms."
+  33.0–41.0 EDGES. Specimen's replay page playing its rebuilt effects. A loop read from its CSS (44000ms linear,
+            translateX(-50%)); a reveal with no CSS, fitted to the recording: cubic-bezier(0.1,0.604,0.504,1.399), 100% match.
+  41.0–45.5 AFTER EFFECTS. Keyframes built by Specimen's exported script (apple.com nav fade), playhead moving.
+  45.5–51.5 INTERACTION. "Missed one? Record it yourself." A hand-drawn stroke recorded with the cursor, beside the panel's
+            Record interaction box.
+  51.5–54.5 CLAIM. "Capture the motion, not just pixels."
+  54.5–60.0 END CARD.
 BANNED:  dark void with floating UI; glow, particles, gradients as decoration; everything centred; every element
          fading and sliding up; titles moving after they land; corner labels and HUD brackets as decoration;
          three cards in a row; a title over a dimmed screenshot; the logo docked in a corner; invented UI.
