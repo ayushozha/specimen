@@ -44,7 +44,7 @@
         <li><a href="#install">Install</a></li>
         <li><a href="#first-capture">Your first capture</a></li>
         <li><a href="#results">Reading a capture</a></li>
-        <li><a href="#one-section">Capture a section</a></li>
+        <li><a href="#one-section">Capture one element</a></li>
         <li><a href="#motion">Motion</a></li>
         <li><a href="#copy">Copying</a></li>
         <li><a href="#figma">Figma</a></li>
@@ -84,34 +84,34 @@ pnpm build:all</code></pre>
         <h2 id="first-capture-title">Your first capture</h2>
         <ol>
           <li>Open the page you want and click Specimen in the toolbar. In Chromium the panel opens beside the page; in Safari it opens in a window docked beside it.</li>
-          <li>Select <strong>Capture everything</strong>. Specimen scans the page (it scrolls once to load lazy content and declines cookie banners), then captures every section at 1440, 768 and 390 px.</li>
-          <li>Watch the progress bar. Each section's screenshot appears as it is taken. <strong>Cancel</strong> stops the run at the next step and puts the page back as it was.</li>
+          <li>Choose what to capture: <strong>Whole page</strong>, <strong>Some sections</strong> or <strong>One element</strong>, then select <strong>Capture whole page</strong>. Specimen scans the page (it scrolls once to load lazy content and declines cookie banners), then captures every section at 1440, 768 and 390 px.</li>
+          <li>Watch the checklist. Each screenshot appears as it is taken, with a strip of everything captured so far. <strong>Cancel and restore the page</strong> stops the run at the next step and puts the page back as it was.</li>
         </ol>
-        <p><strong>Record motion</strong> is on by default. It reloads the page with small recording hooks, records the load and a scroll through the page, steps through animations, hovers interactive elements, sweeps a cursor over every section and opens menus. That takes a few minutes on a long page. Turn it off for a quick, still capture.</p>
-        <p>Nothing runs until you select a capture button. To choose sections before capturing, use the <strong>Scan page</strong> link under the button, untick sections in the <strong>Sections</strong> block, then select <strong>Capture</strong>.</p>
+        <p><strong>Include motion</strong> is on by default. It reloads the page with small recording hooks, records the load and a scroll through the page, steps through animations, hovers interactive elements, sweeps a cursor over every section and opens menus. That takes a few minutes on a long page. Turn it off for a quick, still capture.</p>
+        <p>Nothing runs until you select the button. To choose sections before capturing, choose <strong>Some sections</strong>, select <strong>Scan page</strong>, untick the sections you don't want, then select <strong>Capture</strong> (or <strong>Capture</strong> on one row for just that section).</p>
       </section>
 
       <section id="results" aria-labelledby="results-title">
         <h2 id="results-title">Reading a capture</h2>
         <dl class="docs-steps">
-          <div><dt>Screenshots and exports</dt><dd>The latest capture: a thumbnail per section (select <strong>All</strong> or one section to scope every export), then the design-tool and coding-agent outputs below.</dd></div>
-          <div><dt>Palette</dt><dd>Colours by role, every swatch with its exact value (<code>oklch()</code> and Display P3 kept as written), CSS variables, gradients, and WCAG contrast for each text and background pair. The eyedropper finds the nearest page colour.</dd></div>
-          <div><dt>Motion</dt><dd>Counts of animations, hover and focus effects, scroll effects, pointer effects and menus, per section; each pointer effect as a clip (hover it to play); the page-load and scroll recordings; and <strong>Record interaction</strong>.</dd></div>
-          <div><dt>Stack</dt><dd>Detected frameworks, styling, animation libraries and site builders, each with its evidence.</dd></div>
-          <div><dt>Sections</dt><dd>The detected sections. Hover one to outline it on the page, untick it to leave it out, <strong>Capture</strong> to recapture only it, <strong>Pick element</strong> to add any element, <strong>Detect again</strong> after the page changes.</dd></div>
-          <div><dt>Earlier captures</dt><dd>Every capture of this session, with all its exports, until you close the panel.</dd></div>
+          <div><dt>Export</dt><dd>Where the capture opens. Pick which part (<strong>All</strong> or one section's thumbnail scopes every export), then where it's going: <strong>Figma</strong>, <strong>Framer</strong>, <strong>Code agent</strong> or <strong>Other</strong>. Each shows one main action and the few others that fit; <strong>Download .zip</strong> is at the bottom.</dd></div>
+          <div><dt>Inspect › Colours</dt><dd>Colours by role, every swatch with its exact value (<code>oklch()</code> and Display P3 kept as written), CSS variables, gradients, and WCAG contrast for each text and background pair. The eyedropper finds the nearest page colour.</dd></div>
+          <div><dt>Inspect › Motion</dt><dd>Counts of animations, hover and focus effects, scroll effects, pointer effects and menus, per section; each pointer effect as a clip (hover it to play); the page-load and scroll recordings; and <strong>Record interaction</strong>.</dd></div>
+          <div><dt>Inspect › Stack</dt><dd>Detected frameworks, styling, animation libraries and site builders, each with its evidence.</dd></div>
+          <div><dt>Inspect › Sections</dt><dd>The sections this capture holds, with a thumbnail and size each. To capture others, select <strong>New capture</strong> and choose <strong>Some sections</strong>.</dd></div>
+          <div><dt>History</dt><dd>The clock button in the header lists every capture of this session, with all its exports, until you close the panel.</dd></div>
         </dl>
         <figure class="docs-figure docs-figure-block">
-          <img src="assets/one-capture.png" width="420" height="900" loading="lazy" alt="The Specimen panel after a capture, with Capture everything, Capture a section, Copy everything and the Screenshots and exports block.">
-          <figcaption>A capture opens as blocks you can fold.</figcaption>
+          <img src="assets/panel-export.png" width="420" height="900" loading="lazy" alt="The Export tab of a capture with Figma chosen: Copy for Figma, the plugin file and SVG.">
+          <figcaption>A capture opens on Export.</figcaption>
         </figure>
       </section>
 
       <section id="one-section" aria-labelledby="one-section-title">
-        <h2 id="one-section-title">Capture a section</h2>
-        <p>Use <strong>Capture a section</strong> when you want one part of the page: a hero, a pricing table, a header, a single button.</p>
+        <h2 id="one-section-title">Capture one element</h2>
+        <p>Choose <strong>One element</strong> when you want one part of the page: a hero, a pricing table, a header, a single button.</p>
         <ol>
-          <li>Select <strong>Capture a section</strong>. Specimen scans the page first if it hasn't yet.</li>
+          <li>Select <strong>Pick an element to capture</strong>. Specimen scans the page first if it hasn't yet.</li>
           <li>Move over the page. The picker outlines the element under the pointer with its margin, padding and size. Press <kbd>↑</kbd> for the parent, <kbd>↓</kbd> for the child.</li>
           <li>Click, or press <kbd>Enter</kbd>. Press <kbd>Esc</kbd> or select the button again to cancel.</li>
         </ol>
@@ -120,7 +120,7 @@ pnpm build:all</code></pre>
 
       <section id="motion" aria-labelledby="motion-title">
         <h2 id="motion-title">Motion</h2>
-        <h3>What Record motion captures</h3>
+        <h3>What Include motion captures</h3>
         <ul>
           <li><strong>Load and scroll.</strong> A clip of the page loading and one scrolling through it, cut into a clip per section.</li>
           <li><strong>Animations.</strong> CSS and Web Animations stepped frame by frame, with keyframes, duration, delay and easing. GSAP tweens and ScrollTrigger settings are read from the page.</li>
@@ -130,13 +130,13 @@ pnpm build:all</code></pre>
         </ul>
         <h3>The pointer sweep</h3>
         <figure class="docs-figure">
-          <img src="assets/motion-block.png" width="420" height="900" loading="lazy" alt="The Motion block with a pointer-effect clip of an ink trail.">
-          <figcaption>Pointer effects play in the Motion block.</figcaption>
+          <img src="assets/panel-pointer.png" width="420" height="1214" loading="lazy" alt="The Motion tab with an ink trail the pointer paints into a canvas, and its clip with the cursor drawn in.">
+          <figcaption>Pointer effects play in the Motion tab.</figcaption>
         </figure>
         <p>Some effects only respond to the mouse: ink and fluid trails, cursor followers, tilting cards. Specimen draws a cursor on the page and moves it over every screen of every section (up to three screens of a tall section), recording each stroke. You can watch it move. A section counts as reacting when the pixels change around the stroke beyond what the page does by itself, or when an element keeps moving with the pointer for the whole stroke. Hover effects are reported once, under hover, not again here.</p>
         <p>Each effect is saved as a clip with the cursor in it, a frame-by-frame filmstrip, and a description: whether it paints into a canvas or moves elements, where, and how long the trail takes to fade.</p>
         <h3>Record interaction</h3>
-        <p>If the page reacts in a way the sweep doesn't reach (a drag, a scrub, a gesture), select <strong>Record interaction</strong> in the Motion block, move your own mouse over the page, then <strong>Stop</strong>. You get a clip with the cursor drawn in, a filmstrip and the pointer path, ready to save for an agent. Recording stops by itself after 30 seconds. Chromium only.</p>
+        <p>If the page reacts in a way the sweep doesn't reach (a drag, a scrub, a gesture), select <strong>Record interaction</strong> (on the first screen, or under <strong>Missed an effect?</strong> in the Motion tab), move your own mouse over the page, then <strong>Stop</strong>. You get a clip with the cursor drawn in, a filmstrip and the pointer path, ready to save for an agent. Recording stops by itself after 30 seconds. Chromium only.</p>
       </section>
 
       <section id="copy" aria-labelledby="copy-title">
@@ -144,25 +144,25 @@ pnpm build:all</code></pre>
         <table class="docs-table">
           <thead><tr><th scope="col">Button</th><th scope="col">What goes on the clipboard</th></tr></thead>
           <tbody>
-            <tr><td><strong>Copy everything</strong></td><td>One markdown document: the DESIGN.md (colours, type, spacing, every section with screenshots named and its motion), the stack, the motion cues with the rebuilt effect code, and the page's shader code.</td></tr>
-            <tr><td><strong>Copy CSS</strong>, <strong>Copy JSON</strong></td><td>The palette as CSS variables, or as JSON with every value, role and usage.</td></tr>
-            <tr><td><strong>Copy motion</strong></td><td>The motion cues per section and the rebuilt CSS, GSAP and Motion code.</td></tr>
-            <tr><td><strong>Copy stack</strong></td><td>The detected technologies as a list.</td></tr>
-            <tr><td>Design-tool buttons</td><td>See the sections for each tool below.</td></tr>
+            <tr><td><strong>Copy everything</strong> (Export › Code agent)</td><td>One markdown document: the DESIGN.md (colours, type, spacing, every section with screenshots named and its motion), the stack, the motion cues with the rebuilt effect code, and the page's shader code.</td></tr>
+            <tr><td><strong>Copy CSS</strong>, <strong>Copy JSON</strong> (Inspect › Colours)</td><td>The palette as CSS variables, or as JSON with every value, role and usage.</td></tr>
+            <tr><td><strong>Copy motion</strong> (Inspect › Motion)</td><td>The motion cues per section and the rebuilt CSS, GSAP and Motion code.</td></tr>
+            <tr><td><strong>Copy stack</strong> (Inspect › Stack)</td><td>The detected technologies as a list.</td></tr>
+            <tr><td>Export destinations</td><td>See the sections for each tool below.</td></tr>
           </tbody>
         </table>
-        <p class="docs-note">A clipboard holds text or one image per paste, so screenshots and clips stay as files: use <strong>Copy image</strong>, <strong>Save to folder</strong> or <strong>Download everything</strong> for those.</p>
+        <p class="docs-note">A clipboard holds text or one image per paste, so screenshots and clips stay as files: use <strong>Copy image</strong>, <strong>Save to folder</strong> or <strong>Download .zip</strong> for those.</p>
       </section>
 
       <section id="figma" aria-labelledby="figma-title">
         <h2 id="figma-title">Figma</h2>
         <h3>Paste</h3>
-        <p>Select <strong>Copy</strong> in the Figma row, then press <kbd>⌘</kbd> <kbd>V</kbd> in Figma. The section pastes as editable layers: frames, text, images, gradients, borders and shadows. With <strong>All</strong> selected, sections paste stacked with a gap.</p>
+        <p>In <strong>Export</strong>, choose <strong>Figma</strong> and select <strong>Copy for Figma</strong>, then press <kbd>⌘</kbd> <kbd>V</kbd> in Figma. The section pastes as editable layers: frames, text, images, gradients, borders and shadows. With <strong>All</strong> selected, sections paste stacked with a gap.</p>
         <h3>Import with the Specimen plugin</h3>
         <p>The plugin brings in what a paste can't: auto layout, colour variables, hover states, and motion.</p>
         <ol>
           <li>In the Figma desktop app, open <strong>Plugins → Development → Import plugin from manifest</strong> and choose <code>apps/figma-plugin/manifest.json</code> from your Specimen folder (once).</li>
-          <li>In Specimen, select <strong>Plugin file</strong> to save a <code>.figma.zip</code>.</li>
+          <li>In Specimen, choose <strong>Figma</strong> and select <strong>Save plugin file</strong> to save a <code>.figma.zip</code>.</li>
           <li>In Figma, run <strong>Plugins → Development → Specimen</strong> and drop the file on it. A full <code>.specimen.zip</code> works too.</li>
         </ol>
         <p>You get one frame per section with real layers, colour variables and styles, hover states as component variants wired with Smart Animate at the captured duration and easing, and the screenshot as a hidden reference layer. Beside each section:</p>
@@ -182,23 +182,23 @@ pnpm build:all</code></pre>
         </figure>
         <h3>Copy component</h3>
         <ol>
-          <li>Select a section's thumbnail, then <strong>Copy component</strong> in the Framer row.</li>
+          <li>Select a section's thumbnail, choose <strong>Framer</strong>, then select <strong>Copy component</strong>.</li>
           <li>In Framer, open <strong>Assets → Code → New file</strong>, replace its contents with the clipboard, and save.</li>
           <li>Drag the component onto the canvas. It scales to any width.</li>
         </ol>
         <p>The component renders the section exactly as captured. If its canvas was drawn by a WebGL shader that fills the canvas, that shader runs live inside the component and follows the pointer, with the page's text still above it. Turn on <strong>Recorded motion</strong> in the component's properties to play the captured clip instead, for effects that can't run outside the site.</p>
-        <h3>Overrides</h3>
-        <p><strong>Overrides</strong> copies Framer code overrides for the rebuilt hover, load, loop, scroll-reveal and scroll-linked effects. Paste them into a code file, select one of your own layers, and pick an override in its <strong>Code Overrides</strong> panel. The layer then moves with the captured timing and easing.</p>
+        <h3>Motion overrides</h3>
+        <p><strong>Copy overrides</strong> copies Framer code overrides for the rebuilt hover, load, loop, scroll-reveal and scroll-linked effects. Paste them into a code file, select one of your own layers, and pick an override in its <strong>Code Overrides</strong> panel. The layer then moves with the captured timing and easing.</p>
       </section>
 
       <section id="other-tools" aria-labelledby="other-tools-title">
         <h2 id="other-tools-title">Other design tools</h2>
         <table class="docs-table">
-          <thead><tr><th scope="col">Tool</th><th scope="col">How</th><th scope="col">What you get</th></tr></thead>
+          <thead><tr><th scope="col">Tool</th><th scope="col">How (Export › Other)</th><th scope="col">What you get</th></tr></thead>
           <tbody>
-            <tr><td>Paper</td><td><strong>Copy</strong>, then paste</td><td>The section as HTML with images inline; Paper turns it into layers.</td></tr>
+            <tr><td>Paper</td><td><strong>Copy HTML</strong>, then paste</td><td>The section as HTML with images inline; Paper turns it into layers.</td></tr>
             <tr><td>Sketch, Penpot, Illustrator</td><td><strong>Copy SVG</strong> or <strong>.svg</strong></td><td>One self-contained SVG with images, background and fonts inside.</td></tr>
-            <tr><td>Photoshop</td><td><strong>.psd</strong></td><td>A layered file: a group per box, editable text, images as exact crops, the screenshot as a hidden reference.</td></tr>
+            <tr><td>Photoshop</td><td><strong>Save .psd</strong></td><td>A layered file: a group per box, editable text, images as exact crops, the screenshot as a hidden reference.</td></tr>
             <tr><td>Canva, Keynote, Slides, Notion</td><td><strong>Copy image</strong></td><td>The section's screenshot.</td></tr>
             <tr><td>After Effects</td><td><strong>.jsx</strong></td><td>Run it with <strong>File → Scripts → Run Script File</strong>: a comp per section, each animated element a layer with eased keyframes.</td></tr>
             <tr><td>Lottie</td><td><strong>Lottie</strong></td><td>Each animation and hover effect as Lottie JSON, for lottie-web, LottieFiles, Figma and Rive.</td></tr>
@@ -209,7 +209,7 @@ pnpm build:all</code></pre>
       <section id="agents" aria-labelledby="agents-title">
         <h2 id="agents-title">Coding agents</h2>
         <dl class="docs-steps">
-          <div><dt>Claude Code, Codex, Cursor</dt><dd>Select <strong>Save to folder</strong> (Chrome and Edge; other browsers download a zip) and pick your repo. Specimen writes <code>design-spec/</code>: <code>DESIGN.md</code>, screenshots at each width, highlight images with numbered callouts, <code>tokens.json</code>, motion clips and filmstrips, and shader files. Then ask your agent, for example, “Build the hero exactly as in <code>design-spec/DESIGN.md</code>, section 2.”</dd></div>
+          <div><dt>Claude Code, Codex, Cursor</dt><dd>In <strong>Export</strong>, choose <strong>Code agent</strong> and select <strong>Save to folder</strong> (Chrome and Edge; other browsers download a zip) and pick your repo. Specimen writes <code>design-spec/</code>: <code>DESIGN.md</code>, screenshots at each width, highlight images with numbered callouts, <code>tokens.json</code>, motion clips and filmstrips, and shader files. Then ask your agent, for example, “Build the hero exactly as in <code>design-spec/DESIGN.md</code>, section 2.”</dd></div>
           <div><dt>Claude, ChatGPT, Grok, Gemini</dt><dd>Select <strong>Copy everything</strong> (or <strong>Copy prompt</strong> for the DESIGN.md alone), paste it into the chat, and attach the screenshots it names (<strong>Copy screenshot</strong> copies the selected section's).</dd></div>
         </dl>
         <p>What agents get from motion: every effect as plain text (what changes, from what to what, over how long, with which easing), the rebuilt CSS, GSAP and Motion code, filmstrips they can look at when the files are saved, and the page's own shader code for canvas effects. Agents can't watch video, so the filmstrips and text carry the motion to them.</p>
@@ -217,7 +217,7 @@ pnpm build:all</code></pre>
 
       <section id="shaders" aria-labelledby="shaders-title">
         <h2 id="shaders-title">Shaders</h2>
-        <p>Canvas effects like ink, fluid and glow are drawn by shader programs, not by layers. With <strong>Record motion</strong> on, Specimen records every WebGL (GLSL) and WebGPU (WGSL) shader the page compiles, and works out which section's canvas each one draws. WebGPU shaders are matched by following what each render pass draws, so a renderer shared by several canvases is still split correctly. For WebGL it also records the last value of each uniform and how often the page set it; one set every frame is animated or follows the pointer.</p>
+        <p>Canvas effects like ink, fluid and glow are drawn by shader programs, not by layers. With <strong>Include motion</strong> on, Specimen records every WebGL (GLSL) and WebGPU (WGSL) shader the page compiles, and works out which section's canvas each one draws. WebGPU shaders are matched by following what each render pass draws, so a renderer shared by several canvases is still split correctly. For WebGL it also records the last value of each uniform and how often the page set it; one set every frame is animated or follows the pointer.</p>
         <p>The shaders are saved as <code>page/shaders/*.glsl</code> and <code>*.wgsl</code> with <code>page/shaders.json</code>, listed under each section in DESIGN.md, carried in the spec folder, and included in <strong>Copy everything</strong>. The shader code belongs to the site you captured: use it to understand and rebuild an effect, not to ship it as-is.</p>
         <p class="docs-note">Simple WebGL shaders that fill a canvas run live in the Framer component. Multi-pass effects, such as WebGPU fluid simulations, depend on the site's own JavaScript to run, so design tools get their clip and agents get their shader code.</p>
       </section>
@@ -285,7 +285,7 @@ node apps/cli/src/cli.ts media captures/example.com_2026-11-23T10-00-00.specimen
         </details>
         <details>
           <summary>A capture with motion takes several minutes.</summary>
-          <p>The pointer sweep spends about six seconds per screen of each section, up to three minutes in all. Turn off <strong>Record motion</strong> for a still capture, or use <strong>Capture a section</strong>.</p>
+          <p>The pointer sweep spends about six seconds per screen of each section, up to three minutes in all. Turn off <strong>Include motion</strong> for a still capture, or choose <strong>One element</strong>.</p>
         </details>
         <details>
           <summary>Specimen disappeared from Safari.</summary>
