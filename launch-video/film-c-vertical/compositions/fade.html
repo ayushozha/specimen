@@ -1,0 +1,62 @@
+<template>
+  <style>
+@font-face { font-family: Manrope; src: url('assets/fonts/manrope-latin.woff2') format('woff2'); font-weight: 400 800; }
+.paper { background: #fffaf5; color: #2b2849; }
+.night { background: radial-gradient(ellipse at 86% 12%, #493966 0%, rgba(73,57,102,0) 62%), #211d3d; color: #fffaf6; }
+.t-display { font-family: Manrope, sans-serif; font-weight: 700; letter-spacing: -0.055em; line-height: 0.98; }
+.t-title { font-family: Manrope, sans-serif; font-weight: 700; letter-spacing: -0.045em; line-height: 1.02; }
+.t-body { font-family: Manrope, sans-serif; font-weight: 600; letter-spacing: -0.02em; }
+.t-mono { font-family: 'JetBrains Mono', monospace; font-weight: 500; letter-spacing: -0.01em; }
+.iris { background: linear-gradient(135deg, #f8c9d6 0%, #d9c8f2 45%, #bfe0ef 100%); }
+.iris-text { background: linear-gradient(100deg, #c2629a 0%, #7d5ad1 55%, #3b8fc0 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.corners { position: absolute; pointer-events: none; }
+.corners i { position: absolute; width: 56px; height: 56px; border: 7px solid currentColor; }
+.corners .tl { left: 0; top: 0; border-right: 0; border-bottom: 0; border-radius: 12px 0 0 0; }
+.corners .tr { right: 0; top: 0; border-left: 0; border-bottom: 0; border-radius: 0 12px 0 0; }
+.corners .bl { left: 0; bottom: 0; border-right: 0; border-top: 0; border-radius: 0 0 0 12px; }
+.corners .br { right: 0; bottom: 0; border-left: 0; border-top: 0; border-radius: 0 0 12px 0; }
+.card { position: absolute; border-radius: 22px; overflow: hidden; box-shadow: 0 30px 70px rgba(77,60,112,0.22); }
+
+    #fade { position: absolute; inset: 0; overflow: hidden; }
+    #fade .world { position: absolute; inset: 0; }
+
+    #fade-card { left: 1140px; top: 60px; width: 660px; height: 930px; background: #fffaf5; }
+    #fade-card img { position: absolute; left: 0; top: 0; width: 660px; }
+    #fade-num { position: absolute; left: 140px; top: 300px; font-size: 300px; color: #fffaf6; }
+    #fade-num small { font-size: 120px; letter-spacing: -0.03em; }
+    #fade-sub { position: absolute; left: 150px; top: 640px; font-size: 48px; color: #dbd3e9; width: 960px; white-space: nowrap; }
+    #fade-curve { position: absolute; left: 150px; top: 780px; width: 860px; height: 160px; }
+    #fade-hl { position: absolute; left: 1150px; top: 174px; width: 640px; height: 70px; border-radius: 10px; border: 4px solid #d9c8f2; }
+
+    #fade-num { left: 100px; top: 260px; font-size: 230px; }
+    #fade-sub { left: 100px; top: 540px; width: 800px; font-size: 38px; }
+    #fade-curve { left: 100px; top: 630px; width: 800px; height: 170px; }
+    #fade-card { left: 210px; top: 860px; width: 660px; height: 680px; }
+    #fade-hl { left: 220px; top: 974px; }
+
+  </style>
+  <div id="fade" data-composition-id="fade" data-width="1080" data-height="1920">
+   <div class="world night">
+
+    <div id="fade-card" class="card"><img id="fade-img" src="assets/ui/motion-card.png" alt=""></div>
+    <div id="fade-hl"></div>
+    <div id="fade-num" class="t-display">775<small> ms</small></div>
+    <div id="fade-sub" class="t-body">until the ink fades. Measured, not guessed.</div>
+    <svg id="fade-curve" viewBox="0 0 860 160"><path id="fade-path" d="M0 12 C 200 12, 260 150, 860 150" fill="none" stroke="#d9c8f2" stroke-width="8" stroke-linecap="butt" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/></svg>
+
+   </div>
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true });
+
+    // The card scrolls from the counts to the pointer-effect card, then holds on its line.
+    tl.fromTo('#fade-card', { opacity: 0, y: 80 }, { opacity: 1, y: 0, duration: 0.5, ease: 'expo.out' }, 0.0);
+    tl.fromTo('#fade-img', { y: 0 }, { y: -330, duration: 0.6, ease: 'power3.inOut' }, 0.9);
+    tl.fromTo('#fade-hl', { opacity: 0 }, { opacity: 1, duration: 0.25 }, 1.55);
+    tl.fromTo('#fade-num', { opacity: 0, y: 50 }, { opacity: 1, y: 0, duration: 0.4, ease: 'expo.out' }, 2.3);
+    tl.fromTo('#fade-sub', { opacity: 0 }, { opacity: 1, duration: 0.35 }, 2.6);
+    tl.fromTo('#fade-path', { strokeDashoffset: 1 }, { strokeDashoffset: 0, duration: 0.78, ease: 'none' }, 2.6);
+
+    window.__timelines["fade"] = tl;
+  </script>
+</template>

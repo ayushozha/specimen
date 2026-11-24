@@ -1,0 +1,67 @@
+<template>
+  <style>
+@font-face { font-family: Manrope; src: url('assets/fonts/manrope-latin.woff2') format('woff2'); font-weight: 400 800; }
+.paper { background: #fffaf5; color: #2b2849; }
+.night { background: radial-gradient(ellipse at 86% 12%, #493966 0%, rgba(73,57,102,0) 62%), #211d3d; color: #fffaf6; }
+.t-display { font-family: Manrope, sans-serif; font-weight: 700; letter-spacing: -0.055em; line-height: 0.98; }
+.t-title { font-family: Manrope, sans-serif; font-weight: 700; letter-spacing: -0.045em; line-height: 1.02; }
+.t-body { font-family: Manrope, sans-serif; font-weight: 600; letter-spacing: -0.02em; }
+.t-mono { font-family: 'JetBrains Mono', monospace; font-weight: 500; letter-spacing: -0.01em; }
+.iris { background: linear-gradient(135deg, #f8c9d6 0%, #d9c8f2 45%, #bfe0ef 100%); }
+.iris-text { background: linear-gradient(100deg, #c2629a 0%, #7d5ad1 55%, #3b8fc0 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.corners { position: absolute; pointer-events: none; }
+.corners i { position: absolute; width: 56px; height: 56px; border: 7px solid currentColor; }
+.corners .tl { left: 0; top: 0; border-right: 0; border-bottom: 0; border-radius: 12px 0 0 0; }
+.corners .tr { right: 0; top: 0; border-left: 0; border-bottom: 0; border-radius: 0 12px 0 0; }
+.corners .bl { left: 0; bottom: 0; border-right: 0; border-top: 0; border-radius: 0 0 0 12px; }
+.corners .br { right: 0; bottom: 0; border-left: 0; border-top: 0; border-radius: 0 0 12px 0; }
+.card { position: absolute; border-radius: 22px; overflow: hidden; box-shadow: 0 30px 70px rgba(77,60,112,0.22); }
+
+    #code { position: absolute; inset: 0; overflow: hidden; }
+    #code .world { position: absolute; inset: 0; }
+
+    #code-title { position: absolute; left: 120px; top: 92px; font-size: 84px; }
+    #code-card { position: absolute; left: 120px; top: 270px; width: 920px; padding: 40px 44px; border-radius: 22px; background: #211d3d; color: #fffaf6; }
+    .cl { font-size: 32px; line-height: 50px; white-space: pre; color: #e9e2f5; }
+    .cl.c { color: #9d93b8; }
+    .cl b { font-weight: 600; color: #211d3d; background: #f8c9d6; padding: 0 6px; border-radius: 6px; }
+    #code-curve { position: absolute; left: 120px; top: 650px; width: 920px; height: 330px; }
+    #code-prev { left: 1120px; top: 240px; width: 680px; height: 680px; background: #fff; }
+    #code-prev video { width: 680px; height: 680px; object-fit: cover; }
+    #code-match { position: absolute; left: 1120px; top: 950px; font-size: 44px; }
+    #code-match span { color: #64509b; }
+
+  </style>
+  <div id="code" data-composition-id="code" data-width="1920" data-height="1080">
+   <div class="world paper">
+
+    <div id="code-title" class="t-title">Every effect becomes code.</div>
+    <div id="code-card">
+      <div class="cl c t-mono">&#47;&#42; the page's own hover, as computed &#42;&#47;</div>
+      <div class="cl t-mono">a:hover { scale: 1.05; }</div>
+      <div class="cl t-mono">a { transition: scale 300ms</div>
+      <div class="cl t-mono">  <b>cubic-bezier(0.34, 1.56, 0.64, 1)</b>; }</div>
+    </div>
+    <svg id="code-curve" viewBox="0 0 920 330">
+      <line x1="40" y1="290" x2="880" y2="290" stroke="#ded4e1" stroke-width="3"/>
+      <line x1="40" y1="70" x2="880" y2="70" stroke="#ded4e1" stroke-width="3" stroke-dasharray="10 10"/>
+      <path id="code-path" d="M40 290 C 325.6 290, 577.6 -53.2, 880 70" fill="none" stroke="#64509b" stroke-width="9" stroke-linecap="butt" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/>
+    </svg>
+    <div id="code-prev" class="card"><video id="code-prev-video" class="clip" data-start="0" data-duration="4" src="assets/clips/preview.mp4" muted playsinline></video></div>
+    <div id="code-match" class="t-body">Scroll reveals: <span>fitted, match 99%</span></div>
+
+   </div>
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true });
+
+    tl.fromTo('#code-title', { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.4, ease: 'expo.out' }, 0.05);
+    tl.fromTo('#code-card', { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.45, ease: 'expo.out' }, 0.2);
+    tl.fromTo('.cl', { opacity: 0 }, { opacity: 1, duration: 0.2, stagger: 0.12 }, 0.4);
+    tl.fromTo('#code-path', { strokeDashoffset: 1 }, { strokeDashoffset: 0, duration: 0.3, ease: 'power1.inOut' }, 1.0);
+    tl.fromTo('#code-prev', { opacity: 0, x: 100 }, { opacity: 1, x: 0, duration: 0.5, ease: 'expo.out' }, 0.5);
+    tl.fromTo('#code-match', { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.35, ease: 'expo.out' }, 2.1);
+
+    window.__timelines["code"] = tl;
+  </script>
+</template>

@@ -1,0 +1,60 @@
+<template>
+  <style>
+@font-face { font-family: Manrope; src: url('assets/fonts/manrope-latin.woff2') format('woff2'); font-weight: 400 800; }
+.paper { background: #fffaf5; color: #2b2849; }
+.night { background: radial-gradient(ellipse at 86% 12%, #493966 0%, rgba(73,57,102,0) 62%), #211d3d; color: #fffaf6; }
+.t-display { font-family: Manrope, sans-serif; font-weight: 700; letter-spacing: -0.055em; line-height: 0.98; }
+.t-title { font-family: Manrope, sans-serif; font-weight: 700; letter-spacing: -0.045em; line-height: 1.02; }
+.t-body { font-family: Manrope, sans-serif; font-weight: 600; letter-spacing: -0.02em; }
+.t-mono { font-family: 'JetBrains Mono', monospace; font-weight: 500; letter-spacing: -0.01em; }
+.iris { background: linear-gradient(135deg, #f8c9d6 0%, #d9c8f2 45%, #bfe0ef 100%); }
+.iris-text { background: linear-gradient(100deg, #c2629a 0%, #7d5ad1 55%, #3b8fc0 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.corners { position: absolute; pointer-events: none; }
+.corners i { position: absolute; width: 56px; height: 56px; border: 7px solid currentColor; }
+.corners .tl { left: 0; top: 0; border-right: 0; border-bottom: 0; border-radius: 12px 0 0 0; }
+.corners .tr { right: 0; top: 0; border-left: 0; border-bottom: 0; border-radius: 0 12px 0 0; }
+.corners .bl { left: 0; bottom: 0; border-right: 0; border-top: 0; border-radius: 0 0 0 12px; }
+.corners .br { right: 0; bottom: 0; border-left: 0; border-top: 0; border-radius: 0 0 12px 0; }
+.card { position: absolute; border-radius: 22px; overflow: hidden; box-shadow: 0 30px 70px rgba(77,60,112,0.22); }
+
+    #shader { position: absolute; inset: 0; overflow: hidden; }
+    #shader .world { position: absolute; inset: 0; }
+
+    #shader-title { position: absolute; left: 140px; top: 110px; font-size: 84px; color: #fffaf6; }
+    #shader-sub { position: absolute; left: 144px; top: 220px; font-size: 38px; color: #dbd3e9; }
+    #shader-code { position: absolute; left: 140px; top: 360px; width: 1640px; padding: 44px 52px; border-radius: 22px; background: rgba(255,250,246,0.06); border: 2px solid rgba(219,211,233,0.18); }
+    .sl { font-size: 40px; line-height: 64px; color: #e9e2f5; white-space: pre; }
+    .sl b { font-weight: 600; color: #211d3d; background: #d9c8f2; padding: 0 6px; border-radius: 6px; }
+
+    #shader-title { left: 100px; top: 260px; width: 800px; font-size: 76px; }
+    #shader-sub { left: 100px; top: 460px; font-size: 38px; }
+    #shader-code { left: 30px; top: 580px; width: 1020px; padding: 36px 28px; }
+    .sl { font-size: 28px; line-height: 44px; white-space: pre-wrap; }
+
+  </style>
+  <div id="shader" data-composition-id="shader" data-width="1080" data-height="1920">
+   <div class="world night">
+    <div id="shader-title" class="t-title">It reads the page's own shader.</div>
+    <div id="shader-sub" class="t-body">WebGPU · the ink's fluid simulation</div>
+    <div id="shader-code">
+      <div class="sl t-mono" id="sl0">@fragment</div>
+      <div class="sl t-mono" id="sl1">fn fs(input: VertexOutput) -&gt; @location(0) vec4f {</div>
+      <div class="sl t-mono" id="sl2">  let coordinate = input.vUv - uniforms.uDelta</div>
+      <div class="sl t-mono" id="sl3">    * lookup(tVelocity, input.vUv).xy * uniforms.uVelocityTexel;</div>
+      <div class="sl t-mono" id="sl4">  return lookup(tSource, coordinate)</div>
+      <div class="sl t-mono" id="sl5">    / (1.0 + <b>uniforms.uDissipation</b> * uniforms.uDelta);</div>
+      <div class="sl t-mono" id="sl6">}</div>
+    </div>
+   </div>
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true });
+
+    tl.fromTo('#shader-title', { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.4, ease: 'expo.out' }, 0.05);
+    tl.fromTo('#shader-sub', { opacity: 0 }, { opacity: 1, duration: 0.3 }, 0.25);
+    tl.fromTo('#shader-code', { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.4, ease: 'expo.out' }, 0.25);
+    tl.fromTo('.sl', { opacity: 0, x: -14 }, { opacity: 1, x: 0, duration: 0.22, ease: 'power2.out', stagger: 0.11 }, 0.45);
+
+    window.__timelines["shader"] = tl;
+  </script>
+</template>

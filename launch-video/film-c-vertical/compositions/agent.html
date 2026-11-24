@@ -1,0 +1,59 @@
+<template>
+  <style>
+@font-face { font-family: Manrope; src: url('assets/fonts/manrope-latin.woff2') format('woff2'); font-weight: 400 800; }
+.paper { background: #fffaf5; color: #2b2849; }
+.night { background: radial-gradient(ellipse at 86% 12%, #493966 0%, rgba(73,57,102,0) 62%), #211d3d; color: #fffaf6; }
+.t-display { font-family: Manrope, sans-serif; font-weight: 700; letter-spacing: -0.055em; line-height: 0.98; }
+.t-title { font-family: Manrope, sans-serif; font-weight: 700; letter-spacing: -0.045em; line-height: 1.02; }
+.t-body { font-family: Manrope, sans-serif; font-weight: 600; letter-spacing: -0.02em; }
+.t-mono { font-family: 'JetBrains Mono', monospace; font-weight: 500; letter-spacing: -0.01em; }
+.iris { background: linear-gradient(135deg, #f8c9d6 0%, #d9c8f2 45%, #bfe0ef 100%); }
+.iris-text { background: linear-gradient(100deg, #c2629a 0%, #7d5ad1 55%, #3b8fc0 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.corners { position: absolute; pointer-events: none; }
+.corners i { position: absolute; width: 56px; height: 56px; border: 7px solid currentColor; }
+.corners .tl { left: 0; top: 0; border-right: 0; border-bottom: 0; border-radius: 12px 0 0 0; }
+.corners .tr { right: 0; top: 0; border-left: 0; border-bottom: 0; border-radius: 0 12px 0 0; }
+.corners .bl { left: 0; bottom: 0; border-right: 0; border-top: 0; border-radius: 0 0 0 12px; }
+.corners .br { right: 0; bottom: 0; border-left: 0; border-top: 0; border-radius: 0 0 12px 0; }
+.card { position: absolute; border-radius: 22px; overflow: hidden; box-shadow: 0 30px 70px rgba(77,60,112,0.22); }
+
+    #agent { position: absolute; inset: 0; overflow: hidden; }
+    #agent .world { position: absolute; inset: 0; }
+
+    #agent-title { position: absolute; left: 120px; top: 92px; font-size: 84px; }
+    #agent-doc { position: absolute; left: 120px; top: 250px; width: 1680px; padding: 40px 52px; border-radius: 22px; background: #fff; border: 2px solid #ded4e1; box-shadow: 0 30px 70px rgba(77,60,112,0.14); }
+    #agent-file { font-size: 30px; color: #57516a; margin-bottom: 22px; }
+    .al { font-size: 34px; line-height: 54px; color: #2b2849; }
+    .al b { font-weight: 600; background: #eee7f8; padding: 0 6px; border-radius: 6px; }
+
+    #agent-title { left: 100px; top: 260px; width: 800px; font-size: 76px; }
+    #agent-doc { left: 24px; top: 520px; width: 1032px; padding: 34px 26px; }
+    #agent-file { font-size: 30px; }
+    .al { font-size: 31px; line-height: 50px; white-space: normal; }
+
+  </style>
+  <div id="agent" data-composition-id="agent" data-width="1080" data-height="1920">
+   <div class="world paper">
+
+    <div id="agent-title" class="t-title">Your agent gets every value as text.</div>
+    <div id="agent-doc">
+      <div id="agent-file" class="t-mono">DESIGN.md · Motion</div>
+      <div class="al t-mono">- pointer: canvas: moving the pointer paints into a &lt;canvas&gt;,</div>
+      <div class="al t-mono">  over 738×846 at 423,0; <b>the trail fades about 775ms</b> after the</div>
+      <div class="al t-mono">  pointer stops. It listens to pointermove on the whole window.</div>
+      <div class="al t-mono">- hover: "Watch it in action": scale none → 1.05</div>
+      <div class="al t-mono">  (<b>scale 300ms cubic-bezier(0.34, 1.56, 0.64, 1)</b>)</div>
+    </div>
+
+   </div>
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true });
+
+    tl.fromTo('#agent-title', { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.4, ease: 'expo.out' }, 0.05);
+    tl.fromTo('#agent-doc', { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.45, ease: 'expo.out' }, 0.15);
+    tl.fromTo('.al', { opacity: 0 }, { opacity: 1, duration: 0.18, stagger: 0.06 }, 0.3);
+
+    window.__timelines["agent"] = tl;
+  </script>
+</template>

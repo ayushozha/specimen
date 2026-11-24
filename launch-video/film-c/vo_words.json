@@ -1,0 +1,581 @@
+[
+ {
+  "id": "L01",
+  "text": "Every capture tool takes a picture. Specimen records the motion.",
+  "dur": 3.715,
+  "words": [
+   {
+    "w": "Every",
+    "t": 0.0,
+    "end": 0.255
+   },
+   {
+    "w": "capture",
+    "t": 0.313,
+    "end": 0.673
+   },
+   {
+    "w": "tool",
+    "t": 0.708,
+    "end": 0.987
+   },
+   {
+    "w": "takes",
+    "t": 1.045,
+    "end": 1.289
+   },
+   {
+    "w": "a",
+    "t": 1.324,
+    "end": 1.358
+   },
+   {
+    "w": "picture.",
+    "t": 1.405,
+    "end": 1.823
+   },
+   {
+    "w": "Specimen",
+    "t": 1.997,
+    "end": 2.508
+   },
+   {
+    "w": "records",
+    "t": 2.577,
+    "end": 2.949
+   },
+   {
+    "w": "the",
+    "t": 2.995,
+    "end": 3.065
+   },
+   {
+    "w": "motion.",
+    "t": 3.1,
+    "end": 3.715
+   }
+  ]
+ },
+ {
+  "id": "L02",
+  "text": "Like ink that follows your cursor.",
+  "dur": 2.043,
+  "words": [
+   {
+    "w": "Like",
+    "t": 0.0,
+    "end": 0.267
+   },
+   {
+    "w": "ink",
+    "t": 0.325,
+    "end": 0.546
+   },
+   {
+    "w": "that",
+    "t": 0.615,
+    "end": 0.755
+   },
+   {
+    "w": "follows",
+    "t": 0.813,
+    "end": 1.115
+   },
+   {
+    "w": "your",
+    "t": 1.161,
+    "end": 1.265
+   },
+   {
+    "w": "cursor.",
+    "t": 1.312,
+    "end": 2.043
+   }
+  ]
+ },
+ {
+  "id": "L03",
+  "text": "A screenshot can't keep that.",
+  "dur": 1.44,
+  "words": [
+   {
+    "w": "A",
+    "t": 0.0,
+    "end": 0.081
+   },
+   {
+    "w": "screenshot",
+    "t": 0.139,
+    "end": 0.604
+   },
+   {
+    "w": "can't",
+    "t": 0.662,
+    "end": 0.848
+   },
+   {
+    "w": "keep",
+    "t": 0.882,
+    "end": 1.057
+   },
+   {
+    "w": "that.",
+    "t": 1.103,
+    "end": 1.44
+   }
+  ]
+ },
+ {
+  "id": "L04",
+  "text": "Specimen moves its own cursor over every section, and records what the page does back.",
+  "dur": 4.969,
+  "words": [
+   {
+    "w": "Specimen",
+    "t": 0.0,
+    "end": 0.499
+   },
+   {
+    "w": "moves",
+    "t": 0.557,
+    "end": 0.778
+   },
+   {
+    "w": "its",
+    "t": 0.824,
+    "end": 0.94
+   },
+   {
+    "w": "own",
+    "t": 0.987,
+    "end": 1.103
+   },
+   {
+    "w": "cursor",
+    "t": 1.149,
+    "end": 1.474
+   },
+   {
+    "w": "over",
+    "t": 1.544,
+    "end": 1.718
+   },
+   {
+    "w": "every",
+    "t": 1.788,
+    "end": 1.974
+   },
+   {
+    "w": "section,",
+    "t": 2.02,
+    "end": 2.508
+   },
+   {
+    "w": "and",
+    "t": 2.682,
+    "end": 2.844
+   },
+   {
+    "w": "records",
+    "t": 2.926,
+    "end": 3.32
+   },
+   {
+    "w": "what",
+    "t": 3.367,
+    "end": 3.541
+   },
+   {
+    "w": "the",
+    "t": 3.587,
+    "end": 3.657
+   },
+   {
+    "w": "page",
+    "t": 3.704,
+    "end": 3.994
+   },
+   {
+    "w": "does",
+    "t": 4.052,
+    "end": 4.238
+   },
+   {
+    "w": "back.",
+    "t": 4.307,
+    "end": 4.969
+   }
+  ]
+ },
+ {
+  "id": "L05",
+  "text": "It finds the ink, and times the fade. Seven hundred seventy-five milliseconds.",
+  "dur": 4.272,
+  "words": [
+   {
+    "w": "It",
+    "t": 0.0,
+    "end": 0.139
+   },
+   {
+    "w": "finds",
+    "t": 0.197,
+    "end": 0.453
+   },
+   {
+    "w": "the",
+    "t": 0.499,
+    "end": 0.569
+   },
+   {
+    "w": "ink,",
+    "t": 0.65,
+    "end": 0.848
+   },
+   {
+    "w": "and",
+    "t": 0.871,
+    "end": 0.94
+   },
+   {
+    "w": "times",
+    "t": 0.987,
+    "end": 1.265
+   },
+   {
+    "w": "the",
+    "t": 1.3,
+    "end": 1.37
+   },
+   {
+    "w": "fade.",
+    "t": 1.416,
+    "end": 1.8
+   },
+   {
+    "w": "Seven",
+    "t": 2.043,
+    "end": 2.322
+   },
+   {
+    "w": "hundred",
+    "t": 2.368,
+    "end": 2.612
+   },
+   {
+    "w": "seventy-five",
+    "t": 2.682,
+    "end": 3.262
+   },
+   {
+    "w": "milliseconds.",
+    "t": 3.309,
+    "end": 4.272
+   }
+  ]
+ },
+ {
+  "id": "L06",
+  "text": "It even reads the page's own shader code.",
+  "dur": 2.043,
+  "words": [
+   {
+    "w": "It",
+    "t": 0.0,
+    "end": 0.128
+   },
+   {
+    "w": "even",
+    "t": 0.186,
+    "end": 0.348
+   },
+   {
+    "w": "reads",
+    "t": 0.406,
+    "end": 0.615
+   },
+   {
+    "w": "the",
+    "t": 0.662,
+    "end": 0.731
+   },
+   {
+    "w": "page's",
+    "t": 0.766,
+    "end": 1.068
+   },
+   {
+    "w": "own",
+    "t": 1.126,
+    "end": 1.242
+   },
+   {
+    "w": "shader",
+    "t": 1.289,
+    "end": 1.556
+   },
+   {
+    "w": "code.",
+    "t": 1.625,
+    "end": 2.043
+   }
+  ]
+ },
+ {
+  "id": "L07",
+  "text": "Every hover and scroll becomes code, matched to the recording.",
+  "dur": 3.158,
+  "words": [
+   {
+    "w": "Every",
+    "t": 0.0,
+    "end": 0.267
+   },
+   {
+    "w": "hover",
+    "t": 0.313,
+    "end": 0.534
+   },
+   {
+    "w": "and",
+    "t": 0.58,
+    "end": 0.662
+   },
+   {
+    "w": "scroll",
+    "t": 0.697,
+    "end": 0.964
+   },
+   {
+    "w": "becomes",
+    "t": 1.022,
+    "end": 1.312
+   },
+   {
+    "w": "code,",
+    "t": 1.382,
+    "end": 1.788
+   },
+   {
+    "w": "matched",
+    "t": 1.939,
+    "end": 2.218
+   },
+   {
+    "w": "to",
+    "t": 2.241,
+    "end": 2.287
+   },
+   {
+    "w": "the",
+    "t": 2.334,
+    "end": 2.403
+   },
+   {
+    "w": "recording.",
+    "t": 2.438,
+    "end": 3.158
+   }
+  ]
+ },
+ {
+  "id": "L08",
+  "text": "Paste into Figma, and the hover is already animated.",
+  "dur": 2.601,
+  "words": [
+   {
+    "w": "Paste",
+    "t": 0.0,
+    "end": 0.313
+   },
+   {
+    "w": "into",
+    "t": 0.337,
+    "end": 0.488
+   },
+   {
+    "w": "Figma,",
+    "t": 0.546,
+    "end": 0.929
+   },
+   {
+    "w": "and",
+    "t": 0.952,
+    "end": 1.057
+   },
+   {
+    "w": "the",
+    "t": 1.091,
+    "end": 1.161
+   },
+   {
+    "w": "hover",
+    "t": 1.196,
+    "end": 1.405
+   },
+   {
+    "w": "is",
+    "t": 1.451,
+    "end": 1.521
+   },
+   {
+    "w": "already",
+    "t": 1.567,
+    "end": 1.811
+   },
+   {
+    "w": "animated.",
+    "t": 1.869,
+    "end": 2.601
+   }
+  ]
+ },
+ {
+  "id": "L09",
+  "text": "Open After Effects, and it's keyframed.",
+  "dur": 2.043,
+  "words": [
+   {
+    "w": "Open",
+    "t": 0.0,
+    "end": 0.267
+   },
+   {
+    "w": "After",
+    "t": 0.313,
+    "end": 0.522
+   },
+   {
+    "w": "Effects,",
+    "t": 0.557,
+    "end": 0.929
+   },
+   {
+    "w": "and",
+    "t": 0.952,
+    "end": 1.057
+   },
+   {
+    "w": "it's",
+    "t": 1.115,
+    "end": 1.242
+   },
+   {
+    "w": "keyframed.",
+    "t": 1.3,
+    "end": 2.043
+   }
+  ]
+ },
+ {
+  "id": "L10",
+  "text": "Your coding agent gets every value, as text.",
+  "dur": 2.508,
+  "words": [
+   {
+    "w": "Your",
+    "t": 0.0,
+    "end": 0.197
+   },
+   {
+    "w": "coding",
+    "t": 0.244,
+    "end": 0.488
+   },
+   {
+    "w": "agent",
+    "t": 0.534,
+    "end": 0.778
+   },
+   {
+    "w": "gets",
+    "t": 0.813,
+    "end": 0.964
+   },
+   {
+    "w": "every",
+    "t": 1.01,
+    "end": 1.161
+   },
+   {
+    "w": "value,",
+    "t": 1.207,
+    "end": 1.579
+   },
+   {
+    "w": "as",
+    "t": 1.625,
+    "end": 1.811
+   },
+   {
+    "w": "text.",
+    "t": 1.892,
+    "end": 2.508
+   }
+  ]
+ },
+ {
+  "id": "L11",
+  "text": "Specimen. It records the motion.",
+  "dur": 2.136,
+  "words": [
+   {
+    "w": "Specimen.",
+    "t": 0.0,
+    "end": 0.627
+   },
+   {
+    "w": "It",
+    "t": 0.836,
+    "end": 0.952
+   },
+   {
+    "w": "records",
+    "t": 0.998,
+    "end": 1.347
+   },
+   {
+    "w": "the",
+    "t": 1.382,
+    "end": 1.451
+   },
+   {
+    "w": "motion.",
+    "t": 1.498,
+    "end": 2.136
+   }
+  ]
+ },
+ {
+  "id": "L12",
+  "text": "specimen dot ayushojha dot com.",
+  "dur": 2.276,
+  "words": [
+   {
+    "w": "specimen",
+    "t": 0.0,
+    "end": 0.511
+   },
+   {
+    "w": "dot",
+    "t": 0.569,
+    "end": 0.778
+   },
+   {
+    "w": "ayushojha",
+    "t": 0.848,
+    "end": 1.382
+   },
+   {
+    "w": "dot",
+    "t": 1.451,
+    "end": 1.625
+   },
+   {
+    "w": "com.",
+    "t": 1.683,
+    "end": 2.276
+   }
+  ]
+ }
+]

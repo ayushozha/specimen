@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: #fffaf5; }
+      #root { position: relative; width: 1920px; height: 1080px; overflow: hidden; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="46" data-width="1920" data-height="1080">
+      <!-- Scenes: the edge case (pointer ink), why a picture fails, how Specimen records and measures it, where it goes. -->
+      <div id="hook" class="clip" data-composition-id="hook" data-composition-src="compositions/hook.html" data-start="0" data-duration="4.5"></div>
+      <div id="ink" class="clip" data-composition-id="ink" data-composition-src="compositions/ink.html" data-start="4.5" data-duration="2.7"></div>
+      <div id="shot" class="clip" data-composition-id="shot" data-composition-src="compositions/shot.html" data-start="7.2" data-duration="2.2"></div>
+      <div id="sweep" class="clip" data-composition-id="sweep" data-composition-src="compositions/sweep.html" data-start="9.4" data-duration="5.6"></div>
+      <div id="fade" class="clip" data-composition-id="fade" data-composition-src="compositions/fade.html" data-start="15" data-duration="5"></div>
+      <div id="shader" class="clip" data-composition-id="shader" data-composition-src="compositions/shader.html" data-start="20" data-duration="3"></div>
+      <div id="code" class="clip" data-composition-id="code" data-composition-src="compositions/code.html" data-start="23" data-duration="4"></div>
+      <div id="figma" class="clip" data-composition-id="figma" data-composition-src="compositions/figma.html" data-start="27" data-duration="3.4"></div>
+      <div id="ae" class="clip" data-composition-id="ae" data-composition-src="compositions/ae.html" data-start="30.4" data-duration="3"></div>
+      <div id="agent" class="clip" data-composition-id="agent" data-composition-src="compositions/agent.html" data-start="33.4" data-duration="3.6"></div>
+      <div id="breath" class="clip" data-composition-id="breath" data-composition-src="compositions/breath.html" data-start="37" data-duration="1"></div>
+      <div id="payoff" class="clip" data-composition-id="payoff" data-composition-src="compositions/payoff.html" data-start="38" data-duration="4"></div>
+      <div id="endcard" class="clip" data-composition-id="endcard" data-composition-src="compositions/endcard.html" data-start="42" data-duration="4"></div>
+
+      <!-- Voice: Eric (ElevenLabs), one file a line. -->
+      <audio id="vo01" data-start="0.3" data-duration="3.72" src="assets/voice/L01.mp3"></audio>
+      <audio id="vo02" data-start="4.7" data-duration="2.05" src="assets/voice/L02.mp3"></audio>
+      <audio id="vo03" data-start="7.4" data-duration="1.44" src="assets/voice/L03.mp3"></audio>
+      <audio id="vo04" data-start="9.6" data-duration="4.97" src="assets/voice/L04.mp3"></audio>
+      <audio id="vo05" data-start="15.3" data-duration="4.28" src="assets/voice/L05.mp3"></audio>
+      <audio id="vo06" data-start="20.3" data-duration="2.05" src="assets/voice/L06.mp3"></audio>
+      <audio id="vo07" data-start="23.2" data-duration="3.16" src="assets/voice/L07.mp3"></audio>
+      <audio id="vo08" data-start="27.3" data-duration="2.61" src="assets/voice/L08.mp3"></audio>
+      <audio id="vo09" data-start="30.7" data-duration="2.05" src="assets/voice/L09.mp3"></audio>
+      <audio id="vo10" data-start="33.6" data-duration="2.51" src="assets/voice/L10.mp3"></audio>
+      <audio id="vo11" data-start="38.2" data-duration="2.14" src="assets/voice/L11.mp3"></audio>
+      <audio id="vo12" data-start="42" data-duration="2.28" src="assets/voice/L12.mp3"></audio>
+
+      <!-- Music bed: arranged on its own grid, silent 37–38 for the breath. -->
+      <audio id="bed" data-start="0" data-duration="46" data-volume="0.3" data-fade-out="1.5" src="assets/music/bed.wav"></audio>
+
+      <!-- Effects: each starts at its cue minus its own peak. -->
+      <audio id="sfx-shutter" data-start="7.31" data-duration="0.39" data-volume="0.7" src="assets/sfx/shutter.wav"></audio>
+      <audio id="sfx-whoosh-a" data-start="14.96" data-duration="0.31" data-volume="0.5" src="assets/sfx/whoosh-a.wav"></audio>
+      <audio id="sfx-tick" data-start="17.3" data-duration="0.07" data-volume="0.6" src="assets/sfx/tick.wav"></audio>
+      <audio id="sfx-whoosh-b" data-start="19.69" data-duration="0.42" data-volume="0.5" src="assets/sfx/whoosh-b.wav"></audio>
+      <audio id="sfx-riser" data-start="37.04" data-duration="0.99" data-volume="0.6" src="assets/sfx/riser.wav"></audio>
+      <audio id="sfx-payoff" data-start="37.98" data-duration="0.22" data-volume="1" src="assets/sfx/payoff.wav"></audio>
+      <audio id="sfx-logo" data-start="41.7" data-duration="0.47" data-volume="0.8" src="assets/sfx/logo.wav"></audio>
+    </div>
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

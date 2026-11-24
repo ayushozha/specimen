@@ -1,0 +1,56 @@
+<template>
+  <style>
+@font-face { font-family: Manrope; src: url('assets/fonts/manrope-latin.woff2') format('woff2'); font-weight: 400 800; }
+.paper { background: #fffaf5; color: #2b2849; }
+.night { background: radial-gradient(ellipse at 86% 12%, #493966 0%, rgba(73,57,102,0) 62%), #211d3d; color: #fffaf6; }
+.t-display { font-family: Manrope, sans-serif; font-weight: 700; letter-spacing: -0.055em; line-height: 0.98; }
+.t-title { font-family: Manrope, sans-serif; font-weight: 700; letter-spacing: -0.045em; line-height: 1.02; }
+.t-body { font-family: Manrope, sans-serif; font-weight: 600; letter-spacing: -0.02em; }
+.t-mono { font-family: 'JetBrains Mono', monospace; font-weight: 500; letter-spacing: -0.01em; }
+.iris { background: linear-gradient(135deg, #f8c9d6 0%, #d9c8f2 45%, #bfe0ef 100%); }
+.iris-text { background: linear-gradient(100deg, #c2629a 0%, #7d5ad1 55%, #3b8fc0 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.corners { position: absolute; pointer-events: none; }
+.corners i { position: absolute; width: 56px; height: 56px; border: 7px solid currentColor; }
+.corners .tl { left: 0; top: 0; border-right: 0; border-bottom: 0; border-radius: 12px 0 0 0; }
+.corners .tr { right: 0; top: 0; border-left: 0; border-bottom: 0; border-radius: 0 12px 0 0; }
+.corners .bl { left: 0; bottom: 0; border-right: 0; border-top: 0; border-radius: 0 0 0 12px; }
+.corners .br { right: 0; bottom: 0; border-left: 0; border-top: 0; border-radius: 0 0 12px 0; }
+.card { position: absolute; border-radius: 22px; overflow: hidden; box-shadow: 0 30px 70px rgba(77,60,112,0.22); }
+
+    #payoff { position: absolute; inset: 0; overflow: hidden; }
+    #payoff .world { position: absolute; inset: 0; }
+
+    #pay-corners { left: 210px; top: 270px; width: 1500px; height: 560px; color: #2b2849; }
+    #pay-grid { position: absolute; left: 600px; top: 330px; width: 720px; height: 420px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+    #pay-grid div { border-radius: 14px; overflow: hidden; }
+    #pay-grid img { width: 100%; height: 100%; object-fit: cover; object-position: top; }
+    #pay-name { position: absolute; left: 0; right: 0; top: 330px; text-align: center; font-size: 200px; }
+    #pay-claim { position: absolute; left: 0; right: 0; top: 600px; text-align: center; font-size: 84px; }
+
+  </style>
+  <div id="payoff" data-composition-id="payoff" data-width="1920" data-height="1080">
+   <div class="world paper">
+
+    <div id="pay-grid"><div class="pt"><img src="assets/ui/ink-freeze.png" alt=""></div><div class="pt"><img src="assets/ui/motion-card.png" alt=""></div><div class="pt"><img src="assets/ui/figma-panel.png" alt=""></div><div class="pt"><img src="assets/ui/motion-head.png" alt=""></div></div>
+    <div id="pay-corners" class="corners"><i class="tl"></i><i class="tr"></i><i class="bl"></i><i class="br"></i></div>
+    <div id="pay-name" class="t-display">Specimen</div>
+    <div id="pay-claim" class="t-title">It records the <span class="iris-text">motion.</span></div>
+
+   </div>
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true });
+
+    // Corners start where the breath left them (800x500 at 560,290) and open to the title box.
+    tl.fromTo('#pay-corners .tl', { x: 350, y: 20 }, { x: 0, y: 0, duration: 0.45, ease: 'power3.inOut' }, 0.95);
+    tl.fromTo('#pay-corners .tr', { x: -350, y: 20 }, { x: 0, y: 0, duration: 0.45, ease: 'power3.inOut' }, 0.95);
+    tl.fromTo('#pay-corners .bl', { x: 350, y: -40 }, { x: 0, y: 0, duration: 0.45, ease: 'power3.inOut' }, 0.95);
+    tl.fromTo('#pay-corners .br', { x: -350, y: -40 }, { x: 0, y: 0, duration: 0.45, ease: 'power3.inOut' }, 0.95);
+    tl.fromTo('.pt', { opacity: 0, scale: 0.6 }, { opacity: 1, scale: 1, duration: 0.3, ease: 'back.out(1.8)', stagger: 0.05 }, 0.0);
+    tl.to('#pay-grid', { scale: 0.2, opacity: 0, duration: 0.35, ease: 'power3.in' }, 0.95);
+    tl.fromTo('#pay-name', { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.45, ease: 'expo.out' }, 1.1);
+    tl.fromTo('#pay-claim', { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.45, ease: 'expo.out' }, 1.75);
+
+    window.__timelines["payoff"] = tl;
+  </script>
+</template>

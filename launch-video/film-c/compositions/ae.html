@@ -1,0 +1,47 @@
+<template>
+  <style>
+@font-face { font-family: Manrope; src: url('assets/fonts/manrope-latin.woff2') format('woff2'); font-weight: 400 800; }
+.paper { background: #fffaf5; color: #2b2849; }
+.night { background: radial-gradient(ellipse at 86% 12%, #493966 0%, rgba(73,57,102,0) 62%), #211d3d; color: #fffaf6; }
+.t-display { font-family: Manrope, sans-serif; font-weight: 700; letter-spacing: -0.055em; line-height: 0.98; }
+.t-title { font-family: Manrope, sans-serif; font-weight: 700; letter-spacing: -0.045em; line-height: 1.02; }
+.t-body { font-family: Manrope, sans-serif; font-weight: 600; letter-spacing: -0.02em; }
+.t-mono { font-family: 'JetBrains Mono', monospace; font-weight: 500; letter-spacing: -0.01em; }
+.iris { background: linear-gradient(135deg, #f8c9d6 0%, #d9c8f2 45%, #bfe0ef 100%); }
+.iris-text { background: linear-gradient(100deg, #c2629a 0%, #7d5ad1 55%, #3b8fc0 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.corners { position: absolute; pointer-events: none; }
+.corners i { position: absolute; width: 56px; height: 56px; border: 7px solid currentColor; }
+.corners .tl { left: 0; top: 0; border-right: 0; border-bottom: 0; border-radius: 12px 0 0 0; }
+.corners .tr { right: 0; top: 0; border-left: 0; border-bottom: 0; border-radius: 0 12px 0 0; }
+.corners .bl { left: 0; bottom: 0; border-right: 0; border-top: 0; border-radius: 0 0 0 12px; }
+.corners .br { right: 0; bottom: 0; border-left: 0; border-top: 0; border-radius: 0 0 12px 0; }
+.card { position: absolute; border-radius: 22px; overflow: hidden; box-shadow: 0 30px 70px rgba(77,60,112,0.22); }
+
+    #ae { position: absolute; inset: 0; overflow: hidden; }
+    #ae .world { position: absolute; inset: 0; }
+
+    #ae-title { position: absolute; left: 120px; top: 120px; font-size: 84px; color: #fffaf6; }
+    #ae-sub { position: absolute; left: 124px; top: 232px; font-size: 38px; color: #dbd3e9; }
+    #ae-clip { left: 0; top: 380px; width: 1920px; height: 460px; border-radius: 0; }
+    #ae-clip video { width: 1920px; height: 460px; }
+
+  </style>
+  <div id="ae" data-composition-id="ae" data-width="1920" data-height="1080">
+   <div class="world night">
+
+    <div id="ae-title" class="t-title">After Effects: keyframed.</div>
+    <div id="ae-sub" class="t-body">Eased keyframes, as the page timed them</div>
+    <div id="ae-clip" class="card"><video id="ae-video" class="clip" data-start="0" data-duration="3" src="assets/clips/ae.mp4" muted playsinline></video></div>
+
+   </div>
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true });
+
+    tl.fromTo('#ae-title', { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.4, ease: 'expo.out' }, 0.05);
+    tl.fromTo('#ae-sub', { opacity: 0 }, { opacity: 1, duration: 0.3 }, 0.2);
+    tl.fromTo('#ae-clip', { opacity: 0, y: 60 }, { opacity: 1, y: 0, duration: 0.45, ease: 'expo.out' }, 0.1);
+
+    window.__timelines["ae"] = tl;
+  </script>
+</template>
