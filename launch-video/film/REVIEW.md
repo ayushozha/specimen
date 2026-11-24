@@ -14,7 +14,7 @@
 - Sound was measured (loudness and placement), not heard.
 
 ## Weakest shots and what I'd change with more time
-- Figma: the paste brought in the images and layers named from the page's HTML, but the 13 text layers did not appear in Figma on the web, probably because Figma can't load SF Pro, which the SVG names. The shot keeps the layers panel in view and makes no claim about text. A Figma plugin import (or a font fallback in the SVG) would make this shot stronger.
+- Figma: the paste brought in the images and layers named from the page's HTML, but the 13 text layers did not appear in Figma on the web, because SF Pro, which the SVG names, isn't installed (Figma desktop reports "Missing fonts"). The shot keeps the layers panel in view and makes no claim about text. A Figma plugin import (or a font fallback in the SVG) would make this shot stronger.
 - Motion: apple.com's own motion is subtle (the nav search fade), so the motion scene leans on the recorded values and the rebuilt GSAP code. The After Effects shot shows the same animation keyframed.
 - The page is recorded at 1× and shown at about 1.33×, so the site text is slightly soft. The panel close-ups use 2× stills where it matters.
 
@@ -25,6 +25,6 @@
 - The last 1.1 s is quiet: the music fades out under the end card.
 
 ## Bugs found in Specimen while making this
-- **Copy for Figma loses text in Figma on the web.** The apple.com iPhone section's SVG has 13 `<text>` elements in SF Pro. Pasted into Figma in Edge, the images and the groups named from the HTML came in, but no text did.
+- **Copy for Figma loses text in Figma on the web.** The apple.com iPhone section's SVG has 13 `<text>` elements in SF Pro. Pasted into Figma in Edge, the images and the groups named from the HTML came in, but no text did. Another session confirmed it in Figma desktop, which shows "Missing fonts": SF Pro isn't installed on this Mac, so the SVG needs a fallback font or a text-to-outline option.
 - **Framer overrides can't compile when one animation repeats.** `01-global.framer.tsx` declares `export function withGlobalnavSearchFadeAndSlide` six times, and the Specimen site's export repeats `withEnterUp` the same way. The override name needs a suffix per element (`packages/exporters/src/framer.ts`).
 - **One element can pick an empty overlay link.** On apple.com the whole tile is covered by `a.tile-link`, so picking anywhere on the tile captures the empty link (its SVG is two rects) unless you press ↑ to its parent.
