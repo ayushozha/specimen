@@ -268,6 +268,12 @@ async function measure(page: Page, selector: string, entry: ReplicaEntry): Promi
     await settle(page, 400);
     const box = await page.locator(selector).first().boundingBox();
     if (!box) return [];
+    // One hover in and out first, the same on the site and the replica: a page's first animation pays
+    // its start-up (code compiled, a library's loop woken) and can drop a frame that isn't the motion.
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.waitForTimeout(dur + 300);
+    await page.mouse.move(2, 2);
+    await page.waitForTimeout(dur + 400);
     return traceTime(page, selector, () => page.mouse.move(box.x + box.width / 2, box.y + box.height / 2), dur + 400);
   }
   if (entry.trigger === 'scroll-reveal') {
