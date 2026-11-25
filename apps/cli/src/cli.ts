@@ -28,9 +28,10 @@ const HELP = `Specimen CLI
       Report a capture's errors, sections, stack and motion, and how closely each SVG export matches
       the section's screenshot.
 
-  specimen verify <bundle.zip...> [--out dir]
+  specimen verify <bundle.zip...> [--out dir] [--against url]
       Check that the motion code reproduces the page: measure each effect on the live site, run its
       exported CSS, GSAP and Motion code alone on a blank page, measure that the same way and compare.
+      --against measures the same effects on another page instead (a rebuild of the site).
 
   specimen media <bundle.zip> [--out dir]
       Download the original videos a capture references; HLS/DASH streams need ffmpeg.
@@ -47,6 +48,7 @@ async function main() {
       concurrency: { type: 'string', default: '1' },
       headed: { type: 'boolean', default: false },
       'no-motion': { type: 'boolean', default: false },
+      against: { type: 'string' },
       extension: { type: 'string', default: DEFAULT_EXTENSION },
       help: { type: 'boolean', short: 'h', default: false },
     },
@@ -137,11 +139,14 @@ async function main() {
     const browser = await chromium.launch({ channel: 'chromium' });
     try {
       for (const file of args) {
-        const r = await verifyMotion(new Uint8Array(await readFile(file)), browser, (l) => console.error(`  … ${l}`));
+        const r = await verifyMotion(new Uint8Array(await readFile(file)), browser, (l) => console.error(`  … ${l}`), values.against);
         const pct = (v: number | null) => (v === null ? '    –' : `${(v * 100).toFixed(1).padStart(4)}%`);
         console.log(`\n${r.url}  (difference from the live site; ≤ ${EXACT * 100}% is exact)`);
-        console.log('   CSS   GSAP Motion claimed  effect');
-        for (const e of r.effects) console.log(`  ${pct(e.css)} ${pct(e.gsap)} ${pct(e.motion)}  ${`${Math.round(e.claimed * 100)}%`.padStart(5)}   ${e.section} · ${e.name} (${e.trigger})${e.note ? ` — ${e.note}` : ''}`);
+        if (values.against) {
+          console.log(`   ${values.against} measured against the site`);
+          for (const e of r.effects) console.log(`  ${pct(e.against ?? null)}   ${e.section} · ${e.name} (${e.trigger})${e.note ? ` — ${e.note}` : ''}`);
+        } else console.log('   CSS   GSAP Motion claimed  effect');
+        if (!values.against) for (const e of r.effects) console.log(`  ${pct(e.css)} ${pct(e.gsap)} ${pct(e.motion)}  ${`${Math.round(e.claimed * 100)}%`.padStart(5)}   ${e.section} · ${e.name} (${e.trigger})${e.note ? ` — ${e.note}` : ''}`);
         if (values.out) {
           await mkdir(values.out, { recursive: true });
           await writeFile(join(values.out, `${file.split('/').pop()}.verify.json`), JSON.stringify(r, null, 2));

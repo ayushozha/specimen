@@ -26,8 +26,9 @@ interface ReplicaEntry {
 }
 
 /** Visual state of an element: opacity and its transform taken apart (individual properties included). */
-type State = { opacity: number; tx: number; ty: number; scale: number; rotate: number; bgR: number; bgG: number; bgB: number; bgA: number; fgR: number; fgG: number; fgB: number };
-const PROPS: (keyof State)[] = ['opacity', 'tx', 'ty', 'scale', 'rotate', 'bgR', 'bgG', 'bgB', 'bgA', 'fgR', 'fgG', 'fgB'];
+type State = { opacity: number; tx: number; ty: number; scale: number; rotate: number; bgR: number; bgG: number; bgB: number; bgA: number; fgR: number; fgG: number; fgB: number; m13: number; m23: number; m31: number; m32: number; m33: number; m34: number; tz: number };
+/** 2D parts, colours, and the 3D rest of the matrix (tilt, perspective, depth). */
+const PROPS: (keyof State)[] = ['opacity', 'tx', 'ty', 'scale', 'rotate', 'bgR', 'bgG', 'bgB', 'bgA', 'fgR', 'fgG', 'fgB', 'm13', 'm23', 'm31', 'm32', 'm33', 'm34', 'tz'];
 /** A trace: x is time (ms) or scroll position (px). */
 type Trace = [x: number, state: State][];
 
@@ -43,6 +44,8 @@ export interface EffectCheck {
   css: number | null;
   gsap: number | null;
   motion: number | null;
+  /** With `against`: the same effect measured on another page (a rebuild), compared with the site. */
+  against?: number | null;
   note: string;
 }
 
@@ -59,7 +62,10 @@ const VIEWPORT = { width: 1440, height: 900 };
 /** Runs in the page: reads the element's state. */
 function readState(el: Element): State {
   const s = getComputedStyle(el);
-  const m = new DOMMatrix(s.transform === 'none' ? undefined : s.transform);
+  // A projective matrix and the same matrix scaled are one transform on screen: divide out m44.
+  const raw = new DOMMatrix(s.transform === 'none' ? undefined : s.transform);
+  const k = raw.m44 || 1;
+  const m = DOMMatrix.fromFloat64Array(raw.toFloat64Array().map((x) => x / k));
   const tr = s.translate === 'none' ? [0, 0] : s.translate.split(/\s+/).map((v) => parseFloat(v) || 0);
   const sc = s.scale === 'none' ? 1 : parseFloat(s.scale);
   const ro = s.rotate === 'none' ? 0 : parseFloat(s.rotate);
@@ -79,6 +85,8 @@ function readState(el: Element): State {
   const fg = rgba(s.color);
   return {
     bgR: bg[0], bgG: bg[1], bgB: bg[2], bgA: bg[3], fgR: fg[0], fgG: fg[1], fgB: fg[2],
+    // Perspective is tiny as a number (-1/1800): scaled so a change reads like the others.
+    m13: m.m13, m23: m.m23, m31: m.m31, m32: m.m32, m33: m.m33, m34: m.m34 * 1000, tz: m.m43,
     opacity: Number(s.opacity),
     tx: m.e + (tr[0] ?? 0),
     ty: m.f + (tr[1] ?? 0),
@@ -299,7 +307,7 @@ async function measure(page: Page, selector: string, entry: ReplicaEntry): Promi
   return [];
 }
 
-export async function verifyMotion(zip: Uint8Array, browser: Browser, log: (s: string) => void = () => {}): Promise<{ url: string; effects: EffectCheck[]; traces?: unknown[] }> {
+export async function verifyMotion(zip: Uint8Array, browser: Browser, log: (s: string) => void = () => {}, against?: string): Promise<{ url: string; effects: EffectCheck[]; traces?: unknown[] }> {
   // SPECIMEN_VERIFY_TRACES=1 keeps every measured trace in the report, to look at a failing effect.
   const traces: unknown[] = [];
   const files = unzipSync(zip);
@@ -345,6 +353,25 @@ export async function verifyMotion(zip: Uint8Array, browser: Browser, log: (s: s
         }
         if (original.length < 2) {
           effects.push({ ...base, css: null, gsap: null, motion: null, note: 'did not move on the live site this time' });
+          continue;
+        }
+        if (against) {
+          // Another page built from the capture (by a person or an agent): the same selector there.
+          const other = await context.newPage();
+          let d: number | null = null;
+          try {
+            await other.goto(against, { waitUntil: 'load', timeout: 90_000 });
+            await other.waitForTimeout(1500);
+            await other.addScriptTag({ content: `window.__read = ${readState.toString()};` });
+            if (await other.locator(entry.selector).count()) {
+              const rebuilt = await measure(other, entry.selector, entry);
+              d = difference(original, rebuilt, entry.trigger !== 'scroll-linked');
+              if (process.env.SPECIMEN_VERIFY_TRACES) traces.push({ id: entry.id, kind: 'against', original, replica: rebuilt });
+            }
+          } finally {
+            await other.close();
+          }
+          effects.push({ ...base, css: null, gsap: null, motion: null, against: d, note: d === null ? 'not on that page' : '' });
           continue;
         }
         const result: Record<'css' | 'gsap' | 'motion', number | null> = { css: null, gsap: null, motion: null };

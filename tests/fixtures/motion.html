@@ -11,6 +11,8 @@
   #hero .layer { position: absolute; right: 120px; top: 200px; width: 360px; height: 360px; border-radius: 40px; background: #6d5bd0; }
   /* An eased scrub: opacity and scale follow scroll through ease-in-out between 900 and 1800px. */
   #scrub .badge { width: 240px; height: 240px; border-radius: 50%; background: #e88aa8; margin-top: 80px; }
+  /* A panel that tilts flat in 3D as the page scrolls (perspective, rotateX, depth), by script. */
+  #scrub .tilt { position: absolute; right: 160px; top: 260px; width: 420px; height: 280px; border-radius: 24px; background: #1f1d2b; }
   /* A reveal with a custom bezier. */
   .reveal { opacity: 0; transform: translateY(40px); transition: opacity 700ms cubic-bezier(0.16, 1, 0.3, 1), transform 700ms cubic-bezier(0.16, 1, 0.3, 1); }
   .reveal.in { opacity: 1; transform: none; }
@@ -27,13 +29,14 @@
 </head>
 <body>
 <section id="hero"><h1>Parallax hero</h1><p>The shape drifts up as you scroll.</p><div class="layer"></div></section>
-<section id="scrub"><h1>Eased scrub</h1><div class="badge"></div></section>
+<section id="scrub"><h1>Eased scrub</h1><div class="badge"></div><div class="tilt"></div></section>
 <section id="reveal"><h1 class="reveal">A reveal with a custom curve</h1><p class="reveal">Fades and rises as it enters.</p></section>
 <section id="hover"><h1>Hovers</h1><a class="pop" href="#">Overshoot</a><a class="nudge" href="#">Spring</a><a class="scripted" href="#">Scripted</a></section>
 <section id="end"><h1>End</h1></section>
 <script>
   const layer = document.querySelector('#hero .layer');
   const badge = document.querySelector('#scrub .badge');
+  const tilt = document.querySelector('#scrub .tilt');
   const ease = (x) => {
     // cubic-bezier(0.42, 0, 0.58, 1) by bisection.
     let lo = 0, hi = 1, t = x;
@@ -46,6 +49,8 @@
     const p = ease(Math.min(1, Math.max(0, (y - 900) / 900)));
     badge.style.opacity = String(0.2 + 0.8 * p);
     badge.style.transform = `scale(${0.6 + 0.4 * p})`;
+    const q = Math.min(1, Math.max(0, (y - 600) / 900));
+    tilt.style.transform = `perspective(1200px) translate3d(0, ${60 * (1 - q)}px, ${-120 * (1 - q)}px) rotateX(${30 * (1 - q)}deg)`;
   };
   addEventListener('scroll', update, { passive: true });
   update();

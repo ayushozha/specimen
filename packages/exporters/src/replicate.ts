@@ -30,6 +30,11 @@ export interface Replica {
   scroll: { start: number; end: number } | null;
   /** Scroll-linked effects: each property's own scroll range (px), values and curve. */
   ranges?: Partial<Record<AnimProp, { start: number; end: number; from: number; to: number; easing: string }>>;
+  /**
+   * Scroll-linked 3D transforms (a tilt, a perspective, depth): the measured matrix at scroll positions
+   * along the range, played back between them. 2D parts can be fitted; a 3D one is kept as measured.
+   */
+  transformStops?: { y: number; transform: string }[];
   /** 1 = reproduces the original exactly; fitted effects report how close the fit is. */
   score: number;
   rect: Rect | null;
@@ -107,20 +112,95 @@ export function replicate(input: ReplicateInput, idPrefix = 'fx'): Replica[] {
   }
 
   // Everything else that moved during the scroll pass: fit it.
-  const groups = new Map<string, { kind: 'scroll-reveal' | 'scroll-linked'; rect: Rect | null; parts: Partial<Record<AnimProp, [number, number, number][]>> }>();
+  const groups = new Map<string, { kind: 'scroll-reveal' | 'scroll-linked'; rect: Rect | null; parts: Partial<Record<AnimProp, [number, number, number][]>>; raw3d?: Sample[] }>();
   const animated = new Set(input.animations.map((a) => a.target));
   for (const track of input.tracks) {
     if ((track.kind !== 'scroll-reveal' && track.kind !== 'scroll-linked') || animated.has(track.selector)) continue;
     const g = groups.get(track.selector) ?? { kind: track.kind as 'scroll-reveal' | 'scroll-linked', rect: track.rect ?? null, parts: {} };
     Object.assign(g.parts, series(track.prop, track.samples));
+    if (track.prop === 'transform' && track.samples.some(([, , v]) => is3d(v))) g.raw3d = track.samples;
     groups.set(track.selector, g);
   }
   for (const [selector, g] of groups) {
+    if (g.kind === 'scroll-linked' && g.raw3d) {
+      // The transform as measured; any other property (opacity) fitted as usual.
+      const rest = { ...g.parts };
+      for (const k of ['tx', 'ty', 'scale', 'rotate'] as const) delete rest[k];
+      const others = Object.keys(rest).length ? fitLinked(rest) : null;
+      const t3 = stops3d(g.raw3d);
+      if (!t3) continue;
+      const start = Math.min(t3.stops[0].y, others?.scroll?.start ?? Infinity);
+      const end = Math.max(t3.stops[t3.stops.length - 1].y, others?.scroll?.end ?? -Infinity);
+      add({ name: 'Scroll-linked 3D motion', selector, trigger: 'scroll-linked', source: 'fitted', rect: g.rect, spec: others?.spec ?? null, easing: others?.easing ?? null, ranges: others?.ranges ?? {}, transformStops: t3.stops, scroll: { start, end }, score: Math.min(t3.score, others?.score ?? 1) });
+      continue;
+    }
     const fitted = g.kind === 'scroll-reveal' ? fitReveal(g.parts) : fitLinked(g.parts);
     if (!fitted) continue;
     add({ name: g.kind === 'scroll-reveal' ? 'Scroll reveal' : 'Scroll-linked motion', selector, trigger: g.kind, source: 'fitted', rect: g.rect, ...fitted });
   }
   return out;
+}
+
+/** The 16 numbers of a CSS matrix()/matrix3d(), column-major; null for anything else. */
+function matrixOf(v: string): number[] | null {
+  const m = v.match(/^matrix(3d)?\(([^)]+)\)$/);
+  if (!m) return v === 'none' ? [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1] : null;
+  const n = m[2].split(',').map(Number);
+  if (m[1]) return n.length === 16 ? n : null;
+  const [a, b, c, d, e, f] = n;
+  return [a, b, 0, 0, c, d, 0, 0, 0, 0, 1, 0, e, f, 0, 1];
+}
+
+/** Whether a computed transform is 3D: a tilt, a perspective or depth that 2D parts can't express. */
+function is3d(v: string): boolean {
+  const m = matrixOf(v);
+  if (!m || !v.startsWith('matrix3d')) return false;
+  return [m[2], m[3], m[6], m[7], m[8], m[9], m[11], m[14]].some((x) => Math.abs(x) > 1e-6) || Math.abs(m[10] - 1) > 1e-6;
+}
+
+/** CSS for a matrix as numbers. */
+function matrixCss(m: number[]): string {
+  return `matrix3d(${m.map((x) => (Math.abs(x) < 1e-9 ? '0' : String(Number(x.toPrecision(6))))).join(', ')})`;
+}
+
+/**
+ * A measured 3D transform along the scroll: the scroll range over which it changes, and up to
+ * MAX_STOPS of the measured matrices across it (evenly by scroll). Scored by how well playing back
+ * between those stops (number by number) reproduces every measured position.
+ */
+const MAX_STOPS = 25;
+function stops3d(samples: Sample[]): { stops: { y: number; transform: string }[]; score: number } | null {
+  const byY = new Map<number, number[]>();
+  for (const [, y, v] of samples) {
+    const m = matrixOf(v);
+    if (m) byY.set(y, m);
+  }
+  const pts = [...byY].sort((a, b) => a[0] - b[0]);
+  const same = (a: number[], b: number[]) => a.every((x, i) => Math.abs(x - b[i]) < 1e-6);
+  const first = pts.findIndex((p, i) => i > 0 && !same(p[1], pts[i - 1][1]));
+  if (first < 0) return null;
+  let last = first;
+  for (let i = first; i < pts.length; i++) if (!same(pts[i][1], pts[i - 1][1])) last = i;
+  const active = pts.slice(first - 1, last + 1);
+  if (active.length < MIN_CURVE_POINTS) return null;
+  const pick = active.length <= MAX_STOPS ? active : Array.from({ length: MAX_STOPS }, (_, i) => active[Math.round((i * (active.length - 1)) / (MAX_STOPS - 1))]);
+  const at = (y: number) => {
+    for (let i = 1; i < pick.length; i++) {
+      if (y <= pick[i][0]) {
+        const k = (y - pick[i - 1][0]) / (pick[i][0] - pick[i - 1][0] || 1);
+        return pick[i - 1][1].map((x, j) => x + (pick[i][1][j] - x) * k);
+      }
+    }
+    return pick[pick.length - 1][1];
+  };
+  // Worst error over the 2D-visible parts (translation in px over the move, the rest as fractions).
+  let worst = 0;
+  const range = Math.max(1, ...[12, 13].map((j) => Math.abs(active[active.length - 1][1][j] - active[0][1][j])));
+  for (const [y, m] of active) {
+    const e = at(y);
+    worst = Math.max(worst, ...m.map((x, j) => (j === 12 || j === 13 || j === 14 ? Math.abs(x - e[j]) / range : Math.abs(x - e[j]) * (j === 11 ? 1000 : 1))));
+  }
+  return { stops: pick.map(([y, m]) => ({ y, transform: matrixCss(m) })), score: round(Math.max(0, 1 - worst)) };
 }
 
 /** A one-off transition when the element scrolls into view: fit the easing on the property that moved most. */
@@ -356,6 +436,27 @@ function linkedGroups(r: Replica): { name: string; from: string; to: string; sta
 }
 
 export function cssFor(r: Replica): string {
+  if (r.trigger === 'scroll-linked' && r.transformStops) {
+    // The measured 3D transform as keyframes along its scroll range; other properties as usual.
+    const T = r.transformStops;
+    const a = T[0].y;
+    const b = T[T.length - 1].y;
+    const groups = linkedGroups({ ...r, ranges: { opacity: r.ranges?.opacity } } as Replica).filter((g) => g.name === 'opacity');
+    return `/* ${commentText(r.name)}: the measured transform at ${T.length} scroll positions, ${a}px → ${b}px (match ${Math.round(r.score * 100)}%) */
+@keyframes ${r.id}-transform {
+${T.map((t) => `  ${fixed(((t.y - a) / Math.max(1, b - a)) * 100, 2)}% { transform: ${t.transform}; }`).join('\n')}
+}
+${groups.map((g) => `@keyframes ${r.id}-${g.name} {
+  from { ${g.from} animation-timing-function: ${g.easing}; }
+  to { ${g.to} }
+}`).join('\n')}
+${r.selector} {
+  animation: ${[`${r.id}-transform linear both`, ...groups.map((g) => `${r.id}-${g.name} linear both`)].join(', ')};
+  animation-timeline: ${[a, ...groups].map(() => 'scroll(root)').join(', ')};
+  animation-range: ${[`${a}px ${b}px`, ...groups.map((g) => `${g.start}px ${g.end}px`)].join(', ')};
+}
+`;
+  }
   if (!r.spec) return '';
   const from = stateAt(r.spec, 0);
   const to = stateAt(r.spec, 1);
@@ -414,9 +515,29 @@ function gsapVars(values: Partial<Record<AnimProp, number>>): Record<string, num
 
 export function gsapFor(r: Replica): string {
   const spec = r.spec;
-  if (!spec) return '';
   const sel = JSON.stringify(r.selector);
   const sec = (ms: number) => Number(fixed(ms / 1000));
+  if (r.trigger === 'scroll-linked' && r.transformStops) {
+    const T = r.transformStops;
+    const op = r.ranges?.opacity;
+    const opEase = op ? gsapEase(r, op.easing) : null;
+    const table = JSON.stringify(T.map((t) => [t.y, t.transform.slice(9, -1).split(', ').map(Number)]));
+    return `// ${commentText(r.name)} (match ${Math.round(r.score * 100)}%): the measured 3D transform along the scroll
+${opEase?.setup ?? ''}document.querySelectorAll(${sel}).forEach((el) => {
+  const stops = ${table};
+  const apply = (y) => {
+    let i = 1;
+    while (i < stops.length - 1 && y > stops[i][0]) i++;
+    const [y0, a] = stops[i - 1], [y1, b] = stops[i];
+    const k = Math.min(1, Math.max(0, (y - y0) / (y1 - y0 || 1)));
+    el.style.transform = \`matrix3d(\${a.map((x, j) => x + (b[j] - x) * k).join(", ")})\`;
+  };
+  ScrollTrigger.create({ start: 0, end: "max", onUpdate: () => apply(window.scrollY), onRefresh: () => apply(window.scrollY) });
+  apply(window.scrollY);
+});
+${op ? `gsap.fromTo(${sel}, { opacity: ${fixed(op.from)} }, { opacity: ${fixed(op.to)}, ease: ${opEase!.ref}, scrollTrigger: { start: ${op.start}, end: ${op.end}, scrub: true } });\n` : ''}`;
+  }
+  if (!spec) return '';
   if (r.trigger === 'loop' || r.trigger === 'load') {
     const offsets = [...new Set(Object.values(spec.tracks).flatMap((k) => k!.map((x) => x.offset)))].sort((a, b) => a - b);
     let setup = '';
@@ -469,10 +590,23 @@ function motionTransition(r: Replica, easing: string, extra: Record<string, unkn
 /** The pieces of a replica's Motion code: a name, hook lines, and the props for a motion element. */
 function motionParts(r: Replica): { comp: string; header: string; hooks: string[]; props: string } | null {
   const spec = r.spec;
-  if (!spec) return null;
   const name = r.name.replace(/[^A-Za-z0-9]+/g, ' ').trim().replace(/(^|\s)(\w)/g, (_m, _s, c: string) => c.toUpperCase()) || 'Effect';
   const comp = `${name.replace(/^\d/, 'E$&')}`;
   const header = `// ${commentText(r.name)} — ${commentText(r.selector)}\n`;
+  if (r.trigger === 'scroll-linked' && r.transformStops) {
+    // The measured 3D transform at each stop; Motion plays between them as the page scrolls.
+    const T = r.transformStops;
+    const op = r.ranges?.opacity;
+    const ease = (e: string) => (e === 'linear' ? '' : isBezierEasing(e) ? `, { ease: cubicBezier(${cubicBezierOf(e).join(', ')}) }` : `, { ease: ${motionEase(e)} }`);
+    const hooks = [
+      '  const { scrollY } = useScroll();',
+      // A function of scroll, not strings: Motion's string mixing rounds the small perspective numbers.
+      `  const transform = useTransform(scrollY, (y) => { const s = ${JSON.stringify(T.map((t) => [t.y, t.transform.slice(9, -1).split(', ').map(Number)]))}; let i = 1; while (i < s.length - 1 && y > s[i][0]) i++; const [y0, a] = s[i - 1], [y1, b] = s[i]; const k = Math.min(1, Math.max(0, (y - y0) / (y1 - y0 || 1))); return \`matrix3d(\${a.map((x, j) => x + (b[j] - x) * k).join(", ")})\`; });`,
+      ...(op ? [`  const opacity = useTransform(scrollY, [${op.start}, ${op.end}], [${fixed(op.from)}, ${fixed(op.to)}]${ease(op.easing)});`] : []),
+    ];
+    return { comp, header, hooks, props: `style={{ ...props.style, transform${op ? ', opacity' : ''} }}` };
+  }
+  if (!spec) return null;
   const values = (end: 0 | 1) => Object.fromEntries(Object.entries(stateAt(spec, end).values).map(([p, v]) => [MOTION_KEY[p as AnimProp], Number(fixed(v!))]));
   if (r.trigger === 'loop' || r.trigger === 'load') {
     const offsets = [...new Set(Object.values(spec.tracks).flatMap((k) => k!.map((x) => x.offset)))].sort((a, b) => a - b);
