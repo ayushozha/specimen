@@ -1,0 +1,16 @@
+[
+ {"id":"L01","text":"Most capture tools stop at a screenshot."},
+ {"id":"L02","text":"But a website moves."},
+ {"id":"L03","text":"Specimen records the motion."},
+ {"id":"L04","text":"Capture the whole page, or just the section you want."},
+ {"id":"L05","text":"It scrolls, hovers and moves the pointer, and measures every effect."},
+ {"id":"L06","text":"Then it rebuilds each one as code."},
+ {"id":"L07","text":"Here's the live site, and Specimen's code, measured the same way."},
+ {"id":"L08","text":"The same curve, frame for frame."},
+ {"id":"L09","text":"Hovers too, overshoot and all."},
+ {"id":"L10","text":"In Figma, the hover is a Smart Animate on the page's own curve."},
+ {"id":"L11","text":"In After Effects, keyframes on that very same curve."},
+ {"id":"L12","text":"CSS, GSAP and Motion code, all measured against the live site."},
+ {"id":"L13","text":"Specimen. It records the motion, and replays it exactly."},
+ {"id":"L14","text":"specimen dot ayushojha dot com."}
+]

@@ -1,0 +1,62 @@
+<template>
+  <style>
+@font-face { font-family: Manrope; src: url('assets/fonts/manrope-latin.woff2') format('woff2'); font-weight: 400 800; }
+.paper { background: #fffaf5; color: #2b2849; }
+.night { background: radial-gradient(ellipse at 86% 12%, #493966 0%, rgba(73,57,102,0) 62%), #211d3d; color: #fffaf6; }
+.t-display { font-family: Manrope, sans-serif; font-weight: 700; letter-spacing: -0.055em; line-height: 0.98; }
+.t-title { font-family: Manrope, sans-serif; font-weight: 700; letter-spacing: -0.045em; line-height: 1.02; }
+.t-body { font-family: Manrope, sans-serif; font-weight: 600; letter-spacing: -0.02em; }
+.t-mono { font-family: 'JetBrains Mono', monospace; font-weight: 500; letter-spacing: -0.01em; }
+.iris { background: linear-gradient(135deg, #f8c9d6 0%, #d9c8f2 45%, #bfe0ef 100%); }
+.iris-text { background: linear-gradient(100deg, #c2629a 0%, #7d5ad1 55%, #3b8fc0 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.corners { position: absolute; pointer-events: none; }
+.corners i { position: absolute; width: 56px; height: 56px; border: 7px solid currentColor; }
+.corners .tl { left: 0; top: 0; border-right: 0; border-bottom: 0; border-radius: 12px 0 0 0; }
+.corners .tr { right: 0; top: 0; border-left: 0; border-bottom: 0; border-radius: 0 12px 0 0; }
+.corners .bl { left: 0; bottom: 0; border-right: 0; border-top: 0; border-radius: 0 0 0 12px; }
+.corners .br { right: 0; bottom: 0; border-left: 0; border-top: 0; border-radius: 0 0 12px 0; }
+.card { position: absolute; border-radius: 22px; overflow: hidden; box-shadow: 0 30px 70px rgba(77,60,112,0.22); }
+
+    #choose { position: absolute; inset: 0; overflow: hidden; }
+    #choose .world { position: absolute; inset: 0; }
+    #choose .lbl { font-family: 'JetBrains Mono', monospace; font-size: 28px; letter-spacing: 0.02em; text-transform: uppercase; }
+
+    #ch-line { position: absolute; left: 120px; top: 90px; width: 1700px; font-size: 76px; }
+    #ch-a, #ch-b { top: 230px; width: 560px; height: 790px; background: #fffaf5; }
+    #ch-a { left: 120px; } #ch-b { left: 120px; }
+    #ch-a img, #ch-b img { width: 560px; }
+    #ch-site { left: 760px; top: 230px; width: 1040px; height: 600px; background: #fff; }
+    #ch-site img { position: absolute; left: 0; top: 0; width: 1040px; }
+    #ch-cap { position: absolute; left: 760px; top: 860px; font-size: 36px; color: #57516a; width: 1040px; }
+
+    #ch-line { left: 100px; top: 260px; width: 820px; font-size: 68px; }
+    #ch-a, #ch-b { left: 60px; top: 520px; width: 470px; height: 880px; }
+    #ch-a img, #ch-b img { width: 470px; }
+    #ch-site { left: 560px; top: 520px; width: 460px; height: 274px; }
+    #ch-site img { width: 460px; }
+    #ch-cap { left: 560px; top: 830px; width: 420px; font-size: 34px; }
+
+  </style>
+  <div id="choose" data-composition-id="choose" data-width="1080" data-height="1920">
+   <div class="world paper">
+
+    <div id="ch-line" class="t-title">The whole page, or just the section you want.</div>
+    <div id="ch-a" class="card"><img src="assets/ui/panel-choose.png" alt=""></div>
+    <div id="ch-b" class="card"><img src="assets/ui/panel-sections.png" alt=""></div>
+    <div id="ch-site" class="card"><img src="assets/ui/site-section.png" alt=""></div>
+    <div id="ch-cap" class="t-body">Or click a section on the page.</div>
+
+   </div>
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    tl.fromTo('#ch-line', { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.45, ease: 'expo.out' }, 0.05);
+
+    tl.fromTo('#ch-a', { opacity: 0, x: -60 }, { opacity: 1, x: 0, duration: 0.45, ease: 'expo.out' }, 0.1);
+    tl.fromTo('#ch-b', { opacity: 0 }, { opacity: 1, duration: 0.25 }, 1.6);
+    tl.fromTo('#ch-site', { opacity: 0, x: 80 }, { opacity: 1, x: 0, duration: 0.5, ease: 'expo.out' }, 1.7);
+    tl.fromTo('#ch-cap', { opacity: 0 }, { opacity: 1, duration: 0.3 }, 1.2);
+
+    window.__timelines["choose"] = tl;
+  </script>
+</template>

@@ -1,0 +1,82 @@
+<template>
+  <style>
+@font-face { font-family: Manrope; src: url('assets/fonts/manrope-latin.woff2') format('woff2'); font-weight: 400 800; }
+.paper { background: #fffaf5; color: #2b2849; }
+.night { background: radial-gradient(ellipse at 86% 12%, #493966 0%, rgba(73,57,102,0) 62%), #211d3d; color: #fffaf6; }
+.t-display { font-family: Manrope, sans-serif; font-weight: 700; letter-spacing: -0.055em; line-height: 0.98; }
+.t-title { font-family: Manrope, sans-serif; font-weight: 700; letter-spacing: -0.045em; line-height: 1.02; }
+.t-body { font-family: Manrope, sans-serif; font-weight: 600; letter-spacing: -0.02em; }
+.t-mono { font-family: 'JetBrains Mono', monospace; font-weight: 500; letter-spacing: -0.01em; }
+.iris { background: linear-gradient(135deg, #f8c9d6 0%, #d9c8f2 45%, #bfe0ef 100%); }
+.iris-text { background: linear-gradient(100deg, #c2629a 0%, #7d5ad1 55%, #3b8fc0 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.corners { position: absolute; pointer-events: none; }
+.corners i { position: absolute; width: 56px; height: 56px; border: 7px solid currentColor; }
+.corners .tl { left: 0; top: 0; border-right: 0; border-bottom: 0; border-radius: 12px 0 0 0; }
+.corners .tr { right: 0; top: 0; border-left: 0; border-bottom: 0; border-radius: 0 12px 0 0; }
+.corners .bl { left: 0; bottom: 0; border-right: 0; border-top: 0; border-radius: 0 0 0 12px; }
+.corners .br { right: 0; bottom: 0; border-left: 0; border-top: 0; border-radius: 0 0 12px 0; }
+.card { position: absolute; border-radius: 22px; overflow: hidden; box-shadow: 0 30px 70px rgba(77,60,112,0.22); }
+
+    #proof { position: absolute; inset: 0; overflow: hidden; }
+    #proof .world { position: absolute; inset: 0; }
+    #proof .lbl { font-family: 'JetBrains Mono', monospace; font-size: 28px; letter-spacing: 0.02em; text-transform: uppercase; }
+
+    #pf-line { position: absolute; left: 100px; top: 70px; width: 1720px; font-size: 64px; }
+    #pf-site { left: 100px; top: 230px; width: 960px; height: 540px; }
+    #pf-site video { position: absolute; inset: 0; width: 960px; height: 540px; }
+    #pf-l1 { position: absolute; left: 100px; top: 790px; color: #57516a; }
+    #pf-graph { position: absolute; left: 1110px; top: 270px; width: 720px; height: 480px; }
+    #pf-l2 { position: absolute; left: 1140px; top: 790px; color: #57516a; }
+    #pf-key { position: absolute; left: 1140px; top: 236px; font-size: 28px; color: #57516a; }
+    #pf-key b { color: #2b2849; font-weight: 600; }
+    #pf-same { position: absolute; left: 100px; top: 880px; font-size: 76px; }
+    #pf-diff { position: absolute; left: 1140px; top: 860px; font-size: 96px; color: #64509b; }
+    #pf-diff small { font-size: 32px; color: #57516a; letter-spacing: 0; }
+
+    #pf-line { left: 100px; top: 260px; width: 820px; font-size: 58px; }
+    #pf-site { left: 60px; top: 480px; }
+    #pf-l1 { left: 60px; top: 1040px; }
+    #pf-key { left: 100px; top: 1100px; }
+    #pf-graph { left: 150px; top: 1150px; width: 780px; height: 520px; }
+    #pf-l2 { display: none; }
+    #pf-same { display: none; }
+    #pf-diff { left: 100px; top: 1690px; font-size: 64px; }
+
+  </style>
+  <div id="proof" data-composition-id="proof" data-width="1080" data-height="1920">
+   <div class="world paper">
+
+    <div id="pf-line" class="t-title">The live site, and Specimen's code, measured the same way.</div>
+    <div id="pf-site" class="card"><img src="assets/ui/hero-end.png" alt="" style="position:absolute;inset:0;width:100%;height:100%"><video id="pf-video" class="clip" data-start="0" data-duration="6.4" src="assets/clips/hero-scroll.mp4" muted playsinline></video></div>
+    <div id="pf-l1" class="lbl">Live site · scrolled 0 → 480 px</div>
+    <div id="pf-key" class="t-mono"><b>━</b> site &nbsp; <b>┅</b> Specimen's CSS &nbsp; · position, opacity</div>
+    <svg id="pf-graph" viewBox="1110 270 720 480">
+      <line x1="1140" y1="720" x2="1800" y2="720" stroke="#ded4e1" stroke-width="3"/>
+      <path id="pf-po" d="M1140.0,300.0 L1153.8,307.3 L1167.5,314.5 L1181.2,321.8 L1195.0,329.0 L1208.8,336.3 L1222.5,343.6 L1236.2,350.8 L1250.0,358.1 L1263.8,365.3 L1277.5,372.6 L1291.2,379.9 L1305.0,387.1 L1318.8,394.4 L1332.5,401.6 L1346.2,408.9 L1360.0,416.1 L1373.8,423.4 L1387.5,430.7 L1401.2,437.9 L1415.0,445.2 L1428.8,452.4 L1442.5,459.7 L1456.2,467.0 L1470.0,474.2 L1483.8,481.5 L1497.5,488.7 L1511.2,496.0 L1525.0,503.3 L1538.8,510.5 L1552.5,517.8 L1566.2,525.0 L1580.0,532.3 L1593.8,539.6 L1607.5,546.8 L1621.2,554.1 L1635.0,561.3 L1648.8,568.6 L1662.5,575.9 L1676.2,583.1 L1690.0,590.4 L1703.8,597.6 L1717.5,604.9 L1731.2,612.1 L1745.0,619.4 L1758.8,626.7 L1772.5,633.9 L1786.2,641.2 L1800.0,648.4" fill="none" stroke="#2b2849" stroke-width="7" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/>
+      <path id="pf-oo" d="M1140.0,300.0 L1153.8,313.3 L1167.5,326.7 L1181.2,340.0 L1195.0,353.3 L1208.8,366.7 L1222.5,380.0 L1236.2,393.3 L1250.0,406.7 L1263.8,420.0 L1277.5,433.3 L1291.2,446.7 L1305.0,460.0 L1318.8,473.3 L1332.5,486.7 L1346.2,500.0 L1360.0,513.3 L1373.8,526.7 L1387.5,540.0 L1401.2,553.3 L1415.0,566.7 L1428.8,580.0 L1442.5,593.3 L1456.2,606.7 L1470.0,620.0 L1483.8,633.3 L1497.5,646.7 L1511.2,660.0 L1525.0,673.3 L1538.8,686.7 L1552.5,700.0 L1566.2,713.3 L1580.0,720.0 L1593.8,720.0 L1607.5,720.0 L1621.2,720.0 L1635.0,720.0 L1648.8,720.0 L1662.5,720.0 L1676.2,720.0 L1690.0,720.0 L1703.8,720.0 L1717.5,720.0 L1731.2,720.0 L1745.0,720.0 L1758.8,720.0 L1772.5,720.0 L1786.2,720.0 L1800.0,720.0" fill="none" stroke="#e88aa8" stroke-width="7" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/>
+      <path id="pf-pr" d="M1140.0,300.0 L1153.8,307.3 L1167.5,314.5 L1181.2,321.8 L1195.0,329.0 L1208.8,336.3 L1222.5,343.6 L1236.2,350.8 L1250.0,358.1 L1263.8,365.3 L1277.5,372.6 L1291.2,379.9 L1305.0,387.1 L1318.8,394.4 L1332.5,401.6 L1346.2,408.9 L1360.0,416.1 L1373.8,423.4 L1387.5,430.7 L1401.2,437.9 L1415.0,445.2 L1428.8,452.4 L1442.5,459.7 L1456.2,467.0 L1470.0,474.2 L1483.8,481.5 L1497.5,488.7 L1511.2,496.0 L1525.0,503.3 L1538.8,510.5 L1552.5,517.8 L1566.2,525.0 L1580.0,532.3 L1593.8,539.6 L1607.5,546.8 L1621.2,554.1 L1635.0,561.3 L1648.8,568.6 L1662.5,575.9 L1676.2,583.1 L1690.0,590.4 L1703.8,597.6 L1717.5,604.9 L1731.2,612.1 L1745.0,619.4 L1758.8,626.7 L1772.5,633.9 L1786.2,641.2 L1800.0,648.4" fill="none" stroke="#d9c8f2" stroke-width="3" stroke-dasharray="10 8" opacity="0"/>
+      <path id="pf-or" d="M1140.0,300.0 L1153.8,313.3 L1167.5,326.7 L1181.2,340.0 L1195.0,353.3 L1208.8,366.7 L1222.5,380.0 L1236.2,393.3 L1250.0,406.7 L1263.8,420.0 L1277.5,433.3 L1291.2,446.7 L1305.0,460.0 L1318.8,473.3 L1332.5,486.7 L1346.2,500.0 L1360.0,513.3 L1373.8,526.7 L1387.5,540.0 L1401.2,553.3 L1415.0,566.7 L1428.8,580.0 L1442.5,593.3 L1456.2,606.7 L1470.0,620.0 L1483.8,633.3 L1497.5,646.7 L1511.2,660.0 L1525.0,673.3 L1538.8,686.7 L1552.5,700.0 L1566.2,713.3 L1580.0,720.0 L1593.8,720.0 L1607.5,720.0 L1621.2,720.0 L1635.0,720.0 L1648.8,720.0 L1662.5,720.0 L1676.2,720.0 L1690.0,720.0 L1703.8,720.0 L1717.5,720.0 L1731.2,720.0 L1745.0,720.0 L1758.8,720.0 L1772.5,720.0 L1786.2,720.0 L1800.0,720.0" fill="none" stroke="#fffaf5" stroke-width="3" stroke-dasharray="10 8" opacity="0"/>
+      <line id="pf-head" x1="1140" y1="290" x2="1140" y2="730" stroke="#64509b" stroke-width="3"/>
+    </svg>
+    <div id="pf-l2" class="lbl">Measured: site vs code</div>
+    <div id="pf-same" class="t-title">Same curve, frame for frame.</div>
+    <div id="pf-diff" class="t-display">0.0%<small> largest difference</small></div>
+
+   </div>
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    tl.fromTo('#pf-line', { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.45, ease: 'expo.out' }, 0.05);
+
+    tl.fromTo('#pf-site', { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.45, ease: 'expo.out' }, 0.1);
+    tl.fromTo(['#pf-key', '#pf-l1', '#pf-l2'], { opacity: 0 }, { opacity: 1, duration: 0.3 }, 0.4);
+    // The curves draw as the page scrolls: the playhead is the scroll position of the clip.
+    tl.fromTo(['#pf-po', '#pf-oo'], { strokeDashoffset: 1 }, { strokeDashoffset: 0, duration: 6.4, ease: 'none' }, 0);
+    tl.fromTo('#pf-head', { attr: { x1: 1140, x2: 1140 } }, { attr: { x1: 1800, x2: 1800 }, duration: 6.4, ease: 'none' }, 0);
+    tl.fromTo(['#pf-pr', '#pf-or'], { opacity: 0 }, { opacity: 1, duration: 0.3 }, 4.6);
+    tl.fromTo('#pf-same', { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.4, ease: 'expo.out' }, 4.6);
+    tl.fromTo('#pf-diff', { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.4, ease: 'expo.out' }, 5.0);
+
+    window.__timelines["proof"] = tl;
+  </script>
+</template>

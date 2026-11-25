@@ -1,0 +1,55 @@
+<template>
+  <style>
+@font-face { font-family: Manrope; src: url('assets/fonts/manrope-latin.woff2') format('woff2'); font-weight: 400 800; }
+.paper { background: #fffaf5; color: #2b2849; }
+.night { background: radial-gradient(ellipse at 86% 12%, #493966 0%, rgba(73,57,102,0) 62%), #211d3d; color: #fffaf6; }
+.t-display { font-family: Manrope, sans-serif; font-weight: 700; letter-spacing: -0.055em; line-height: 0.98; }
+.t-title { font-family: Manrope, sans-serif; font-weight: 700; letter-spacing: -0.045em; line-height: 1.02; }
+.t-body { font-family: Manrope, sans-serif; font-weight: 600; letter-spacing: -0.02em; }
+.t-mono { font-family: 'JetBrains Mono', monospace; font-weight: 500; letter-spacing: -0.01em; }
+.iris { background: linear-gradient(135deg, #f8c9d6 0%, #d9c8f2 45%, #bfe0ef 100%); }
+.iris-text { background: linear-gradient(100deg, #c2629a 0%, #7d5ad1 55%, #3b8fc0 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.corners { position: absolute; pointer-events: none; }
+.corners i { position: absolute; width: 56px; height: 56px; border: 7px solid currentColor; }
+.corners .tl { left: 0; top: 0; border-right: 0; border-bottom: 0; border-radius: 12px 0 0 0; }
+.corners .tr { right: 0; top: 0; border-left: 0; border-bottom: 0; border-radius: 0 12px 0 0; }
+.corners .bl { left: 0; bottom: 0; border-right: 0; border-top: 0; border-radius: 0 0 0 12px; }
+.corners .br { right: 0; bottom: 0; border-left: 0; border-top: 0; border-radius: 0 0 12px 0; }
+.card { position: absolute; border-radius: 22px; overflow: hidden; box-shadow: 0 30px 70px rgba(77,60,112,0.22); }
+
+    #endcard { position: absolute; inset: 0; overflow: hidden; }
+    #endcard .world { position: absolute; inset: 0; }
+    #endcard .lbl { font-family: 'JetBrains Mono', monospace; font-size: 28px; letter-spacing: 0.02em; text-transform: uppercase; }
+
+    #en-icon { position: absolute; left: 810px; top: 240px; width: 300px; height: 300px; border-radius: 66px; }
+    #en-name { position: absolute; left: 0; right: 0; top: 580px; text-align: center; font-size: 132px; }
+    #en-url { position: absolute; left: 0; right: 0; top: 760px; text-align: center; font-size: 64px; color: #64509b; }
+    #en-br { position: absolute; left: 0; right: 0; top: 870px; text-align: center; font-size: 36px; color: #57516a; }
+
+    #en-icon { left: 390px; top: 560px; }
+    #en-name { top: 900px; font-size: 112px; left: 140px; right: 140px; }
+    #en-url { top: 1060px; font-size: 46px; left: 140px; right: 140px; }
+    #en-br { top: 1150px; left: 160px; right: 160px; font-size: 32px; }
+
+  </style>
+  <div id="endcard" data-composition-id="endcard" data-width="1080" data-height="1920">
+   <div class="world paper">
+
+    <img id="en-icon" src="assets/ui/specimen-icon.png" alt="">
+    <div id="en-name" class="t-display">Specimen</div>
+    <div id="en-url" class="t-title">specimen.ayushojha.com</div>
+    <div id="en-br" class="t-body">For Chrome, Edge, Brave, Firefox and Safari</div>
+
+   </div>
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true });
+
+    tl.fromTo('#en-icon', { opacity: 0, scale: 0.7 }, { opacity: 1, scale: 1, duration: 0.45, ease: 'back.out(1.8)' }, 0.0);
+    tl.fromTo('#en-name', { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.4, ease: 'expo.out' }, 0.2);
+    tl.fromTo('#en-url', { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.4, ease: 'expo.out' }, 0.45);
+    tl.fromTo('#en-br', { opacity: 0 }, { opacity: 1, duration: 0.35 }, 0.75);
+
+    window.__timelines["endcard"] = tl;
+  </script>
+</template>

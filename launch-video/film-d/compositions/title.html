@@ -1,0 +1,47 @@
+<template>
+  <style>
+@font-face { font-family: Manrope; src: url('assets/fonts/manrope-latin.woff2') format('woff2'); font-weight: 400 800; }
+.paper { background: #fffaf5; color: #2b2849; }
+.night { background: radial-gradient(ellipse at 86% 12%, #493966 0%, rgba(73,57,102,0) 62%), #211d3d; color: #fffaf6; }
+.t-display { font-family: Manrope, sans-serif; font-weight: 700; letter-spacing: -0.055em; line-height: 0.98; }
+.t-title { font-family: Manrope, sans-serif; font-weight: 700; letter-spacing: -0.045em; line-height: 1.02; }
+.t-body { font-family: Manrope, sans-serif; font-weight: 600; letter-spacing: -0.02em; }
+.t-mono { font-family: 'JetBrains Mono', monospace; font-weight: 500; letter-spacing: -0.01em; }
+.iris { background: linear-gradient(135deg, #f8c9d6 0%, #d9c8f2 45%, #bfe0ef 100%); }
+.iris-text { background: linear-gradient(100deg, #c2629a 0%, #7d5ad1 55%, #3b8fc0 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.corners { position: absolute; pointer-events: none; }
+.corners i { position: absolute; width: 56px; height: 56px; border: 7px solid currentColor; }
+.corners .tl { left: 0; top: 0; border-right: 0; border-bottom: 0; border-radius: 12px 0 0 0; }
+.corners .tr { right: 0; top: 0; border-left: 0; border-bottom: 0; border-radius: 0 12px 0 0; }
+.corners .bl { left: 0; bottom: 0; border-right: 0; border-top: 0; border-radius: 0 0 0 12px; }
+.corners .br { right: 0; bottom: 0; border-left: 0; border-top: 0; border-radius: 0 0 12px 0; }
+.card { position: absolute; border-radius: 22px; overflow: hidden; box-shadow: 0 30px 70px rgba(77,60,112,0.22); }
+
+    #title { position: absolute; inset: 0; overflow: hidden; }
+    #title .world { position: absolute; inset: 0; }
+    #title .lbl { font-family: 'JetBrains Mono', monospace; font-size: 28px; letter-spacing: 0.02em; text-transform: uppercase; }
+
+    #ti-line { position: absolute; left: 160px; top: 400px; font-size: 150px; }
+    #ti-corners { left: 110px; top: 356px; width: 1700px; height: 280px; color: #2b2849; }
+    #ti-icon { position: absolute; left: 160px; top: 200px; width: 120px; height: 120px; border-radius: 28px; }
+
+  </style>
+  <div id="title" data-composition-id="title" data-width="1920" data-height="1080">
+   <div class="world paper">
+
+    <img id="ti-icon" src="assets/ui/specimen-icon.png" alt="">
+    <div id="ti-line" class="t-display">Specimen records the <span class="iris-text">motion.</span></div>
+    <div id="ti-corners" class="corners"><i class="tl"></i><i class="tr"></i><i class="bl"></i><i class="br"></i></div>
+
+   </div>
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    tl.fromTo('#ti-line', { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.45, ease: 'expo.out' }, 0.0);
+    tl.fromTo('#ti-icon', { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.45, ease: 'expo.out' }, 0.1);
+
+    tl.fromTo('#ti-corners', { opacity: 0, scale: 1.15 }, { opacity: 1, scale: 1, duration: 0.34, ease: 'back.out(2.2)' }, 0.95);
+
+    window.__timelines["title"] = tl;
+  </script>
+</template>

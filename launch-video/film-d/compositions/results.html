@@ -1,0 +1,57 @@
+<template>
+  <style>
+@font-face { font-family: Manrope; src: url('assets/fonts/manrope-latin.woff2') format('woff2'); font-weight: 400 800; }
+.paper { background: #fffaf5; color: #2b2849; }
+.night { background: radial-gradient(ellipse at 86% 12%, #493966 0%, rgba(73,57,102,0) 62%), #211d3d; color: #fffaf6; }
+.t-display { font-family: Manrope, sans-serif; font-weight: 700; letter-spacing: -0.055em; line-height: 0.98; }
+.t-title { font-family: Manrope, sans-serif; font-weight: 700; letter-spacing: -0.045em; line-height: 1.02; }
+.t-body { font-family: Manrope, sans-serif; font-weight: 600; letter-spacing: -0.02em; }
+.t-mono { font-family: 'JetBrains Mono', monospace; font-weight: 500; letter-spacing: -0.01em; }
+.iris { background: linear-gradient(135deg, #f8c9d6 0%, #d9c8f2 45%, #bfe0ef 100%); }
+.iris-text { background: linear-gradient(100deg, #c2629a 0%, #7d5ad1 55%, #3b8fc0 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.corners { position: absolute; pointer-events: none; }
+.corners i { position: absolute; width: 56px; height: 56px; border: 7px solid currentColor; }
+.corners .tl { left: 0; top: 0; border-right: 0; border-bottom: 0; border-radius: 12px 0 0 0; }
+.corners .tr { right: 0; top: 0; border-left: 0; border-bottom: 0; border-radius: 0 12px 0 0; }
+.corners .bl { left: 0; bottom: 0; border-right: 0; border-top: 0; border-radius: 0 0 0 12px; }
+.corners .br { right: 0; bottom: 0; border-left: 0; border-top: 0; border-radius: 0 0 12px 0; }
+.card { position: absolute; border-radius: 22px; overflow: hidden; box-shadow: 0 30px 70px rgba(77,60,112,0.22); }
+
+    #results { position: absolute; inset: 0; overflow: hidden; }
+    #results .world { position: absolute; inset: 0; }
+    #results .lbl { font-family: 'JetBrains Mono', monospace; font-size: 28px; letter-spacing: 0.02em; text-transform: uppercase; }
+
+    #rs-line { position: absolute; left: 120px; top: 90px; width: 1680px; font-size: 64px; }
+    #rs-sub { position: absolute; left: 124px; top: 200px; font-size: 38px; color: #57516a; }
+    #rs-tab { position: absolute; left: 120px; top: 330px; width: 1680px; }
+    .rs-row { display: grid; grid-template-columns: 420px 260px 1fr; align-items: center; height: 120px; border-bottom: 2px solid #ded4e1; }
+    .rs-k { font-family: Manrope, sans-serif; font-weight: 700; font-size: 56px; letter-spacing: -0.03em; }
+    .rs-v { font-family: 'JetBrains Mono', monospace; font-size: 48px; color: #64509b; }
+    .rs-bar { height: 18px; border-radius: 9px; background: #efe8f3; overflow: hidden; }
+    .rs-bar i { display: block; height: 100%; background: #64509b; }
+    #rs-foot { position: absolute; left: 124px; top: 880px; font-size: 34px; color: #57516a; width: 1680px; }
+
+  </style>
+  <div id="results" data-composition-id="results" data-width="1920" data-height="1080">
+   <div class="world paper">
+
+    <div id="rs-line" class="t-title">CSS, GSAP and Motion, all measured against the live site.</div>
+    <div id="rs-sub" class="t-body">43 effects on a live site: hovers, scroll-linked motion, scroll reveals.</div>
+    <div id="rs-tab"><div class="rs-row"><span class="rs-k">CSS</span><span class="rs-v">0.9%</span><div class="rs-bar"><i style="width:45%"></i></div></div><div class="rs-row"><span class="rs-k">GSAP</span><span class="rs-v">0.9%</span><div class="rs-bar"><i style="width:45%"></i></div></div><div class="rs-row"><span class="rs-k">Motion</span><span class="rs-v">0.9%</span><div class="rs-bar"><i style="width:45%"></i></div></div></div>
+    <div id="rs-foot" class="t-body">Largest difference of any effect. 0% is identical.</div>
+
+   </div>
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    tl.fromTo('#rs-line', { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.45, ease: 'expo.out' }, 0.05);
+
+    tl.fromTo('#rs-sub', { opacity: 0 }, { opacity: 1, duration: 0.3 }, 0.5);
+    tl.fromTo('.rs-row', { opacity: 0, x: -30 }, { opacity: 1, x: 0, duration: 0.35, ease: 'expo.out', stagger: 0.18 }, 0.7);
+    tl.fromTo('#rs-foot', { opacity: 0 }, { opacity: 1, duration: 0.3 }, 1.0);
+    tl.fromTo('.rs-bar i', { scaleX: 0 }, { scaleX: 1, duration: 1.2, ease: 'power2.out', stagger: 0.18, transformOrigin: 'left center' }, 0.9);
+    tl.fromTo('#rs-tab', { scale: 1 }, { scale: 1.025, duration: 4.0, ease: 'none', transformOrigin: 'left top' }, 1.0);
+
+    window.__timelines["results"] = tl;
+  </script>
+</template>

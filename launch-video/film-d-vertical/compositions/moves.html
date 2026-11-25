@@ -1,0 +1,48 @@
+<template>
+  <style>
+@font-face { font-family: Manrope; src: url('assets/fonts/manrope-latin.woff2') format('woff2'); font-weight: 400 800; }
+.paper { background: #fffaf5; color: #2b2849; }
+.night { background: radial-gradient(ellipse at 86% 12%, #493966 0%, rgba(73,57,102,0) 62%), #211d3d; color: #fffaf6; }
+.t-display { font-family: Manrope, sans-serif; font-weight: 700; letter-spacing: -0.055em; line-height: 0.98; }
+.t-title { font-family: Manrope, sans-serif; font-weight: 700; letter-spacing: -0.045em; line-height: 1.02; }
+.t-body { font-family: Manrope, sans-serif; font-weight: 600; letter-spacing: -0.02em; }
+.t-mono { font-family: 'JetBrains Mono', monospace; font-weight: 500; letter-spacing: -0.01em; }
+.iris { background: linear-gradient(135deg, #f8c9d6 0%, #d9c8f2 45%, #bfe0ef 100%); }
+.iris-text { background: linear-gradient(100deg, #c2629a 0%, #7d5ad1 55%, #3b8fc0 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.corners { position: absolute; pointer-events: none; }
+.corners i { position: absolute; width: 56px; height: 56px; border: 7px solid currentColor; }
+.corners .tl { left: 0; top: 0; border-right: 0; border-bottom: 0; border-radius: 12px 0 0 0; }
+.corners .tr { right: 0; top: 0; border-left: 0; border-bottom: 0; border-radius: 0 12px 0 0; }
+.corners .bl { left: 0; bottom: 0; border-right: 0; border-top: 0; border-radius: 0 0 0 12px; }
+.corners .br { right: 0; bottom: 0; border-left: 0; border-top: 0; border-radius: 0 0 12px 0; }
+.card { position: absolute; border-radius: 22px; overflow: hidden; box-shadow: 0 30px 70px rgba(77,60,112,0.22); }
+
+    #moves { position: absolute; inset: 0; overflow: hidden; }
+    #moves .world { position: absolute; inset: 0; }
+    #moves .lbl { font-family: 'JetBrains Mono', monospace; font-size: 28px; letter-spacing: 0.02em; text-transform: uppercase; }
+
+    #mv-video { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; object-fit: cover; }
+    #mv-scrim { position: absolute; left: 0; right: 0; top: 0; height: 360px; background: linear-gradient(180deg, rgba(33,29,61,0.8), rgba(33,29,61,0)); }
+    #mv-line { position: absolute; left: 120px; top: 110px; font-size: 110px; color: #fffaf6; }
+
+    #mv-video { width: 1080px; height: 1920px; object-position: 78% 50%; }
+    #mv-scrim { height: 760px; }
+    #mv-line { left: 100px; top: 300px; width: 820px; font-size: 104px; }
+
+  </style>
+  <div id="moves" data-composition-id="moves" data-width="1080" data-height="1920">
+   <div class="world night">
+
+    <video id="mv-video" class="clip" data-start="0" data-duration="1.9" data-media-start="0.6" src="assets/clips/ink.mp4" muted playsinline></video>
+    <div id="mv-scrim"></div>
+    <div id="mv-line" class="t-title">But a website moves.</div>
+
+   </div>
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    tl.fromTo('#mv-line', { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.35, ease: 'expo.out' }, 0.05);
+
+    window.__timelines["moves"] = tl;
+  </script>
+</template>

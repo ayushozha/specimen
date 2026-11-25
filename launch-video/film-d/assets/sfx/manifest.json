@@ -1,0 +1,128 @@
+{
+ "theme": null,
+ "format": "wav",
+ "formats": [
+  "wav"
+ ],
+ "sounds": [
+  {
+   "name": "shutter",
+   "file": "shutter.wav",
+   "files": [
+    "shutter.wav"
+   ],
+   "sound": "camera/shutter",
+   "dur_s": 0.394,
+   "lufs_max": -14.7,
+   "loop": false,
+   "ok": true,
+   "member": {
+    "n": 3,
+    "of": 5,
+    "recording": "recording 3 of 5"
+   }
+  },
+  {
+   "name": "whoosh-a",
+   "file": "whoosh-a.wav",
+   "files": [
+    "whoosh-a.wav"
+   ],
+   "sound": "whoosh/fast",
+   "dur_s": 0.305,
+   "lufs_max": -22.6,
+   "loop": false,
+   "ok": true,
+   "member": {
+    "n": 1,
+    "of": 3,
+    "recording": "recording 1 of 3"
+   }
+  },
+  {
+   "name": "whoosh-b",
+   "file": "whoosh-b.wav",
+   "files": [
+    "whoosh-b.wav"
+   ],
+   "sound": "whoosh/sweep",
+   "dur_s": 0.417,
+   "lufs_max": -14.9,
+   "loop": false,
+   "ok": true,
+   "member": {
+    "n": 1,
+    "of": 1,
+    "recording": "recording 1 of 1"
+   }
+  },
+  {
+   "name": "tick",
+   "file": "tick.wav",
+   "files": [
+    "tick.wav"
+   ],
+   "sound": "tick/key",
+   "dur_s": 0.07,
+   "lufs_max": -20.4,
+   "loop": false,
+   "ok": true,
+   "member": {
+    "n": 1,
+    "of": 2,
+    "recording": "recording 1 of 2"
+   }
+  },
+  {
+   "name": "riser",
+   "file": "riser.wav",
+   "files": [
+    "riser.wav"
+   ],
+   "sound": "rise/breath",
+   "dur_s": 0.995,
+   "lufs_max": -14.0,
+   "loop": false,
+   "ok": true,
+   "member": {
+    "n": 1,
+    "of": 2,
+    "recording": "recording 1 of 2"
+   }
+  },
+  {
+   "name": "payoff",
+   "file": "payoff.wav",
+   "files": [
+    "payoff.wav"
+   ],
+   "sound": "drop/sack",
+   "dur_s": 0.215,
+   "lufs_max": -21.6,
+   "loop": false,
+   "ok": true,
+   "member": {
+    "n": 1,
+    "of": 1,
+    "recording": "recording 1 of 1"
+   }
+  },
+  {
+   "name": "logo",
+   "file": "logo.wav",
+   "files": [
+    "logo.wav"
+   ],
+   "sound": "logo/bag",
+   "dur_s": 0.472,
+   "lufs_max": -20.6,
+   "loop": false,
+   "ok": true,
+   "member": {
+    "n": 1,
+    "of": 1,
+    "recording": "recording 1 of 1"
+   }
+  }
+ ]
+}

@@ -1,0 +1,63 @@
+<template>
+  <style>
+@font-face { font-family: Manrope; src: url('assets/fonts/manrope-latin.woff2') format('woff2'); font-weight: 400 800; }
+.paper { background: #fffaf5; color: #2b2849; }
+.night { background: radial-gradient(ellipse at 86% 12%, #493966 0%, rgba(73,57,102,0) 62%), #211d3d; color: #fffaf6; }
+.t-display { font-family: Manrope, sans-serif; font-weight: 700; letter-spacing: -0.055em; line-height: 0.98; }
+.t-title { font-family: Manrope, sans-serif; font-weight: 700; letter-spacing: -0.045em; line-height: 1.02; }
+.t-body { font-family: Manrope, sans-serif; font-weight: 600; letter-spacing: -0.02em; }
+.t-mono { font-family: 'JetBrains Mono', monospace; font-weight: 500; letter-spacing: -0.01em; }
+.iris { background: linear-gradient(135deg, #f8c9d6 0%, #d9c8f2 45%, #bfe0ef 100%); }
+.iris-text { background: linear-gradient(100deg, #c2629a 0%, #7d5ad1 55%, #3b8fc0 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.corners { position: absolute; pointer-events: none; }
+.corners i { position: absolute; width: 56px; height: 56px; border: 7px solid currentColor; }
+.corners .tl { left: 0; top: 0; border-right: 0; border-bottom: 0; border-radius: 12px 0 0 0; }
+.corners .tr { right: 0; top: 0; border-left: 0; border-bottom: 0; border-radius: 0 12px 0 0; }
+.corners .bl { left: 0; bottom: 0; border-right: 0; border-top: 0; border-radius: 0 0 0 12px; }
+.corners .br { right: 0; bottom: 0; border-left: 0; border-top: 0; border-radius: 0 0 12px 0; }
+.card { position: absolute; border-radius: 22px; overflow: hidden; box-shadow: 0 30px 70px rgba(77,60,112,0.22); }
+
+    #code { position: absolute; inset: 0; overflow: hidden; }
+    #code .world { position: absolute; inset: 0; }
+    #code .lbl { font-family: 'JetBrains Mono', monospace; font-size: 28px; letter-spacing: 0.02em; text-transform: uppercase; }
+
+    #cd-line { position: absolute; left: 120px; top: 100px; font-size: 80px; color: #fffaf6; }
+    #cd-card { position: absolute; left: 120px; top: 260px; width: 1680px; padding: 36px 44px; border-radius: 22px; background: rgba(255,250,246,0.06); border: 2px solid rgba(219,211,233,0.18); }
+    .cl { font-size: 30px; line-height: 46px; white-space: pre; color: #e9e2f5; }
+    .cl.k { color: #f8c9d6; }
+
+    #cd-line { left: 100px; top: 280px; width: 820px; font-size: 72px; }
+    #cd-card { left: 30px; top: 520px; width: 1020px; padding: 28px 24px; }
+    .cl { font-size: 22px; line-height: 34px; white-space: pre-wrap; }
+
+  </style>
+  <div id="code" data-composition-id="code" data-width="1080" data-height="1920">
+   <div class="world night">
+    <div id="cd-line" class="t-title">Then it rebuilds each one as code.</div>
+    <div id="cd-card">
+      <div class="cl t-mono">@keyframes fx-02-own-your-own-value-function-1-transform {</div>
+      <div class="cl t-mono">  from { transform: none; animation-timing-function: linear; }</div>
+      <div class="cl t-mono k">  to { transform: translate(0px, -140px); }</div>
+      <div class="cl t-mono">}</div>
+      <div class="cl t-mono k">@keyframes fx-02-own-your-own-value-function-1-opacity {</div>
+      <div class="cl t-mono k">  from { opacity: 1; animation-timing-function: linear; }</div>
+      <div class="cl t-mono k">  to { opacity: 0; }</div>
+      <div class="cl t-mono">}</div>
+      <div class="cl t-mono">#hero > div:nth-of-type(2) {</div>
+      <div class="cl t-mono k">  animation: fx-02-own-your-own-value-function-1-transform linear both, fx-02-own-your-own-value-function-1-opacity linear both;</div>
+      <div class="cl t-mono">  animation-timeline: scroll(root), scroll(root);</div>
+      <div class="cl t-mono k">  animation-range: 0px 900px, 0px 315px;</div>
+      <div class="cl t-mono">}</div>
+    </div>
+   </div>
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    tl.fromTo('#cd-line', { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.45, ease: 'expo.out' }, 0.05);
+
+    tl.fromTo('#cd-card', { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.4, ease: 'expo.out' }, 0.2);
+    tl.fromTo('.cl', { opacity: 0 }, { opacity: 1, duration: 0.15, stagger: 0.09 }, 0.35);
+
+    window.__timelines["code"] = tl;
+  </script>
+</template>

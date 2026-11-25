@@ -1,0 +1,66 @@
+<template>
+  <style>
+@font-face { font-family: Manrope; src: url('assets/fonts/manrope-latin.woff2') format('woff2'); font-weight: 400 800; }
+.paper { background: #fffaf5; color: #2b2849; }
+.night { background: radial-gradient(ellipse at 86% 12%, #493966 0%, rgba(73,57,102,0) 62%), #211d3d; color: #fffaf6; }
+.t-display { font-family: Manrope, sans-serif; font-weight: 700; letter-spacing: -0.055em; line-height: 0.98; }
+.t-title { font-family: Manrope, sans-serif; font-weight: 700; letter-spacing: -0.045em; line-height: 1.02; }
+.t-body { font-family: Manrope, sans-serif; font-weight: 600; letter-spacing: -0.02em; }
+.t-mono { font-family: 'JetBrains Mono', monospace; font-weight: 500; letter-spacing: -0.01em; }
+.iris { background: linear-gradient(135deg, #f8c9d6 0%, #d9c8f2 45%, #bfe0ef 100%); }
+.iris-text { background: linear-gradient(100deg, #c2629a 0%, #7d5ad1 55%, #3b8fc0 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.corners { position: absolute; pointer-events: none; }
+.corners i { position: absolute; width: 56px; height: 56px; border: 7px solid currentColor; }
+.corners .tl { left: 0; top: 0; border-right: 0; border-bottom: 0; border-radius: 12px 0 0 0; }
+.corners .tr { right: 0; top: 0; border-left: 0; border-bottom: 0; border-radius: 0 12px 0 0; }
+.corners .bl { left: 0; bottom: 0; border-right: 0; border-top: 0; border-radius: 0 0 0 12px; }
+.corners .br { right: 0; bottom: 0; border-left: 0; border-top: 0; border-radius: 0 0 12px 0; }
+.card { position: absolute; border-radius: 22px; overflow: hidden; box-shadow: 0 30px 70px rgba(77,60,112,0.22); }
+
+    #figma { position: absolute; inset: 0; overflow: hidden; }
+    #figma .world { position: absolute; inset: 0; }
+    #figma .lbl { font-family: 'JetBrains Mono', monospace; font-size: 28px; letter-spacing: 0.02em; text-transform: uppercase; }
+
+    #fg-line { position: absolute; left: 100px; top: 80px; width: 1720px; font-size: 72px; }
+    #fg-import { left: 100px; top: 250px; width: 1720px; height: 1098px; }
+    #fg-import video { width: 1720px; }
+    #fg-panel { left: 100px; top: 250px; width: 1240px; height: 826px; background: #fff; }
+    #fg-panel img { width: 1240px; }
+    #fg-facts { position: absolute; left: 1420px; top: 330px; width: 420px; font-size: 44px; line-height: 1.2; }
+    #fg-facts div { margin-bottom: 30px; }
+    #fg-facts span { display: block; font-size: 30px; color: #57516a; }
+
+    #fg-line { left: 100px; top: 260px; width: 820px; font-size: 64px; }
+    #fg-import { left: 0; top: 520px; width: 1080px; height: 690px; border-radius: 0; }
+    #fg-import video { width: 1080px; }
+    #fg-panel { left: 30px; top: 520px; width: 1020px; height: 680px; }
+    #fg-panel img { width: 1020px; }
+    #fg-facts { left: 100px; top: 1240px; width: 820px; font-size: 44px; }
+
+  </style>
+  <div id="figma" data-composition-id="figma" data-width="1080" data-height="1920">
+   <div class="world paper">
+
+    <div id="fg-line" class="t-title">In Figma, a Smart Animate on the page's own curve.</div>
+    <div id="fg-import" class="card"><video id="fg-video" class="clip" data-start="0" data-duration="2" src="assets/clips/figma-import.mp4" muted playsinline></video></div>
+    <div id="fg-panel" class="card"><img src="assets/ui/figma-panel.png" alt=""></div>
+    <div id="fg-facts" class="t-title">
+      <div><span class="t-body">Animation</span>Smart animate</div>
+      <div><span class="t-body">Duration</span>200 ms, as the page</div>
+      <div><span class="t-body">Easing</span>0.25, 0.1, 0.25, 1</div>
+    </div>
+
+   </div>
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    tl.fromTo('#fg-line', { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.45, ease: 'expo.out' }, 0.05);
+
+    tl.fromTo('#fg-import', { opacity: 0, y: 50 }, { opacity: 1, y: 0, duration: 0.45, ease: 'expo.out' }, 0.0);
+    tl.fromTo('#fg-panel', { opacity: 0, scale: 0.95 }, { opacity: 1, scale: 1, duration: 0.45, ease: 'expo.out' }, 1.6);
+    tl.to('#fg-import', { opacity: 0, duration: 0.2 }, 1.8);
+    tl.fromTo('#fg-facts div', { opacity: 0, x: 30 }, { opacity: 1, x: 0, duration: 0.3, ease: 'expo.out', stagger: 0.12 }, 1.9);
+
+    window.__timelines["figma"] = tl;
+  </script>
+</template>

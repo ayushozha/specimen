@@ -1,0 +1,54 @@
+<template>
+  <style>
+@font-face { font-family: Manrope; src: url('assets/fonts/manrope-latin.woff2') format('woff2'); font-weight: 400 800; }
+.paper { background: #fffaf5; color: #2b2849; }
+.night { background: radial-gradient(ellipse at 86% 12%, #493966 0%, rgba(73,57,102,0) 62%), #211d3d; color: #fffaf6; }
+.t-display { font-family: Manrope, sans-serif; font-weight: 700; letter-spacing: -0.055em; line-height: 0.98; }
+.t-title { font-family: Manrope, sans-serif; font-weight: 700; letter-spacing: -0.045em; line-height: 1.02; }
+.t-body { font-family: Manrope, sans-serif; font-weight: 600; letter-spacing: -0.02em; }
+.t-mono { font-family: 'JetBrains Mono', monospace; font-weight: 500; letter-spacing: -0.01em; }
+.iris { background: linear-gradient(135deg, #f8c9d6 0%, #d9c8f2 45%, #bfe0ef 100%); }
+.iris-text { background: linear-gradient(100deg, #c2629a 0%, #7d5ad1 55%, #3b8fc0 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.corners { position: absolute; pointer-events: none; }
+.corners i { position: absolute; width: 56px; height: 56px; border: 7px solid currentColor; }
+.corners .tl { left: 0; top: 0; border-right: 0; border-bottom: 0; border-radius: 12px 0 0 0; }
+.corners .tr { right: 0; top: 0; border-left: 0; border-bottom: 0; border-radius: 0 12px 0 0; }
+.corners .bl { left: 0; bottom: 0; border-right: 0; border-top: 0; border-radius: 0 0 0 12px; }
+.corners .br { right: 0; bottom: 0; border-left: 0; border-top: 0; border-radius: 0 0 12px 0; }
+.card { position: absolute; border-radius: 22px; overflow: hidden; box-shadow: 0 30px 70px rgba(77,60,112,0.22); }
+
+    #capture { position: absolute; inset: 0; overflow: hidden; }
+    #capture .world { position: absolute; inset: 0; }
+    #capture .lbl { font-family: 'JetBrains Mono', monospace; font-size: 28px; letter-spacing: 0.02em; text-transform: uppercase; }
+
+    #cp-line { position: absolute; left: 120px; top: 90px; width: 1100px; font-size: 72px; }
+    #cp-list { position: absolute; left: 124px; top: 330px; font-size: 44px; line-height: 1.7; }
+    #cp-list div { opacity: 0; }
+    #cp-panel { left: 1250px; top: 70px; width: 560px; height: 940px; background: #fffaf5; }
+    #cp-panel video, #cp-end { position: absolute; left: 0; top: 0; width: 560px; height: 1074px; object-fit: cover; object-position: top; }
+
+    #cp-line { left: 100px; top: 260px; width: 820px; font-size: 66px; }
+    #cp-list { left: 100px; top: 470px; font-size: 38px; }
+    #cp-panel { left: 270px; top: 800px; width: 540px; height: 700px; }
+    #cp-panel video, #cp-end { width: 540px; height: 1036px; }
+
+  </style>
+  <div id="capture" data-composition-id="capture" data-width="1080" data-height="1920">
+   <div class="world paper">
+
+    <div id="cp-line" class="t-title">It measures every effect as it happens.</div>
+    <div id="cp-list" class="t-body"><div>Scrolls the page</div><div>Hovers every link and button</div><div>Moves the pointer over each section</div><div>Times each curve, frame by frame</div></div>
+    <div id="cp-panel" class="card"><img id="cp-end" src="assets/ui/capture-end.png" alt=""><video id="cp-video" class="clip" data-start="0" data-duration="4.95" src="assets/clips/panel-capture.mp4" muted playsinline></video></div>
+
+   </div>
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    tl.fromTo('#cp-line', { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.45, ease: 'expo.out' }, 0.05);
+
+    tl.fromTo('#cp-panel', { opacity: 0, x: 80 }, { opacity: 1, x: 0, duration: 0.5, ease: 'expo.out' }, 0.1);
+    tl.fromTo('#cp-list div', { opacity: 0, x: -20 }, { opacity: 1, x: 0, duration: 0.35, ease: 'expo.out', stagger: 0.7 }, 0.6);
+
+    window.__timelines["capture"] = tl;
+  </script>
+</template>
