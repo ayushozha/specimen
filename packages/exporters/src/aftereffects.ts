@@ -1,4 +1,4 @@
-import { cubicBezierOf } from '@specimen/core';
+import { cubicBezierOf, easingFunction, isBezierEasing } from '@specimen/core';
 import type { AnimationSpec, SpecKeyframe } from './spec';
 
 export interface AeLayer {
@@ -36,12 +36,27 @@ export function toAfterEffectsScript(comps: AeComp[], fps = 30): string {
     '(function () {',
     '  var base = File($.fileName).parent.fsName;',
     '  function load(path) { return app.project.importFile(new ImportOptions(File(base + "/" + path))); }',
-    '  function ease(prop, key, inInf, outInf) {',
+    // A key's value; its easing is set once all of the property's keys exist (After Effects drops the
+    // speed of a multi-dimensional ease, Scale's, when the next key isn't there yet).
+    '  function key(prop, t, v) {',
+    '    if (v instanceof Array) { while (v.length < prop.value.length) v.push(v.length === 2 ? 100 : v[v.length - 1]); v.length = prop.value.length; }',
+    '    prop.setValueAtKey(prop.addKey(t), v);',
+    '  }',
+    // Easing of key k: [in influence, in speed, out influence, out speed]; null is linear.
+    '  function ease(prop, k, e) {',
+    '    var B = KeyframeInterpolationType.BEZIER, L = KeyframeInterpolationType.LINEAR;',
+    '    prop.setInterpolationTypeAtKey(k, e[0] === null ? L : B, e[2] === null ? L : B);',
+    '    if (e[0] === null && e[2] === null) return;',
     '    var n = 1;',
     '    if (prop.propertyValueType === PropertyValueType.TwoD || prop.propertyValueType === PropertyValueType.ThreeD) n = prop.value.length;',
     '    var i = [], o = [];',
-    '    for (var d = 0; d < n; d++) { i.push(new KeyframeEase(0, inInf)); o.push(new KeyframeEase(0, outInf)); }',
-    '    prop.setTemporalEaseAtKey(key, i, o);',
+    '    for (var d = 0; d < n; d++) {',
+    // A static dimension (Scale's z on a 2D layer) keeps zero speed.
+    '      var still = prop.valueAtTime(prop.keyTime(1), true) instanceof Array && prop.keyValue(1)[d] === prop.keyValue(prop.numKeys)[d];',
+    '      i.push(new KeyframeEase(still ? 0 : (e[1] || 0), e[0] === null ? 16.67 : e[0]));',
+    '      o.push(new KeyframeEase(still ? 0 : (e[3] || 0), e[2] === null ? 16.67 : e[2]));',
+    '    }',
+    '    prop.setTemporalEaseAtKey(k, i, o);',
     '  }',
     '  app.beginUndoGroup("Specimen import");',
   ];
@@ -57,32 +72,80 @@ export function toAfterEffectsScript(comps: AeComp[], fps = 30): string {
       lines.push(`  var ${l} = ${c}.layers.add(load(${str(layer.image)}));`);
       lines.push(`  ${l}.name = ${str(layer.name)};`);
       lines.push(`  ${l}.property("Transform").property("Position").setValue([${cx}, ${cy}]);`);
-      const t = (k: SpecKeyframe) => ((layer.spec.delayMs + k.offset * layer.spec.durationMs) / 1000).toFixed(3);
-      const keyed = (propName: string, keys: SpecKeyframe[] | undefined, value: (k: SpecKeyframe) => string) => {
+      const time = (o: number) => (layer.spec.delayMs + o * layer.spec.durationMs) / 1000;
+      const keyed = (p: string, keys: SpecKeyframe[] | undefined, ae: (v: number) => number, wrap: (v: number) => string = (v) => v.toFixed(4)) => {
         if (!keys?.length) return;
-        const p = `${l}.property("Transform").property(${str(propName)})`;
-        keys.forEach((k) => lines.push(`  ${p}.setValueAtTime(${t(k)}, ${value(k)});`));
-        keys.forEach((k, i) => {
-          const [x1, , x2] = cubicBezierOf(k.easing);
-          const prev = i > 0 ? cubicBezierOf(keys[i - 1].easing) : null;
-          const inInf = prev ? Math.max(0.1, (1 - prev[2]) * 100) : 33.33;
-          const outInf = i < keys.length - 1 ? Math.max(0.1, x1 * 100) : 33.33;
-          void x2;
-          lines.push(`  ease(${p}, ${i + 1}, ${inInf.toFixed(2)}, ${outInf.toFixed(2)});`);
-        });
+        const ks = aeKeys(keys, time, ae, fps);
+        for (const k of ks) lines.push(`  key(${p}, ${k.t.toFixed(4)}, ${wrap(k.v)});`);
+        ks.forEach((k, i) => lines.push(`  ease(${p}, ${i + 1}, [${k.e.map((x) => (x === null ? 'null' : x.toFixed(4))).join(', ')}]);`));
         if (layer.spec.iterations === 'infinite') lines.push(`  ${p}.expression = "loopOut(\\"cycle\\")";`);
       };
+      const tr = `${l}.property("Transform")`;
       const tracks = layer.spec.tracks;
-      keyed('Opacity', tracks.opacity, (k) => (k.value * 100).toFixed(2));
-      keyed('Scale', tracks.scale, (k) => `[${(k.value * 100).toFixed(2)}, ${(k.value * 100).toFixed(2)}]`);
-      keyed('Rotation', tracks.rotate, (k) => k.value.toFixed(2));
+      keyed(`${tr}.property("Opacity")`, tracks.opacity, (v) => v * 100);
+      keyed(`${tr}.property("Scale")`, tracks.scale, (v) => v * 100, (v) => `[${v.toFixed(4)}, ${v.toFixed(4)}]`);
+      keyed(`${tr}.property("Rotation")`, tracks.rotate, (v) => v);
       if (tracks.tx || tracks.ty) {
-        const keys = (tracks.tx ?? tracks.ty)!;
-        const at = (ks: SpecKeyframe[] | undefined, o: number) => ks?.find((k) => k.offset === o)?.value ?? 0;
-        keyed('Position', keys, (k) => `[${(cx + at(tracks.tx, k.offset)).toFixed(2)}, ${(cy + at(tracks.ty, k.offset)).toFixed(2)}]`);
+        // X and Y apart: each a 1D property, so its easing (overshoot included) is exact.
+        lines.push(`  ${tr}.property("Position").dimensionsSeparated = true;`);
+        keyed(`${tr}.property("X Position")`, tracks.tx, (v) => cx + v);
+        keyed(`${tr}.property("Y Position")`, tracks.ty, (v) => cy + v);
       }
     });
   });
   lines.push('  app.endUndoGroup();', '})();', '');
   return lines.join('\n');
+}
+
+/** One After Effects keyframe: time (s), value, and [in influence, in speed, out influence, out speed] (null = linear). */
+export interface AeKey {
+  t: number;
+  v: number;
+  e: [number | null, number | null, number | null, number | null];
+}
+
+/**
+ * After Effects keys that reproduce a track exactly. A cubic-bezier segment becomes two keys whose
+ * influence is the control point's x and whose speed is its slope (y/x) times the segment's average
+ * speed, which is the same curve. Other easings (linear() springs, steps) are baked: a key every frame.
+ */
+export function aeKeys(keys: SpecKeyframe[], time: (offset: number) => number, ae: (v: number) => number, fps = 30): AeKey[] {
+  const out: AeKey[] = [];
+  const push = (t: number, v: number, inE: [number | null, number | null], outE: [number | null, number | null]) => {
+    const last = out[out.length - 1];
+    // Keys under a millisecond apart are one key in After Effects (times are written to 0.1ms).
+    if (last && Math.abs(last.t - t) < 1e-3) {
+      last.e[2] = outE[0];
+      last.e[3] = outE[1];
+      return;
+    }
+    out.push({ t, v, e: [inE[0], inE[1], outE[0], outE[1]] });
+  };
+  if (keys.length === 1) return [{ t: time(keys[0].offset), v: ae(keys[0].value), e: [null, null, null, null] }];
+  for (let i = 0; i < keys.length - 1; i++) {
+    const a = keys[i];
+    const b = keys[i + 1];
+    const t0 = time(a.offset);
+    const t1 = time(b.offset);
+    const v0 = ae(a.value);
+    const v1 = ae(b.value);
+    const dt = Math.max(1e-6, t1 - t0);
+    const rate = (v1 - v0) / dt;
+    if (a.easing.trim() === 'linear') {
+      push(t0, v0, [null, null], [null, null]);
+      push(t1, v1, [null, null], [null, null]);
+    } else if (isBezierEasing(a.easing)) {
+      const [x1, y1, x2, y2] = cubicBezierOf(a.easing);
+      const ox = Math.max(0.001, x1);
+      const ix = Math.max(0.001, 1 - x2);
+      push(t0, v0, [null, null], [Math.max(0.1, Math.min(100, ox * 100)), (y1 / ox) * rate]);
+      push(t1, v1, [Math.max(0.1, Math.min(100, ix * 100)), ((1 - y2) / ix) * rate], [null, null]);
+    } else {
+      const f = easingFunction(a.easing);
+      // Four keys a frame, so the curve also holds between frames (motion blur samples there).
+      const frames = Math.max(1, Math.round(dt * fps * 4));
+      for (let k = 0; k <= frames; k++) push(t0 + (k / frames) * dt, v0 + (v1 - v0) * f(k / frames), [null, null], [null, null]);
+    }
+  }
+  return out;
 }

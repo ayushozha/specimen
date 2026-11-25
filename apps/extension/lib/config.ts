@@ -40,6 +40,15 @@ export const CONFIG = {
     scrollStepRatio: 0.5,
     scrollDelayMs: 120,
     traceMaxElements: 500,
+    /** Scroll-linked effects are re-measured every this many px (more on long ranges, see below)… */
+    linkedProbeStepPx: 24,
+    /** …in at most this many steps, each read once the page has settled for this long. */
+    linkedProbeMaxSteps: 120,
+    linkedProbeSettleMs: 80,
+    /** Before a hover, an element is read twice this far apart: what changes on its own isn't the hover. */
+    idleCheckMs: 150,
+    /** A hover driven by script is read every frame for this long. */
+    scriptedHoverMs: 1200,
     maxAnimations: 12,
     /** Frames per animation clip; long animations are sampled more sparsely, never cut short. */
     maxFramesPerAnimation: 30,

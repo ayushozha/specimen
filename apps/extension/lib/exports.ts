@@ -1,4 +1,4 @@
-import { GENERATED_HTML_CSP, cubicBezierOf, type LayoutTree, type Palette, type Rect, type Section } from '@specimen/core';
+import { GENERATED_HTML_CSP, type LayoutTree, type Palette, type Rect, type Section } from '@specimen/core';
 import {
   namedColors,
   isTrustworthy,
@@ -8,6 +8,7 @@ import {
   specFromAnimation,
   specFromInteraction,
   toAfterEffectsScript,
+  toolEasing,
   toAse,
   toDesignTokens,
   toLottie,
@@ -140,7 +141,7 @@ export async function buildExports(ctx: ExportContext): Promise<ExportSummary> {
 
   const figma: FigmaDocument = { format: 'specimen-figma', version: 1, source: ctx.source, colors, sections: [], assets: {} };
   const aeComps: AeComp[] = [];
-  const replication: { section: string; replicas: (Omit<Replica, 'css' | 'gsap' | 'motion'> & { inCode: boolean })[] }[] = [];
+  const replication: { section: string; replicas: (Replica & { inCode: boolean })[] }[] = [];
 
   for (const section of ctx.sections) {
     const tree = ctx.trees.get(section.id);
@@ -199,13 +200,22 @@ export async function buildExports(ctx: ExportContext): Promise<ExportSummary> {
           defaultImage: effect.files[0],
           hoverImage: hover,
           durationMs: longest ? longest.duration : 200,
-          easing: cubicBezierOf(longest?.easing ?? 'ease'),
+          ...((t) => ({ easing: t.bezier, spring: t.spring }))(toolEasing(longest?.easing ?? 'ease', longest ? longest.duration : 200)),
         });
       }
       const spec = specFromInteraction(effect);
       if (spec) animated.push({ spec, rect: r });
     }
     figma.sections.push(figmaSection);
+
+    // Scroll effects as keyframes too. A scroll-linked one has no time of its own: 1px of scroll is
+    // 1ms in the comp, as if the page scrolled at 1000 px/s.
+    const replicas = motion ? replicate(motion, `fx-${section.id}`) : [];
+    for (const r of replicas) {
+      if (r.source !== 'fitted' || !r.spec || !r.rect || !isTrustworthy(r)) continue;
+      const spec = r.scroll ? { ...r.spec, name: `${r.name} (1px scroll = 1ms)`, delayMs: r.scroll.start, durationMs: Math.max(1, r.scroll.end - r.scroll.start) } : r.spec;
+      animated.push({ spec: { ...spec, name: spec.name === 'reveal' ? r.name : spec.name }, rect: relative(r.rect) });
+    }
 
     const layers: AeComp['layers'] = [];
     for (const [i, { spec, rect: r }] of animated.entries()) {
@@ -224,7 +234,6 @@ export async function buildExports(ctx: ExportContext): Promise<ExportSummary> {
     if (motion) {
       await attempt('Effect code', async () => {
         // CSS identifiers can't start with a digit, and section ids do.
-        const replicas = replicate(motion, `fx-${section.id}`);
         if (!replicas.length) return;
         const code = replicaFiles(replicas);
         ctx.put(`exports/code/${section.id}.css`, strToU8(code.css));
@@ -239,7 +248,8 @@ export async function buildExports(ctx: ExportContext): Promise<ExportSummary> {
           previews.push({ replica: r, image: `../crops/${section.id}/${r.id}.png` });
         }
         if (previews.length) ctx.put(`exports/code/${section.id}.preview.html`, strToU8(previewPage(section.name, previews)));
-        replication.push({ section: section.id, replicas: replicas.map(({ css: _c, gsap: _g, motion: _m, ...rest }) => ({ ...rest, inCode: isTrustworthy(rest as Replica) })) });
+        // Each effect's own code travels with it, so one effect can be used (or checked) on its own.
+        replication.push({ section: section.id, replicas: replicas.map((r) => ({ ...r, inCode: isTrustworthy(r) })) });
       });
     }
   }

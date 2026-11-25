@@ -88,6 +88,17 @@ export function specFromInteraction(
       const b = partsOf(c.to, true);
       for (const p of ['tx', 'ty', 'scale', 'rotate'] as const) tracks[p] = [{ offset: 0, value: a[p], easing: t.easing }, { offset: 1, value: b[p], easing: t.easing }];
     }
+    // The individual transform properties (`translate: 4px`, `scale: 1.05`, `rotate: 10deg`).
+    const key = (p: AnimProp, from: number, to: number) => (tracks[p] = [{ offset: 0, value: from, easing: t.easing }, { offset: 1, value: to, easing: t.easing }]);
+    if (c.prop === 'translate') {
+      const xy = (v: string) => (v === 'none' ? [0, 0] : v.split(/\s+/).map((n) => parseFloat(n) || 0));
+      const [ax, ay = 0] = xy(c.from);
+      const [bx, by = 0] = xy(c.to);
+      key('tx', ax, bx);
+      key('ty', ay, by);
+    }
+    if (c.prop === 'scale') key('scale', c.from === 'none' ? 1 : parseFloat(c.from), c.to === 'none' ? 1 : parseFloat(c.to));
+    if (c.prop === 'rotate') key('rotate', c.from === 'none' ? 0 : parseFloat(c.from), c.to === 'none' ? 0 : parseFloat(c.to));
   }
   const pruned = prune(tracks);
   if (!durationMs || Object.keys(pruned).length === 0) return null;

@@ -240,7 +240,13 @@ async function addVariants(figma: PluginAPI, section: FigmaSection, root: FrameN
       type: 'NODE',
       destinationId: hover.id,
       navigation: 'CHANGE_TO',
-      transition: { type: 'SMART_ANIMATE', easing: { type: 'CUSTOM_CUBIC_BEZIER', easingFunctionCubicBezier: { x1, y1, x2, y2 } }, duration: v.durationMs / 1000 },
+      transition: {
+        type: 'SMART_ANIMATE',
+        easing: v.spring
+          ? { type: 'CUSTOM_SPRING', easingFunctionSpring: { mass: v.spring.mass, stiffness: v.spring.stiffness, damping: v.spring.damping, initialVelocity: 0 } }
+          : { type: 'CUSTOM_CUBIC_BEZIER', easingFunctionCubicBezier: { x1, y1, x2, y2 } },
+        duration: v.durationMs / 1000,
+      },
       preserveScrollPosition: false,
     } as unknown as Action;
     await def.setReactionsAsync([{ trigger: { type: 'ON_HOVER' }, actions: [action] }]);

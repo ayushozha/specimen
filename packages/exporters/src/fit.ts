@@ -1,4 +1,4 @@
-import { downsample, evaluateBezier } from '@specimen/core';
+import { cubicBezierOf, downsample, easingFunction, evaluateBezier, isBezierEasing } from '@specimen/core';
 
 export type Bezier = [number, number, number, number];
 
@@ -146,4 +146,15 @@ function clamp(v: number, lo: number, hi: number): number {
 function round(v: number, d: number): number {
   const f = 10 ** d;
   return Math.round(v * f) / f;
+}
+
+/**
+ * A page easing as a design tool can hold it: the bezier itself when it is one, else the closest
+ * bezier or spring (linear() springs and bounces), with how close it is.
+ */
+export function toolEasing(css: string, durationMs: number): { bezier: Bezier; spring: EasingFit['spring']; score: number } {
+  if (isBezierEasing(css)) return { bezier: cubicBezierOf(css), spring: null, score: 1 };
+  const f = easingFunction(css);
+  const fit = fitEasing(Array.from({ length: 61 }, (_, i) => [i / 60, f(i / 60)] as ProgressSample), durationMs);
+  return { bezier: fit.bezier ?? [0.25, 0.1, 0.25, 1], spring: fit.spring, score: fit.score };
 }

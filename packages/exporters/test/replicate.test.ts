@@ -109,3 +109,57 @@ describe('poor fits', () => {
     expect(replicaFiles(reps).css).not.toContain('#p');
   });
 });
+
+describe('scroll-linked motion', () => {
+  const linked = (samples: Sample[]) => replicate({ animations: [], interactions: [], tracks: [{ selector: '#hero', prop: 'transform', kind: 'scroll-linked', samples }] }, 'hero')[0];
+  it('measures a parallax from dense samples and writes scroll-driven code', () => {
+    // -140px over the first 900px of scroll, measured every 24px: the end (900) falls between two samples.
+    const samples: Sample[] = Array.from({ length: 51 }, (_, i) => [i * 100, i * 24, `matrix(1, 0, 0, 1, 0, ${-Math.min(900, i * 24) * (140 / 900)})`]);
+    const r = linked(samples);
+    expect(r).toMatchObject({ trigger: 'scroll-linked', scroll: { start: 0, end: 900 } });
+    expect(r.score).toBeGreaterThan(0.99);
+    expect(r.css).toContain('animation-timeline: scroll(root)');
+    expect(r.gsap).toContain('scrub: true');
+    expect(r.motion).toContain('useTransform(scrollY, [0, 900]');
+  });
+  it('fits an eased scrub', () => {
+    const samples: Sample[] = Array.from({ length: 41 }, (_, i) => [i * 100, i * 25, String(evaluateBezier([0.42, 0, 0.58, 1], i / 40))]);
+    const r = replicate({ animations: [], interactions: [], tracks: [{ selector: '#x', prop: 'opacity', kind: 'scroll-linked', samples }] }, 'x')[0];
+    expect(r.easing!.css).toBe('ease-in-out');
+    expect(r.score).toBeGreaterThan(0.99);
+    expect(r.motion).toContain('ease: cubicBezier(0.42, 0, 0.58, 1)');
+  });
+  it('claims no match from three points, and leaves the effect out of the code', () => {
+    const r = linked([[118, 0, 'none'], [129, 450, 'matrix(1, 0, 0, 1, 0, -70)'], [306, 900, 'matrix(1, 0, 0, 1, 0, -140)']]);
+    expect(r.score).toBe(0);
+    expect(isTrustworthy(r)).toBe(false);
+  });
+});
+
+describe('a reveal that only moves on its transform', () => {
+  it('writes a transition for it (never an empty one)', () => {
+    const out: Sample[] = [[0, 0, 'none'], [100, 400, 'none']];
+    for (let t = 16; t <= 400; t += 16) out.push([100 + t, 400, `matrix(1, 0, 0, 1, 0, ${-40 * evaluateBezier([0, 0, 0.58, 1], Math.min(1, t / 400))})`]);
+    const [r] = replicate({ animations: [], interactions: [], tracks: [{ selector: '#c', prop: 'transform', kind: 'scroll-reveal', samples: out }] }, 'c');
+    expect(r.css).toMatch(/transition: transform \d+ms/);
+    expect(r.css).not.toContain('transition: ;');
+  });
+});
+
+describe('a scroll-linked element whose properties move over different ranges', () => {
+  it('keeps each range and curve', () => {
+    // Moves -140px over 0–900px while fading out over 0–350px, measured every 49px.
+    const ys = Array.from({ length: 23 }, (_, i) => i * 49);
+    const tracks = [
+      { selector: '#hero', prop: 'transform', kind: 'scroll-linked' as const, samples: ys.map((y, i): Sample => [i * 100, y, `matrix(1, 0, 0, 1, 0, ${-140 * Math.min(1, y / 900)})`]) },
+      { selector: '#hero', prop: 'opacity', kind: 'scroll-linked' as const, samples: ys.map((y, i): Sample => [i * 100, y, String(Math.max(0, 1 - y / 350))]) },
+    ];
+    const [r] = replicate({ animations: [], interactions: [], tracks }, 'hero');
+    expect(r.ranges!.ty).toMatchObject({ start: 0, end: 900, from: 0, to: -140, easing: 'linear' });
+    expect(r.ranges!.opacity).toMatchObject({ start: 0, end: 350, from: 1, to: 0, easing: 'linear' });
+    expect(r.score).toBeGreaterThan(0.99);
+    expect(r.css).toContain('animation-range: 0px 900px, 0px 350px');
+    expect(r.gsap).toContain('{ opacity: 0, ease: "none", scrollTrigger: { start: 0, end: 350, scrub: true } }');
+    expect(r.motion).toContain('useTransform(scrollY, [0, 350], [1, 0])');
+  });
+});

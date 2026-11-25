@@ -29,7 +29,13 @@ describe('numericValue', () => {
 describe('classifyTrack', () => {
   const track = (samples: [number, number, string][]): Track => ({ selector: 'x', prop: 'opacity', samples });
   it('finds scroll reveals', () => {
-    expect(classifyTrack(track([[0, 0, '0'], [100, 800, '0.3'], [200, 850, '0.8'], [300, 900, '1']]), 900)).toBe('scroll-reveal');
+    // As the tracer records one: the page steps to 450px and holds; the fade plays out frame by frame.
+    expect(classifyTrack(track([[0, 0, '0'], [130, 450, '0.2'], [146, 450, '0.5'], [163, 450, '0.8'], [180, 450, '1']]), 900)).toBe('scroll-reveal');
+  });
+  it('finds parallax seen at only a few scroll steps', () => {
+    // A hero that moves -140px over the first 900px of scroll: it changes only on each scroll step.
+    const hero: [number, number, string][] = [[118, 0, 'none'], [129, 450, 'matrix(1, 0, 0, 1, 0, -70)'], [306, 900, 'matrix(1, 0, 0, 1, 0, -140)']];
+    expect(classifyTrack({ selector: 'x', prop: 'transform', samples: hero }, 900)).toBe('scroll-linked');
   });
   it('finds scroll-linked motion', () => {
     const samples: [number, number, string][] = Array.from({ length: 20 }, (_, i) => [i * 100, i * 200, String(i)]);
@@ -96,5 +102,17 @@ describe('followsPointer', () => {
   });
   it('rejects one short change', () => {
     expect(followsPointer(track([0, 700, 716]), 600, 2600)).toBe(false);
+  });
+});
+
+describe('easingFunction', () => {
+  it('evaluates every CSS easing form', async () => {
+    const { easingFunction } = await import('../src/motion-math');
+    expect(easingFunction('linear(0, 1.2 60%, 1)')(0.6)).toBeCloseTo(1.2, 6);
+    expect(easingFunction('linear(0, 1.2 60%, 1)')(0.3)).toBeCloseTo(0.6, 6);
+    expect(easingFunction('linear(0, 0.5, 1)')(0.25)).toBeCloseTo(0.25, 6);
+    expect(easingFunction('steps(4, end)')(0.3)).toBe(0.25);
+    expect(easingFunction('steps(4, start)')(0.3)).toBe(0.5);
+    expect(easingFunction('ease-out')(0.5)).toBeGreaterThan(0.6);
   });
 });

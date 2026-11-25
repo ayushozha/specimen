@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { evaluateBezier, type AnimationInfo, type LayoutTree, type Palette } from '@specimen/core';
-import { namedColors, specFromAnimation, specFromInteraction, toAfterEffectsScript, toAse, toDesignTokens, toLottie, toSvg, toTailwindTheme, valueAt } from '../src';
+import { aeKeys, namedColors, specFromAnimation, specFromInteraction, toAfterEffectsScript,
+  toAse, toDesignTokens, toLottie, toSvg, toTailwindTheme, valueAt } from '../src';
 
 const pulse: AnimationInfo = {
   id: 'a1', kind: 'css-animation', timeline: 'document', name: 'pulse', target: '.pulse', pseudo: null,
@@ -54,9 +55,27 @@ describe('After Effects script', () => {
   });
   it('keys each property with easing and loops endless animations', () => {
     expect(script).toContain('addComp("Hero", 1440, 900, 1, 1.200, 30)');
-    expect(script).toContain('property("Scale").setValueAtTime(0.600, [140.00, 140.00])');
+    expect(script).toMatch(/key\(l0_0\.property\("Transform"\)\.property\("Scale"\), 0\.6000, \[140\.0000, 140\.0000\]\);/);
     expect(script).toContain('loopOut');
-    expect(script.match(/ease\(/g)!.length).toBeGreaterThanOrEqual(6);
+  });
+  it('turns a cubic-bezier into the same curve in After Effects, overshoot included', () => {
+    // AE draws a segment as a cubic through (t0,v0), (t0 + outInf·dt, v0 + outSpeed·outInf·dt),
+    // (t1 − inInf·dt, v1 − inSpeed·inInf·dt), (t1,v1). Normalised, those must be the CSS control points.
+    const [a, b] = aeKeys([{ offset: 0, value: 1, easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)' }, { offset: 1, value: 1.05, easing: 'linear' }], (o) => o * 0.3, (v) => v * 100);
+    const dt = b.t - a.t;
+    const dv = b.v - a.v;
+    const outInf = a.e[2]! / 100;
+    const inInf = b.e[0]! / 100;
+    expect(outInf).toBeCloseTo(0.34, 4);
+    expect((a.e[3]! * outInf * dt) / dv).toBeCloseTo(1.56, 4);
+    expect(1 - inInf).toBeCloseTo(0.64, 4);
+    expect(1 - (b.e[1]! * inInf * dt) / dv).toBeCloseTo(1, 4);
+  });
+  it('bakes easings no design tool holds, a key per frame', () => {
+    const keys = aeKeys([{ offset: 0, value: 0, easing: 'linear(0, 1.2 60%, 1)' }, { offset: 1, value: 1, easing: 'linear' }], (o) => o, (v) => v, 30);
+    expect(keys).toHaveLength(121);
+    expect(keys[72].v).toBeCloseTo(1.2, 3);
+    expect(keys.every((k) => k.e.every((x) => x === null))).toBe(true);
   });
 });
 
@@ -138,5 +157,12 @@ describe('text-transform in SVG text', () => {
     expect(textTransform('Sign up', 'uppercase')).toBe('SIGN UP');
     expect(textTransform('Sign Up', 'lowercase')).toBe('sign up');
     expect(textTransform('as written', 'none')).toBe('as written');
+  });
+});
+
+describe('After Effects keys that land on the same time', () => {
+  it('are merged into one key', () => {
+    const keys = aeKeys([{ offset: 0, value: 1, easing: 'linear' }, { offset: 0.00001, value: 1, easing: 'ease-out' }, { offset: 1, value: 0, easing: 'linear' }], (o) => o * 2, (v) => v * 100);
+    expect(keys.map((k) => k.t)).toEqual([0, 2]);
   });
 });

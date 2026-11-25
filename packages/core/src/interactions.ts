@@ -141,6 +141,66 @@ export function snapshotStyles(selector: string, maxDescendants = 40): StyleSnap
   return out;
 }
 
+/**
+ * Starts reading an element's properties every frame (for a hover driven by script, which has no CSS
+ * transition to read). Each property becomes numbers: colours as sRGB bytes (any CSS colour syntax),
+ * transforms as their matrix, anything else as the numbers in its value.
+ */
+export function startStyleTrace(selector: string, props: string[]): void {
+  const el = document.querySelector(selector);
+  const w = window as unknown as { __specimenTrace?: { on: boolean; samples: [number, number[][]][] } };
+  w.__specimenTrace = { on: true, samples: [] };
+  if (!el) return;
+  const ctx = Object.assign(document.createElement('canvas'), { width: 1, height: 1 }).getContext('2d', { willReadFrequently: true })!;
+  const num = (prop: string, v: string): number[] => {
+    if (prop.includes('color')) {
+      ctx.clearRect(0, 0, 1, 1);
+      ctx.fillStyle = '#000';
+      ctx.fillStyle = v;
+      ctx.fillRect(0, 0, 1, 1);
+      // Premultiplied, as browsers blend: a transparent colour has no hue to jump from.
+      const [r, g, b, a] = ctx.getImageData(0, 0, 1, 1).data;
+      return [(r * a) / 255, (g * a) / 255, (b * a) / 255, a];
+    }
+    if (prop === 'transform') {
+      const m = new DOMMatrix(v === 'none' ? undefined : v);
+      return [m.a, m.b, m.c, m.d, m.e, m.f];
+    }
+    return (v.match(/-?[\d.]+(e-?\d+)?/g) ?? []).map(Number);
+  };
+  const t = w.__specimenTrace;
+  const tick = (now: number) => {
+    if (!t.on) return;
+    const s = getComputedStyle(el);
+    t.samples.push([now, props.map((p) => num(p, s.getPropertyValue(p)))]);
+    requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+}
+
+/** Stops `startStyleTrace` and returns its samples: [frame time ms, numbers per property]. */
+export function stopStyleTrace(): [number, number[][]][] {
+  const w = window as unknown as { __specimenTrace?: { on: boolean; samples: [number, number[][]][] } };
+  if (!w.__specimenTrace) return [];
+  w.__specimenTrace.on = false;
+  return w.__specimenTrace.samples;
+}
+
+/**
+ * Waits until an element and its subtree have no finite animation or transition running (one started
+ * by scrolling it into view, say), so a "before" reading is the settled state, not a frame of another effect.
+ */
+export async function waitForStill(selector: string, timeoutMs = 1500): Promise<void> {
+  const el = document.querySelector(selector);
+  if (!el) return;
+  const end = performance.now() + timeoutMs;
+  while (performance.now() < end) {
+    const busy = el.getAnimations({ subtree: true }).some((a) => a.playState === 'running' && a.effect?.getComputedTiming().iterations !== Infinity);
+    if (!busy) return;
+    await new Promise((r) => setTimeout(r, 50));
+  }
+}
+
 /** Scrolls an element to the middle of the viewport; returns its viewport and page rects. */
 export function prepareElement(selector: string): { viewport: Rect; page: Rect } | null {
   const el = document.querySelector(selector);

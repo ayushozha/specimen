@@ -20,6 +20,7 @@ import {
   type TrackKind,
 } from '@specimen/core';
 import type { PageAdapter, ScreencastFrame } from './adapter';
+import { fitEasing, type ProgressSample } from '@specimen/exporters';
 import { CONFIG } from './config';
 import { encodeFrames, type FrameOverlay } from './video';
 import { filmstrip, frameAt, frameDiff, strokePath, type PointerSample, type Share } from './pointer';
@@ -200,6 +201,28 @@ export async function captureMotion(ctx: MotionContext): Promise<{ summary: Moti
     tweens.forEach((t, i) => owners[i] && perSection.get(owners[i]!)?.gsap.push(t));
   });
 
+  /**
+   * The scroll pass steps half a screen at a time, so a parallax shows up at only a few positions.
+   * Re-measure those effects in small steps: the settled values become the track, and a value that
+   * keeps moving after the page stops turns out to be a reveal after all.
+   */
+  const measureScrollLinked = async (linked: ClassifiedTrack[]) => {
+    if (!linked.length) return;
+    const ys = linked.flatMap((t) => t.samples.map((s) => s[1]));
+    const pad = Math.round(desktop.height * m.scrollStepRatio);
+    const from = Math.max(0, Math.min(...ys) - pad);
+    const to = Math.max(...ys) + pad;
+    const probes = await adapter.call('probeScrollLinked', linked.map((t) => ({ selector: t.selector, prop: t.prop })), { from, to }, { stepPx: Math.max(m.linkedProbeStepPx, Math.ceil((to - from) / m.linkedProbeMaxSteps)), settleMs: m.linkedProbeSettleMs });
+    await adapter.evaluateMain(() => window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior }));
+    probes.forEach((p, i) => {
+      // Holding still at every position means a one-off reveal that has already played: keep what the
+      // scroll pass recorded of it. Moving after the page stops means it plays in time: a reveal too.
+      const still = p.samples.every((s) => s[2] === p.samples[0][2]);
+      if (still || p.moving > p.samples.length / 2) linked[i].kind = 'scroll-reveal';
+      else if (p.samples.length > linked[i].samples.length) linked[i].samples = p.samples;
+    });
+  };
+
   await ctx.step('Tracing scroll motion', async () => {
     if (caps.screencast) await adapter.startScreencast(desktop.width * scale, desktop.height * scale);
     const tracks = await adapter.call('traceMotion', { scroll: true, stepRatio: m.scrollStepRatio, stepDelayMs: m.scrollDelayMs, maxElements: m.traceMaxElements });
@@ -211,14 +234,14 @@ export async function captureMotion(ctx: MotionContext): Promise<{ summary: Moti
     const looping = new Set((await adapter.call('collectAnimations', null)).filter((a) => a.iterations === 'infinite' && a.target).map((a) => a.target));
     const ids = await sectionOf(tracks.map((t) => t.selector));
     const boxes = await adapter.call('pageRectsOf', tracks.map((t) => t.selector));
-    tracks.forEach((t, i) => {
-      const kind = looping.has(t.selector) ? 'time' : classifyTrack(t, desktop.height);
-      const classified: ClassifiedTrack = { ...t, kind, rect: boxes[i], section: ids[i], observed: observed.has(t.selector) };
-      if (classified.section) perSection.get(classified.section)?.tracks.push(classified);
-      if (classified.kind === 'time') return;
+    const classified: ClassifiedTrack[] = tracks.map((t, i) => ({ ...t, kind: looping.has(t.selector) ? 'time' : classifyTrack(t, desktop.height), rect: boxes[i], section: ids[i], observed: observed.has(t.selector) }));
+    await measureScrollLinked(classified.filter((t) => t.kind === 'scroll-linked'));
+    for (const t of classified) {
+      if (t.section) perSection.get(t.section)?.tracks.push(t);
+      if (t.kind === 'time') continue;
       summary.scrollEffects++;
-      if (classified.section) summary.sections[classified.section].scrollEffects++;
-    });
+      if (t.section) summary.sections[t.section].scrollEffects++;
+    }
 
     // Cut a scroll clip per section from the same recording.
     const measured = await adapter.call('measureSections', sections);
@@ -289,14 +312,19 @@ export async function captureMotion(ctx: MotionContext): Promise<{ summary: Moti
       const clip = pad(box.page, m.clipPadding);
       const visible = fits(box.viewport);
       const base = `${ids[i] ? `sections/${ids[i]}` : 'page'}/states/${slug(c.label)}-${i + 1}`;
+      await adapter.call('waitForStill', c.selector, m.settleMs * 4);
       const before = await adapter.call('snapshotStyles', c.selector, 40);
+      // Whatever changes with the pointer away (a marquee, a loop) isn't the hover: read it twice.
+      await sleep(m.idleCheckMs);
+      const busy = new Set(diffSnapshots(before, await adapter.call('snapshotStyles', c.selector, 40)).map((d) => `${d.path}|${d.prop}`));
+      const already = new Set((await adapter.call('collectAnimations', c.selector)).filter((a) => a.playState === 'running').map((a) => a.id));
       const beforePng = await adapter.screenshot(clip, { visible });
       const effects: InteractionEffect[] = [];
 
       if (c.states.includes('hover') || c.sources.includes('js')) {
         await adapter.hover(c.selector, box.viewport, true);
         await sleep(20);
-        const running = (await adapter.call('collectAnimations', c.selector)).filter((a) => a.playState === 'running' && a.timeline === 'document' && a.duration > 0);
+        const running = (await adapter.call('collectAnimations', c.selector)).filter((a) => a.playState === 'running' && a.timeline === 'document' && a.duration > 0 && a.iterations !== 'infinite' && !already.has(a.id));
         const longest = Math.max(0, ...running.map((a) => a.delay + a.duration));
         const files: string[] = [];
         if (running.length && caps.frameStepping) {
@@ -316,7 +344,20 @@ export async function captureMotion(ctx: MotionContext): Promise<{ summary: Moti
         }
         await sleep(Math.min(2000, longest) + m.settleMs);
         const after = await adapter.call('snapshotStyles', c.selector, 40);
-        const changes = diffSnapshots(before, after);
+        const changes = diffSnapshots(before, after).filter((d) => !busy.has(`${d.path}|${d.prop}`));
+        // A hover that changed with no transition to read is driven by script: hover again while
+        // reading the element every frame, and fit its duration and curve to that.
+        let transitions = running.map((a) => ({ property: a.name, duration: a.duration, delay: a.delay, easing: a.easing }));
+        const own = [...new Set(changes.filter((d) => d.path === '').map((d) => d.prop))];
+        if (own.length && !transitions.length) {
+          await adapter.hover(c.selector, box.viewport, false);
+          await sleep(m.settleMs * 2);
+          await adapter.call('startStyleTrace', c.selector, own);
+          await adapter.hover(c.selector, box.viewport, true);
+          await sleep(m.scriptedHoverMs);
+          const fit = fitScriptedHover(await adapter.call('stopStyleTrace'));
+          if (fit) transitions = own.map((property) => ({ property, ...fit }));
+        }
         if (changes.length) {
           const png = `${base}--hover.png`;
           ctx.put(png, await snapshot(clip, visible, () => adapter.hover(c.selector, box.viewport, false)), false);
@@ -328,7 +369,7 @@ export async function captureMotion(ctx: MotionContext): Promise<{ summary: Moti
             trigger: 'hover',
             sources: c.sources,
             changes,
-            transitions: running.map((a) => ({ property: a.name, duration: a.duration, delay: a.delay, easing: a.easing })),
+            transitions,
             files,
           });
         }
@@ -577,4 +618,33 @@ export async function captureMotion(ctx: MotionContext): Promise<{ summary: Moti
   }
   ctx.put('page/motion.json', json(summary));
   return { summary, sections: Object.fromEntries(perSection) };
+}
+
+/**
+ * Duration, delay and easing of a scripted hover, from its per-frame trace (see startStyleTrace): the
+ * number that moved most gives the curve. Null when nothing moved or too few frames saw it.
+ */
+export function fitScriptedHover(samples: [number, number[][]][]): { duration: number; delay: number; easing: string } | null {
+  if (samples.length < 3) return null;
+  const flat = samples.map(([t, v]) => [t, v.flat()] as const);
+  const n = Math.min(...flat.map(([, v]) => v.length));
+  let best = -1;
+  let span = 0;
+  for (let i = 0; i < n; i++) {
+    const d = Math.abs(flat[flat.length - 1][1][i] - flat[0][1][i]);
+    if (d > span) [best, span] = [i, d];
+  }
+  if (best < 0 || span < 1e-3) return null;
+  const vals = flat.map(([t, v]) => [t, v[best]] as const);
+  const v0 = vals[0][1];
+  const v1 = vals[vals.length - 1][1];
+  const first = vals.findIndex(([, v]) => Math.abs(v - v0) > span * 1e-3);
+  let last = first;
+  for (let i = first; i < vals.length; i++) if (Math.abs(vals[i][1] - vals[i - 1][1]) > span * 1e-3) last = i;
+  if (first < 1 || last - first < 3) return null;
+  const t0 = vals[first - 1][0];
+  const duration = vals[last][0] - t0;
+  const progress: ProgressSample[] = vals.slice(first - 1, last + 1).map(([t, v]) => [(t - t0) / duration, (v - v0) / (v1 - v0)]);
+  const fit = fitEasing(progress, duration);
+  return { duration: Math.round(duration), delay: 0, easing: fit.css };
 }

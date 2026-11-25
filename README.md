@@ -55,7 +55,7 @@ What moves on the page travels as far as each tool allows:
 | **Hover and interaction** | Every hover and focus effect, from CSS rules and JavaScript listeners: before and after styles, transition timing, a frame-exact clip and screenshots. Menus and accordions too. |
 | **Pointer effects** | A stroke drawn over each section with a canvas (and the hero when the page tracks the pointer) finds effects drawn into pixels, like ink, fluid and WebGL trails, and elements that follow the cursor. Each gets a clip and a filmstrip **with the cursor drawn in**, where the changes were and how long the trail takes to fade. |
 | **Record interaction** | You move the mouse over the page and Specimen records it, cursor drawn in, with the pointer path and an `INTERACTION.md` for agents. For effects a person drives best: ink, drag, scrubbing. Chrome and Edge. |
-| **Effect replication** | Every effect as CSS, GSAP and Motion (React) code. Effects read from the page are exact; effects with no readable source are fitted to the recorded motion (cubic-bezier or spring) with a match score, and a preview page replays them. |
+| **Effect replication** | Every effect as CSS, GSAP and Motion (React) code. Effects read from the page are exact; effects with no readable source are fitted to the recorded motion (cubic-bezier or spring) with a match score, and a preview page replays them. Scroll-linked motion is re-measured in small steps, each property with its own scroll range and curve. `specimen verify` runs the code against the live site and reports the difference. |
 | **Tech stack** | 41 frameworks, site builders, CSS systems and animation libraries, with versions and evidence. |
 | **Outputs** | Copy and paste into Figma, Paper, Sketch, Penpot, Framer, Illustrator, Canva, Keynote; the Figma plugin; layered PSD; After Effects and Lottie; a `DESIGN.md` spec for Claude Code, Codex, Cursor and chat agents; the full `.specimen.zip`. See [Outputs](#outputs). |
 
@@ -171,6 +171,12 @@ node apps/cli/src/cli.ts check captures/*.specimen.zip
 ```
 
 ```bash
+node apps/cli/src/cli.ts verify captures/*.specimen.zip
+```
+
+`verify` checks the motion code against the page: it measures each hover, scroll reveal and scroll-linked effect on the live site, runs that effect's exported CSS and GSAP alone on a blank page with the element in the same place, measures it the same way, and prints the largest difference (0% is identical; 2% or less counts as exact).
+
+```bash
 node apps/cli/src/cli.ts media captures/example.com_2026-11-18T14-02-11.specimen.zip --out media
 ```
 
@@ -198,7 +204,7 @@ Run `npx playwright install chromium` once before the first capture.
 - **Deep mode.** With **Include motion** on, capture reloads the page with small hooks installed before the site's own scripts, to record which elements react to the pointer and which are watched for scrolling into view. The reload is recorded as the page-load video.
 - **Frame-exact motion.** CSS animations and hover transitions are paused and stepped frame by frame through the Web Animations API, with one screenshot per frame, so clips are smooth at any frame rate.
 - **Exact colours.** Colours come from computed CSS, not pixels. Pixels are sampled only for images and video.
-- **Replication.** Effects read from the page (CSS keyframes, transitions, GSAP settings) are copied exactly. Motion with no readable source is fitted to a named easing, a cubic-bezier or a spring, scored against the recording, and replayed in a browser by the tests.
+- **Replication.** Effects read from the page (CSS keyframes, transitions, GSAP settings) are copied exactly. Motion with no readable source is fitted to a named easing, a cubic-bezier or a spring, scored against the recording, and replayed in a browser by the tests. A fit from fewer than five measured points gets no score and no code. Easings no design tool holds (CSS `linear()` springs, `steps()`) reach GSAP and Motion as the page's own function, After Effects as a key every quarter frame, and Figma as the closest spring. After Effects keys carry the bezier's influence and speed, so its curve is the page's, overshoot included.
 
 ## Browser support
 

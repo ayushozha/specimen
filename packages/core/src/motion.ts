@@ -1,6 +1,6 @@
 import { allElements, isRendered, sleep, uniqueSelector } from './dom';
 import { SWEEP_CURSOR_ATTR } from './interactions';
-import { downsample, type Track } from './motion-math';
+import { downsample, type Sample, type Track } from './motion-math';
 
 export interface AnimationInfo {
   id: string;
@@ -222,6 +222,51 @@ export async function traceMotion(options: Partial<TraceOptions> = {}): Promise<
   if (opts.scroll) window.scrollTo(0, 0);
 
   return Array.from(tracks.values()).map((tr) => ({ ...tr, samples: downsample(tr.samples, opts.maxSamplesPerTrack) }));
+}
+
+export interface ScrollProbe {
+  selector: string;
+  prop: string;
+  /** Settled value at each scroll position: [time, scrollY, value]. */
+  samples: Sample[];
+  /** Positions where the value kept changing after the page stopped (an animation or a smoothed scrub). */
+  moving: number;
+}
+
+/**
+ * Re-measures effects the scroll pass saw change only when the page scrolled: steps through their scroll
+ * range in small increments and reads each property once the page has settled, so the curve between
+ * positions is measured rather than guessed. A value that keeps moving after the page stops is
+ * counted, which tells a reveal (plays in time) from scroll-linked motion (holds still).
+ */
+export async function probeScrollLinked(targets: { selector: string; prop: string }[], range: { from: number; to: number }, options: { stepPx?: number; settleMs?: number } = {}): Promise<ScrollProbe[]> {
+  const stepPx = Math.max(4, options.stepPx ?? 24);
+  const settleMs = options.settleMs ?? 80;
+  const frame = () => new Promise<void>((r) => requestAnimationFrame(() => r()));
+  const els = targets.map((t) => document.querySelector(t.selector));
+  const out: ScrollProbe[] = targets.map((t) => ({ selector: t.selector, prop: t.prop, samples: [], moving: 0 }));
+  const start = performance.now();
+  const max = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+  const from = Math.max(0, Math.min(range.from, max));
+  const to = Math.max(from, Math.min(range.to, max));
+  const read = () => els.map((el, i) => (el ? getComputedStyle(el).getPropertyValue(targets[i].prop) : ''));
+  window.scrollTo(0, from);
+  await sleep(settleMs * 2);
+  for (let y = from; ; y = Math.min(to, y + stepPx)) {
+    window.scrollTo(0, y);
+    await frame();
+    await frame();
+    const fast = read();
+    await sleep(settleMs);
+    const settled = read();
+    const t = Math.round(performance.now() - start);
+    settled.forEach((v, i) => {
+      out[i].samples.push([t, Math.round(window.scrollY), v]);
+      if (v !== fast[i]) out[i].moving++;
+    });
+    if (y >= to) break;
+  }
+  return out;
 }
 
 export interface GsapTween {

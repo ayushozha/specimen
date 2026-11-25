@@ -90,7 +90,7 @@ test('After Effects script rebuilds the animations', () => {
   const script = strFromU8(files['exports/after-effects/specimen.jsx']);
   expect(() => new Function(script)).not.toThrow();
   expect(script).toContain('addComp("Ship exact designs", 1440, 900');
-  expect(script).toContain('property("Scale").setValueAtTime(0.600, [140.00, 140.00])');
+  expect(script).toContain('property("Scale"), 0.6000, [140.0000, 140.0000]);');
   expect(script).toContain('loopOut');
   for (const m of script.matchAll(/load\("([^"]+)"\)/g)) {
     const path = posix.normalize(`exports/after-effects/${m[1]}`);

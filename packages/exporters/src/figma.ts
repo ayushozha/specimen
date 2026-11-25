@@ -13,6 +13,8 @@ export interface FigmaVariant {
   hoverImage: string;
   durationMs: number;
   easing: [number, number, number, number];
+  /** Set when the page's easing is a spring (CSS linear()): Figma plays a spring instead of the bezier. */
+  spring?: { mass: number; stiffness: number; damping: number } | null;
 }
 
 export interface FigmaSection {
