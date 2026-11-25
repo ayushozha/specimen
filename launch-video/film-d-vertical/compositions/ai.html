@@ -1,0 +1,67 @@
+<template>
+  <style>
+@font-face { font-family: Manrope; src: url('assets/fonts/manrope-latin.woff2') format('woff2'); font-weight: 400 800; }
+.paper { background: #fffaf5; color: #2b2849; }
+.night { background: radial-gradient(ellipse at 86% 12%, #493966 0%, rgba(73,57,102,0) 62%), #211d3d; color: #fffaf6; }
+.t-display { font-family: Manrope, sans-serif; font-weight: 700; letter-spacing: -0.055em; line-height: 0.98; }
+.t-title { font-family: Manrope, sans-serif; font-weight: 700; letter-spacing: -0.045em; line-height: 1.02; }
+.t-body { font-family: Manrope, sans-serif; font-weight: 600; letter-spacing: -0.02em; }
+.t-mono { font-family: 'JetBrains Mono', monospace; font-weight: 500; letter-spacing: -0.01em; }
+.iris { background: linear-gradient(135deg, #f8c9d6 0%, #d9c8f2 45%, #bfe0ef 100%); }
+.iris-text { background: linear-gradient(100deg, #c2629a 0%, #7d5ad1 55%, #3b8fc0 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.corners { position: absolute; pointer-events: none; }
+.corners i { position: absolute; width: 56px; height: 56px; border: 7px solid currentColor; }
+.corners .tl { left: 0; top: 0; border-right: 0; border-bottom: 0; border-radius: 12px 0 0 0; }
+.corners .tr { right: 0; top: 0; border-left: 0; border-bottom: 0; border-radius: 0 12px 0 0; }
+.corners .bl { left: 0; bottom: 0; border-right: 0; border-top: 0; border-radius: 0 0 0 12px; }
+.corners .br { right: 0; bottom: 0; border-left: 0; border-top: 0; border-radius: 0 0 12px 0; }
+.card { position: absolute; border-radius: 22px; overflow: hidden; box-shadow: 0 30px 70px rgba(77,60,112,0.22); }
+
+    #ai { position: absolute; inset: 0; overflow: hidden; }
+    #ai .world { position: absolute; inset: 0; }
+    #ai .lbl { font-family: 'JetBrains Mono', monospace; font-size: 28px; letter-spacing: 0.02em; text-transform: uppercase; }
+
+    #ai-line { position: absolute; left: 100px; top: 70px; width: 1720px; font-size: 64px; }
+    .ai-card { top: 220px; width: 840px; height: 473px; background: #fff; }
+    .ai-card img, .ai-card video { position: absolute; inset: 0; width: 840px; height: 473px; }
+    #ai-a { left: 100px; } #ai-b { left: 980px; }
+    .ai-l { position: absolute; top: 712px; color: #57516a; }
+    #ai-la { left: 100px; } #ai-lb { left: 980px; }
+    #ai-num { position: absolute; left: 100px; top: 830px; font-size: 72px; }
+    #ai-num span { color: #64509b; }
+    #ai-sub { position: absolute; left: 104px; top: 930px; font-size: 32px; color: #57516a; width: 1700px; }
+
+    #ai-line { left: 100px; top: 250px; width: 820px; font-size: 60px; }
+    .ai-card { width: 960px; height: 540px; }
+    .ai-card img, .ai-card video { width: 960px; height: 540px; }
+    #ai-a { left: 60px; top: 440px; } #ai-b { left: 60px; top: 1050px; }
+    #ai-la { left: 60px; top: 990px; } #ai-lb { left: 60px; top: 1600px; }
+    #ai-num { left: 100px; top: 1660px; width: 880px; font-size: 44px; }
+    #ai-sub { display: none; }
+
+  </style>
+  <div id="ai" data-composition-id="ai" data-width="1080" data-height="1920">
+   <div class="world paper">
+
+    <div id="ai-line" class="t-title">Claude Code rebuilt this section from it.</div>
+    <div id="ai-a" class="card ai-card"><img src="assets/ui/ai-scroll-site-end.png" alt=""><video id="ai-va" class="clip" data-start="0.2" data-duration="5" src="assets/clips/ai-scroll-site.mp4" muted playsinline></video></div>
+    <div id="ai-b" class="card ai-card"><img src="assets/ui/ai-scroll-rebuilt-end.png" alt=""><video id="ai-vb" class="clip" data-start="0.2" data-duration="5" src="assets/clips/ai-scroll-rebuilt.mp4" muted playsinline></video></div>
+    <div id="ai-la" class="lbl ai-l">Live site</div>
+    <div id="ai-lb" class="lbl ai-l">Rebuilt by Claude Code · rebuilt.html</div>
+    <div id="ai-num" class="t-title">Every effect moves like the original: <span>within 0.4%</span></div>
+    <div id="ai-sub" class="t-body">14 effects measured frame by frame: the hover, the 3D tilt, the scroll-linked motion, the reveals.</div>
+
+   </div>
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    tl.fromTo('#ai-line', { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.45, ease: 'expo.out' }, 0.05);
+
+    tl.fromTo(['#ai-a', '#ai-b'], { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.45, ease: 'expo.out', stagger: 0.08 }, 0.0);
+    tl.fromTo('.ai-l', { opacity: 0 }, { opacity: 1, duration: 0.3 }, 0.3);
+    tl.fromTo('#ai-num', { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.4, ease: 'expo.out' }, 2.4);
+    tl.fromTo('#ai-sub', { opacity: 0 }, { opacity: 1, duration: 0.3 }, 2.8);
+
+    window.__timelines["ai"] = tl;
+  </script>
+</template>

@@ -21,24 +21,32 @@
     #ae .world { position: absolute; inset: 0; }
     #ae .lbl { font-family: 'JetBrains Mono', monospace; font-size: 28px; letter-spacing: 0.02em; text-transform: uppercase; }
 
-    #ae-line { position: absolute; left: 100px; top: 100px; width: 1720px; font-size: 72px; color: #fffaf6; }
-    #ae-clip { left: 0; top: 330px; width: 1920px; height: 460px; border-radius: 0; }
-    #ae-clip video { width: 1920px; height: 460px; }
-    #ae-num { position: absolute; left: 100px; top: 860px; font-size: 48px; color: #dbd3e9; }
+    #ae-line { position: absolute; left: 100px; top: 90px; width: 1720px; font-size: 72px; color: #fffaf6; }
+    .ae-card { top: 250px; width: 840px; height: 473px; background: #fff; }
+    .ae-card img, .ae-card video { position: absolute; inset: 0; width: 840px; height: 473px; }
+    #ae-a { left: 100px; } #ae-b { left: 980px; }
+    .ae-l { position: absolute; top: 742px; color: #dbd3e9; }
+    #ae-la { left: 100px; } #ae-lb { left: 980px; }
+    #ae-num { position: absolute; left: 100px; top: 850px; font-size: 48px; color: #dbd3e9; }
     #ae-num span { color: #fffaf6; }
 
-    #ae-line { left: 100px; top: 280px; width: 820px; font-size: 72px; }
-    #ae-clip { left: 0; top: 640px; width: 1080px; height: 598px; }
-    #ae-clip video { width: 2496px; height: 598px; margin-left: -420px; }
-    #ae-num { left: 100px; top: 1300px; width: 820px; font-size: 42px; }
+    #ae-line { left: 100px; top: 250px; width: 820px; font-size: 54px; }
+    .ae-card { width: 960px; height: 540px; }
+    .ae-card img, .ae-card video { width: 960px; height: 540px; }
+    #ae-a { left: 60px; top: 470px; } #ae-b { left: 60px; top: 1070px; }
+    #ae-la { left: 60px; top: 1020px; } #ae-lb { left: 60px; top: 1620px; }
+    #ae-num { left: 100px; top: 1680px; width: 880px; font-size: 36px; }
 
   </style>
   <div id="ae" data-composition-id="ae" data-width="1080" data-height="1920">
    <div class="world night">
 
-    <div id="ae-line" class="t-title">In After Effects, keyframes on the very same curve.</div>
-    <div id="ae-clip" class="card"><video id="ae-video" class="clip" data-start="0" data-duration="3" src="assets/clips/ae.mp4" muted playsinline></video></div>
-    <div id="ae-num" class="t-body">Measured in After Effects: within <span>1.1%</span> of the page</div>
+    <div id="ae-line" class="t-title">In After Effects, the keyframes play the same hover.</div>
+    <div id="ae-a" class="card ae-card"><img src="assets/ui/ai-hover-site-end.png" alt=""><video id="ae-va1" class="clip" data-start="0.3" data-duration="1" src="assets/clips/ai-hover-site.mp4" muted playsinline></video><video id="ae-va2" class="clip" data-start="1.9" data-duration="1" src="assets/clips/ai-hover-site.mp4" muted playsinline></video></div>
+    <div id="ae-b" class="card ae-card"><img src="assets/ui/ae-hover-end.png" alt=""><video id="ae-vb1" class="clip" data-start="0.3" data-duration="1" src="assets/clips/ae-hover.mp4" muted playsinline></video><video id="ae-vb2" class="clip" data-start="1.9" data-duration="1" src="assets/clips/ae-hover.mp4" muted playsinline></video></div>
+    <div id="ae-la" class="lbl ae-l">Live site · slowed 2×</div>
+    <div id="ae-lb" class="lbl ae-l">After Effects render · slowed 2×</div>
+    <div id="ae-num" class="t-body">Every curve After Effects plays is within <span>1.1%</span> of the page.</div>
 
    </div>
   </div>
@@ -46,8 +54,9 @@
     const tl = gsap.timeline({ paused: true });
     tl.fromTo('#ae-line', { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.45, ease: 'expo.out' }, 0.05);
 
-    tl.fromTo('#ae-clip', { opacity: 0, y: 50 }, { opacity: 1, y: 0, duration: 0.45, ease: 'expo.out' }, 0.1);
-    tl.fromTo('#ae-num', { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.4, ease: 'expo.out' }, 0.6);
+    tl.fromTo(['#ae-a', '#ae-b'], { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.4, ease: 'expo.out', stagger: 0.08 }, 0.0);
+    tl.fromTo('.ae-l', { opacity: 0 }, { opacity: 1, duration: 0.3 }, 0.3);
+    tl.fromTo('#ae-num', { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.4, ease: 'expo.out' }, 0.8);
 
     window.__timelines["ae"] = tl;
   </script>

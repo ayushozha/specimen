@@ -1,0 +1,7 @@
+agent-rebuild/bundle/
+agent-rebuild/screenshots/
+agent-rebuild/*.zip
+ink3/
+ae-render/
+figma-proof/
+proof/*/

@@ -1,0 +1,7 @@
+DESIGN.md is a Specimen capture of a website; the capture's files are in bundle/ and screenshots/.
+
+Rebuild section 4, "The easiest way to train your models", as one self-contained file: rebuilt.html.
+- Match its layout and look from DESIGN.md and its screenshot (screenshots/04-the-easiest-way-to-train-your-mo.png). Use the images in bundle/assets.
+- Give it the same motion, exactly as the spec records it: the "Watch it in action" hover, and the section's scroll effects (the scroll-linked motion and the reveals). Use the timing, easing and scroll ranges from the "Motion" and "Effect code" parts of DESIGN.md as written.
+- The scroll ranges are page scroll positions, so put the section where it sits on the original page (pad the top), and keep the page as tall as the original.
+- Plain HTML, CSS and a little JS; no build step.

@@ -12,15 +12,15 @@ dur = lambda f: float(subprocess.check_output(['ffprobe', '-v', '0', '-show_entr
 
 # Voice line start times (s). Gaps leave room to read; the 0.8 s before L13 is the silent breath.
 VO = {'L01': 0.30, 'L02': 2.90, 'L03': 4.70, 'L04': 7.50, 'L05': 11.30, 'L06': 16.70, 'L07': 19.60, 'L08': 24.10,
-      'L09': 26.80, 'L10': 29.70, 'L11': 34.40, 'L12': 38.30, 'L13': 44.00, 'L14': 48.50}
-END = 51.6
+      'N1': 26.80, 'N2': 29.60, 'N3': 35.90, 'L10': 39.70, 'L12': 44.50, 'L13': 50.20, 'L14': 54.70}
+END = 58.4
 # Scene, start: each begins ~0.1–0.3 s before its line.
 SCENES = [('shot', 0.0), ('moves', 2.8), ('title', 4.6), ('choose', 7.4), ('capture', 11.2), ('code', 16.6),
-          ('proof', 19.5), ('hover', 26.6), ('figma', 29.5), ('ae', 34.2), ('results', 38.1), ('breath', 43.2),
-          ('payoff', 44.0), ('endcard', 48.3)]
+          ('proof', 19.5), ('agent', 26.6), ('ai', 29.4), ('ae', 35.6), ('figma', 39.4), ('results', 44.2), ('breath', 49.4),
+          ('payoff', 50.2), ('endcard', 54.5)]
 # Effects: (file, cue time, peak offset in the file, volume). Most cuts stay silent.
-SFX = [('shutter', 1.58, 0.07, 0.7), ('whoosh-a', 2.80, 0.04, 0.45), ('tick', 24.60, 0.0, 0.6),
-       ('riser', 44.00, 0.96, 0.8), ('payoff', 44.00, 0.02, 1.6), ('logo', 48.30, 0.30, 0.8)]
+SFX = [('shutter', 1.58, 0.07, 0.7), ('whoosh-a', 2.80, 0.04, 0.45), ('tick', 24.60, 0.0, 0.6), ('whoosh-b', 26.60, 0.31, 0.4),
+       ('riser', 50.20, 0.96, 0.8), ('payoff', 50.20, 0.02, 1.6), ('logo', 54.50, 0.30, 0.8)]
 
 hosts = []
 for i, (sid, start) in enumerate(SCENES):
@@ -49,9 +49,9 @@ html = f"""<!doctype html>
       <!-- Voice: Eric (ElevenLabs), one file a line. -->
 {chr(10).join(voice)}
 
-      <!-- Music bed: stops for the breath at 43.2 s, returns on the payoff. -->
-      <audio id="bed" data-start="0" data-duration="44" data-volume="0.13" src="assets/music/bed.wav"></audio>
-      <audio id="bed-end" data-start="44" data-duration="{END - 44}" data-media-start="44" data-volume="0.42" src="assets/music/bed.wav"></audio>
+      <!-- Music bed: stops for the breath at 49.4 s, returns on the payoff. -->
+      <audio id="bed" data-start="0" data-duration="50.2" data-volume="0.13" src="assets/music/bed.wav"></audio>
+      <audio id="bed-end" data-start="50.2" data-duration="{END - 50.2:.2f}" data-media-start="50.2" data-volume="0.42" src="assets/music/bed.wav"></audio>
 
       <!-- Effects: each starts at its cue minus its own peak. -->
 {chr(10).join(sfx)}

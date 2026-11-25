@@ -60,5 +60,9 @@ results = {
     'sub': f"{len(checked)} effects on a live site: {', '.join(names[k] for k in kinds)}.",
     'foot': 'Largest difference of any effect. 0% is identical.',
 }
-json.dump({'heroCss': hero_css, 'hero': hero, 'hover': hover, 'ae': ae, 'results': results}, open(Path(__file__).parent / '.media/proof.json', 'w'), indent=1)
+# The AI rebuild, measured against the site (specimen verify --against rebuilt.html).
+agent = json.load(open(glob.glob(str(Path(__file__).parent.parent / 'footage/agent-rebuild/*.verify.json'))[0]))
+aiv = [e['against'] for e in agent['effects'] if e.get('against') is not None]
+ai = {'count': len(aiv), 'diff': pct(max(aiv))}
+json.dump({'ai': ai, 'heroCss': hero_css, 'hero': hero, 'hover': hover, 'ae': ae, 'results': results}, open(Path(__file__).parent / '.media/proof.json', 'w'), indent=1)
 print(json.dumps({'hero': hero['diff'], 'hover': hover['diff'], 'ae': ae, 'results': results}, indent=1))

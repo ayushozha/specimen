@@ -1,0 +1,55 @@
+<template>
+  <style>
+@font-face { font-family: Manrope; src: url('assets/fonts/manrope-latin.woff2') format('woff2'); font-weight: 400 800; }
+.paper { background: #fffaf5; color: #2b2849; }
+.night { background: radial-gradient(ellipse at 86% 12%, #493966 0%, rgba(73,57,102,0) 62%), #211d3d; color: #fffaf6; }
+.t-display { font-family: Manrope, sans-serif; font-weight: 700; letter-spacing: -0.055em; line-height: 0.98; }
+.t-title { font-family: Manrope, sans-serif; font-weight: 700; letter-spacing: -0.045em; line-height: 1.02; }
+.t-body { font-family: Manrope, sans-serif; font-weight: 600; letter-spacing: -0.02em; }
+.t-mono { font-family: 'JetBrains Mono', monospace; font-weight: 500; letter-spacing: -0.01em; }
+.iris { background: linear-gradient(135deg, #f8c9d6 0%, #d9c8f2 45%, #bfe0ef 100%); }
+.iris-text { background: linear-gradient(100deg, #c2629a 0%, #7d5ad1 55%, #3b8fc0 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.corners { position: absolute; pointer-events: none; }
+.corners i { position: absolute; width: 56px; height: 56px; border: 7px solid currentColor; }
+.corners .tl { left: 0; top: 0; border-right: 0; border-bottom: 0; border-radius: 12px 0 0 0; }
+.corners .tr { right: 0; top: 0; border-left: 0; border-bottom: 0; border-radius: 0 12px 0 0; }
+.corners .bl { left: 0; bottom: 0; border-right: 0; border-top: 0; border-radius: 0 0 0 12px; }
+.corners .br { right: 0; bottom: 0; border-left: 0; border-top: 0; border-radius: 0 0 12px 0; }
+.card { position: absolute; border-radius: 22px; overflow: hidden; box-shadow: 0 30px 70px rgba(77,60,112,0.22); }
+
+    #agent { position: absolute; inset: 0; overflow: hidden; }
+    #agent .world { position: absolute; inset: 0; }
+    #agent .lbl { font-family: 'JetBrains Mono', monospace; font-size: 28px; letter-spacing: 0.02em; text-transform: uppercase; }
+
+    #ag-line { position: absolute; left: 120px; top: 100px; font-size: 80px; color: #fffaf6; }
+    #ag-term { position: absolute; left: 120px; top: 260px; width: 1680px; padding: 30px 40px 36px; border-radius: 20px; background: #15131f; border: 2px solid rgba(219,211,233,0.16); box-shadow: 0 30px 70px rgba(0,0,0,0.35); }
+    #ag-bar { font-size: 28px; color: #9d93b8; margin-bottom: 22px; }
+    .tl { font-size: 30px; line-height: 52px; white-space: pre; color: #e9e2f5; opacity: 0; }
+    .tl.p { color: #fffaf6; } .tl.s { color: #bfe0ef; } .tl.r { color: #d9c8f2; }
+
+  </style>
+  <div id="agent" data-composition-id="agent" data-width="1920" data-height="1080">
+   <div class="world night">
+    <div id="ag-line" class="t-title">Hand the export to an AI agent.</div>
+    <div id="ag-term" class="t-mono"><div id="ag-bar">claude · agent-rebuild/ · DESIGN.md from Specimen</div>
+      <div class="tl p">> Rebuild section 4 from DESIGN.md as rebuilt.html, with the same motion,</div>
+      <div class="tl p">  exactly as the spec records it: the hover, the scroll effects, the reveals.</div>
+      <div class="tl s">⏺ Read DESIGN.md</div>
+      <div class="tl s">⏺ Read screenshots/04-the-easiest-way-to-train-your-mo.png</div>
+      <div class="tl s">⏺ Read bundle/sections/04-…/04-the-easiest-way-to-train-your-mo.html</div>
+      <div class="tl s">⏺ Write rebuilt.html</div>
+      <div class="tl r">  Hover: scales to 1.05 over 300ms, cubic-bezier(0.34, 1.56, 0.64, 1).</div>
+      <div class="tl r">  Scroll-linked motion: all 13 recorded motions, tied to page scroll.</div>
+    </div>
+   </div>
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    tl.fromTo('#ag-line', { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.45, ease: 'expo.out' }, 0.05);
+
+    tl.fromTo('#ag-term', { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.4, ease: 'expo.out' }, 0.15);
+    tl.fromTo('.tl', { opacity: 0 }, { opacity: 1, duration: 0.12, stagger: 0.26 }, 0.4);
+
+    window.__timelines["agent"] = tl;
+  </script>
+</template>

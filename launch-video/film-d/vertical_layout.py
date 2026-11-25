@@ -46,13 +46,20 @@ VERT = {
     #pf-same { display: none; }
     #pf-diff { left: 100px; top: 1690px; font-size: 64px; }
 """,
-    'hover': """
-    #hv-line { left: 100px; top: 280px; width: 820px; font-size: 68px; }
-    #hv-site { left: 60px; top: 480px; }
-    #hv-l1 { left: 60px; top: 1040px; }
-    #hv-key { left: 100px; top: 1100px; }
-    #hv-graph { left: 150px; top: 1150px; width: 780px; height: 485px; }
-    #hv-num { left: 100px; top: 1660px; width: 880px; font-size: 36px; }
+    'agent': """
+    #ag-line { left: 100px; top: 260px; width: 820px; font-size: 72px; }
+    #ag-term { left: 30px; top: 520px; width: 1020px; padding: 24px 24px 28px; }
+    #ag-bar { font-size: 22px; }
+    .tl { font-size: 22px; line-height: 38px; white-space: pre-wrap; }
+""",
+    'ai': """
+    #ai-line { left: 100px; top: 250px; width: 820px; font-size: 60px; }
+    .ai-card { width: 960px; height: 540px; }
+    .ai-card img, .ai-card video { width: 960px; height: 540px; }
+    #ai-a { left: 60px; top: 440px; } #ai-b { left: 60px; top: 1050px; }
+    #ai-la { left: 60px; top: 990px; } #ai-lb { left: 60px; top: 1600px; }
+    #ai-num { left: 100px; top: 1660px; width: 880px; font-size: 44px; }
+    #ai-sub { display: none; }
 """,
     'figma': """
     #fg-line { left: 100px; top: 260px; width: 820px; font-size: 64px; }
@@ -63,10 +70,12 @@ VERT = {
     #fg-facts { left: 100px; top: 1240px; width: 820px; font-size: 44px; }
 """,
     'ae': """
-    #ae-line { left: 100px; top: 280px; width: 820px; font-size: 72px; }
-    #ae-clip { left: 0; top: 640px; width: 1080px; height: 598px; }
-    #ae-clip video { width: 2496px; height: 598px; margin-left: -420px; }
-    #ae-num { left: 100px; top: 1300px; width: 820px; font-size: 42px; }
+    #ae-line { left: 100px; top: 250px; width: 820px; font-size: 54px; }
+    .ae-card { width: 960px; height: 540px; }
+    .ae-card img, .ae-card video { width: 960px; height: 540px; }
+    #ae-a { left: 60px; top: 470px; } #ae-b { left: 60px; top: 1070px; }
+    #ae-la { left: 60px; top: 1020px; } #ae-lb { left: 60px; top: 1620px; }
+    #ae-num { left: 100px; top: 1680px; width: 880px; font-size: 36px; }
 """,
     'results': """
     #rs-line { left: 100px; top: 260px; width: 820px; font-size: 60px; }

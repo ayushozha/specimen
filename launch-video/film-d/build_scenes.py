@@ -203,45 +203,54 @@ scene('proof', 'paper', f"""
     tl.fromTo('#pf-diff', {{ opacity: 0, y: 24 }}, {{ opacity: 1, y: 0, duration: 0.4, ease: 'expo.out' }}, 5.0);
 """)
 
-# 8 · Proof, hover (26.6–29.5): the overshoot, site against code.
-hov = PROOF['hover']
-HX, HY, HW, HH = 1120, 300, 680, 400
-lo, hi = hov['range']
-sc_o = path(hov['scale']['original'], HX, HY, HW, HH, (0, hov['ms']), (lo, hi))
-sc_g = path(hov['scale']['gsap'], HX, HY, HW, HH, (0, hov['ms']), (lo, hi))
-sc_m = path(hov['scale']['motion'], HX, HY, HW, HH, (0, hov['ms']), (lo, hi))
-y105 = HY + HH - (1.05 - lo) / (hi - lo) * HH
-scene('hover', 'paper', f"""
-    #hv-line {{ position: absolute; left: 100px; top: 70px; width: 1720px; font-size: 72px; }}
-    #hv-site {{ left: 100px; top: 230px; width: 960px; height: 540px; background: #fff; }}
-    #hv-site video, #hv-end {{ position: absolute; left: -24px; top: -505px; width: 1920px; height: 1080px; }}
-    #hv-cursor {{ position: absolute; left: 500px; top: 290px; width: 48px; }}
-    #hv-graph {{ position: absolute; left: {HX - 30}px; top: {HY - 30}px; width: {HW + 60}px; height: {HH + 60}px; }}
-    #hv-key {{ position: absolute; left: {HX}px; top: 236px; font-size: 28px; color: #57516a; }}
-    #hv-key b {{ color: #2b2849; font-weight: 600; }}
-    #hv-l1 {{ position: absolute; left: 100px; top: 790px; color: #57516a; }}
-    #hv-num {{ position: absolute; left: {HX}px; top: 760px; font-size: 40px; line-height: 1.35; }}
-    #hv-num span {{ color: #64509b; }}
+# 8 · An AI agent gets the export (26.6–29.4): the real Claude Code session, as it ran.
+TERM = [
+    ('p', '> Rebuild section 4 from DESIGN.md as rebuilt.html, with the same motion,'),
+    ('p', '  exactly as the spec records it: the hover, the scroll effects, the reveals.'),
+    ('s', '⏺ Read DESIGN.md'),
+    ('s', '⏺ Read screenshots/04-the-easiest-way-to-train-your-mo.png'),
+    ('s', '⏺ Read bundle/sections/04-…/04-the-easiest-way-to-train-your-mo.html'),
+    ('s', '⏺ Write rebuilt.html'),
+    ('r', '  Hover: scales to 1.05 over 300ms, cubic-bezier(0.34, 1.56, 0.64, 1).'),
+    ('r', '  Scroll-linked motion: all 13 recorded motions, tied to page scroll.'),
+]
+scene('agent', 'night', """
+    #ag-line { position: absolute; left: 120px; top: 100px; font-size: 80px; color: #fffaf6; }
+    #ag-term { position: absolute; left: 120px; top: 260px; width: 1680px; padding: 30px 40px 36px; border-radius: 20px; background: #15131f; border: 2px solid rgba(219,211,233,0.16); box-shadow: 0 30px 70px rgba(0,0,0,0.35); }
+    #ag-bar { font-size: 28px; color: #9d93b8; margin-bottom: 22px; }
+    .tl { font-size: 30px; line-height: 52px; white-space: pre; color: #e9e2f5; opacity: 0; }
+    .tl.p { color: #fffaf6; } .tl.s { color: #bfe0ef; } .tl.r { color: #d9c8f2; }
+""", '\n'.join(['    <div id="ag-line" class="t-title">Hand the export to an AI agent.</div>', '    <div id="ag-term" class="t-mono"><div id="ag-bar">claude · agent-rebuild/ · DESIGN.md from Specimen</div>']
+              + [f'      <div class="tl {k}">{t}</div>' for k, t in TERM] + ['    </div>']), enter('#ag-line', 0.05) + """
+    tl.fromTo('#ag-term', { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.4, ease: 'expo.out' }, 0.15);
+    tl.fromTo('.tl', { opacity: 0 }, { opacity: 1, duration: 0.12, stagger: 0.26 }, 0.4);
+""")
+
+# 9 · Its rebuild beside the site (29.4–35.6): same scroll, frame by frame, then the measurement.
+ai = PROOF.get('ai', {'count': 14, 'diff': '0.4%'})
+scene('ai', 'paper', f"""
+    #ai-line {{ position: absolute; left: 100px; top: 70px; width: 1720px; font-size: 64px; }}
+    .ai-card {{ top: 220px; width: 840px; height: 473px; background: #fff; }}
+    .ai-card img, .ai-card video {{ position: absolute; inset: 0; width: 840px; height: 473px; }}
+    #ai-a {{ left: 100px; }} #ai-b {{ left: 980px; }}
+    .ai-l {{ position: absolute; top: 712px; color: #57516a; }}
+    #ai-la {{ left: 100px; }} #ai-lb {{ left: 980px; }}
+    #ai-num {{ position: absolute; left: 100px; top: 830px; font-size: 72px; }}
+    #ai-num span {{ color: #64509b; }}
+    #ai-sub {{ position: absolute; left: 104px; top: 930px; font-size: 32px; color: #57516a; width: 1700px; }}
 """, f"""
-    <div id="hv-line" class="t-title">Hovers too, overshoot and all.</div>
-    <div id="hv-site" class="card"><img id="hv-end" src="assets/ui/hover-end.png" alt=""><video id="hv-video" class="clip" data-start="0" data-duration="1.0" src="assets/clips/hover.mp4" muted playsinline></video>
-      <svg id="hv-cursor" viewBox="0 0 24 24"><path d="M3 2 L3 19 L8 14.5 L11.5 22 L14.5 20.6 L11 13.3 L17.5 13.3 Z" fill="#111" stroke="#fff" stroke-width="1.4"/></svg></div>
-    <div id="hv-l1" class="lbl">Live site · slowed 2×</div>
-    <div id="hv-key" class="t-mono"><b>━</b> site &nbsp; <b>┅</b> GSAP &nbsp; <b>┄</b> Motion</div>
-    <svg id="hv-graph" viewBox="{HX - 30} {HY - 30} {HW + 60} {HH + 60}">
-      <line x1="{HX}" y1="{y105:.1f}" x2="{HX + HW}" y2="{y105:.1f}" stroke="#ded4e1" stroke-width="3" stroke-dasharray="8 8"/>
-      <path id="hv-o" d="{sc_o}" fill="none" stroke="#2b2849" stroke-width="8" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/>
-      <path id="hv-g" d="{sc_g}" fill="none" stroke="#e88aa8" stroke-width="3" stroke-dasharray="12 8" opacity="0"/>
-      <path id="hv-m" d="{sc_m}" fill="none" stroke="#7d5ad1" stroke-width="3" stroke-dasharray="4 6" opacity="0"/>
-    </svg>
-    <div id="hv-num" class="t-body">Overshoots to {hov['peak']}, settles at <span>{hov['rest']}</span><br>largest difference <span>{hov['diff']}</span></div>
-""", enter('#hv-line', 0.05) + f"""
-    tl.fromTo('#hv-site', {{ opacity: 0, y: 40 }}, {{ opacity: 1, y: 0, duration: 0.4, ease: 'expo.out' }}, 0.05);
-    tl.fromTo('#hv-cursor', {{ x: 120, y: 160 }}, {{ x: 0, y: 0, duration: 0.3, ease: 'power2.out' }}, 0.1);
-    tl.fromTo(['#hv-key', '#hv-l1'], {{ opacity: 0 }}, {{ opacity: 1, duration: 0.3 }}, 0.3);
-    tl.fromTo('#hv-o', {{ strokeDashoffset: 1 }}, {{ strokeDashoffset: 0, duration: 1.0, ease: 'none' }}, 0.4);
-    tl.fromTo(['#hv-g', '#hv-m'], {{ opacity: 0 }}, {{ opacity: 1, duration: 0.3 }}, 1.3);
-    tl.fromTo('#hv-num', {{ opacity: 0, y: 20 }}, {{ opacity: 1, y: 0, duration: 0.4, ease: 'expo.out' }}, 0.6);
+    <div id="ai-line" class="t-title">Claude Code rebuilt this section from it.</div>
+    <div id="ai-a" class="card ai-card"><img src="assets/ui/ai-scroll-site-end.png" alt=""><video id="ai-va" class="clip" data-start="0.2" data-duration="5" src="assets/clips/ai-scroll-site.mp4" muted playsinline></video></div>
+    <div id="ai-b" class="card ai-card"><img src="assets/ui/ai-scroll-rebuilt-end.png" alt=""><video id="ai-vb" class="clip" data-start="0.2" data-duration="5" src="assets/clips/ai-scroll-rebuilt.mp4" muted playsinline></video></div>
+    <div id="ai-la" class="lbl ai-l">Live site</div>
+    <div id="ai-lb" class="lbl ai-l">Rebuilt by Claude Code · rebuilt.html</div>
+    <div id="ai-num" class="t-title">Every effect moves like the original: <span>within {ai['diff']}</span></div>
+    <div id="ai-sub" class="t-body">{ai['count']} effects measured frame by frame: the hover, the 3D tilt, the scroll-linked motion, the reveals.</div>
+""", enter('#ai-line', 0.05) + """
+    tl.fromTo(['#ai-a', '#ai-b'], { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.45, ease: 'expo.out', stagger: 0.08 }, 0.0);
+    tl.fromTo('.ai-l', { opacity: 0 }, { opacity: 1, duration: 0.3 }, 0.3);
+    tl.fromTo('#ai-num', { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.4, ease: 'expo.out' }, 2.4);
+    tl.fromTo('#ai-sub', { opacity: 0 }, { opacity: 1, duration: 0.3 }, 2.8);
 """)
 
 # 9 · Figma (29.5–34.2): the hover as a prototype, with the page's own curve.
@@ -270,21 +279,28 @@ scene('figma', 'paper', """
     tl.fromTo('#fg-facts div', { opacity: 0, x: 30 }, { opacity: 1, x: 0, duration: 0.3, ease: 'expo.out', stagger: 0.12 }, 1.9);
 """)
 
-# 10 · After Effects (34.2–38.1).
+# 10 · After Effects (35.6–39.4): the site's hover beside After Effects' own render of the export.
 ae = PROOF['ae']
-scene('ae', 'night', """
-    #ae-line { position: absolute; left: 100px; top: 100px; width: 1720px; font-size: 72px; color: #fffaf6; }
-    #ae-clip { left: 0; top: 330px; width: 1920px; height: 460px; border-radius: 0; }
-    #ae-clip video { width: 1920px; height: 460px; }
-    #ae-num { position: absolute; left: 100px; top: 860px; font-size: 48px; color: #dbd3e9; }
-    #ae-num span { color: #fffaf6; }
+scene('ae', 'night', f"""
+    #ae-line {{ position: absolute; left: 100px; top: 90px; width: 1720px; font-size: 72px; color: #fffaf6; }}
+    .ae-card {{ top: 250px; width: 840px; height: 473px; background: #fff; }}
+    .ae-card img, .ae-card video {{ position: absolute; inset: 0; width: 840px; height: 473px; }}
+    #ae-a {{ left: 100px; }} #ae-b {{ left: 980px; }}
+    .ae-l {{ position: absolute; top: 742px; color: #dbd3e9; }}
+    #ae-la {{ left: 100px; }} #ae-lb {{ left: 980px; }}
+    #ae-num {{ position: absolute; left: 100px; top: 850px; font-size: 48px; color: #dbd3e9; }}
+    #ae-num span {{ color: #fffaf6; }}
 """, f"""
-    <div id="ae-line" class="t-title">In After Effects, keyframes on the very same curve.</div>
-    <div id="ae-clip" class="card"><video id="ae-video" class="clip" data-start="0" data-duration="3" src="assets/clips/ae.mp4" muted playsinline></video></div>
-    <div id="ae-num" class="t-body">Measured in After Effects: within <span>{ae['diff']}</span> of the page</div>
+    <div id="ae-line" class="t-title">In After Effects, the keyframes play the same hover.</div>
+    <div id="ae-a" class="card ae-card"><img src="assets/ui/ai-hover-site-end.png" alt=""><video id="ae-va1" class="clip" data-start="0.3" data-duration="1" src="assets/clips/ai-hover-site.mp4" muted playsinline></video><video id="ae-va2" class="clip" data-start="1.9" data-duration="1" src="assets/clips/ai-hover-site.mp4" muted playsinline></video></div>
+    <div id="ae-b" class="card ae-card"><img src="assets/ui/ae-hover-end.png" alt=""><video id="ae-vb1" class="clip" data-start="0.3" data-duration="1" src="assets/clips/ae-hover.mp4" muted playsinline></video><video id="ae-vb2" class="clip" data-start="1.9" data-duration="1" src="assets/clips/ae-hover.mp4" muted playsinline></video></div>
+    <div id="ae-la" class="lbl ae-l">Live site · slowed 2×</div>
+    <div id="ae-lb" class="lbl ae-l">After Effects render · slowed 2×</div>
+    <div id="ae-num" class="t-body">Every curve After Effects plays is within <span>{ae['diff']}</span> of the page.</div>
 """, enter('#ae-line', 0.05) + """
-    tl.fromTo('#ae-clip', { opacity: 0, y: 50 }, { opacity: 1, y: 0, duration: 0.45, ease: 'expo.out' }, 0.1);
-    tl.fromTo('#ae-num', { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.4, ease: 'expo.out' }, 0.6);
+    tl.fromTo(['#ae-a', '#ae-b'], { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.4, ease: 'expo.out', stagger: 0.08 }, 0.0);
+    tl.fromTo('.ae-l', { opacity: 0 }, { opacity: 1, duration: 0.3 }, 0.3);
+    tl.fromTo('#ae-num', { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.4, ease: 'expo.out' }, 0.8);
 """)
 
 # 11 · Results (38.1–43.2): every effect on the live site, measured.

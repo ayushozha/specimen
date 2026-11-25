@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The easiest way to train your models</title>
+<style>
+/* Fonts: the capture's own files in bundle/assets. Inter 400/500 were not captured;
+   they use a locally installed Inter, else the page's own metric-matched Arial fallback. */
+@font-face{font-family:beltram;src:url("bundle/assets/BeltramTest_Regular-s-p-3f0fgixy9p343-80525892.woff2") format("woff2");font-weight:400;font-display:swap}
+@font-face{font-family:beltram;src:url("bundle/assets/BeltramTest_Medium-s-p-3btn377t5x7dq-43bb960b.woff2") format("woff2");font-weight:500;font-display:swap}
+@font-face{font-family:"beltram Fallback";src:local("Arial");ascent-override:103.64%;descent-override:37.23%;line-gap-override:0%;size-adjust:99.38%}
+@font-face{font-family:inter;src:local("Inter Regular"),local("Inter-Regular"),local("Inter");font-weight:400}
+@font-face{font-family:inter;src:local("Inter Medium"),local("Inter-Medium");font-weight:500}
+@font-face{font-family:inter;src:url("bundle/assets/Inter_600-s-2dov6rjg62vru-2ea919e1.woff2") format("woff2");font-weight:600;font-display:swap}
+@font-face{font-family:"inter Fallback";src:local("Arial");ascent-override:87.91%;descent-override:21.89%;line-gap-override:0%;size-adjust:110.2%}
+
+:root{
+  --ink:#14151b;
+  --text:color(srgb 0.241176 0.244706 0.262353);          /* #3d3e43 */
+  --muted:rgb(108, 110, 124);                              /* #6c6e7c */
+  --line:oklab(0.36619 0.000957593 -0.00770146 / 0.1);     /* #3e3e431a */
+  --t45:oklab(0.36619 0.000957593 -0.00770146 / 0.45);
+  --t50:oklab(0.36619 0.000957593 -0.00770146 / 0.5);
+  --t70:oklab(0.36619 0.000957593 -0.00770146 / 0.7);
+  --green:rgb(191, 227, 194);
+  --beltram:beltram, "beltram Fallback", ui-sans-serif, sans-serif;
+  --inter:inter, "inter Fallback", ui-sans-serif, system-ui, sans-serif;
+}
+*,::before,::after{box-sizing:border-box;margin:0;padding:0;border:0 solid}
+html,body{background:#fff}
+body{font-family:var(--beltram);color:var(--ink);line-height:24px;-webkit-font-smoothing:antialiased;min-width:1425px}
+img,svg{display:block}
+ol{list-style:none}
+button{font:inherit;color:inherit;background:none;cursor:pointer}
+a{color:inherit;text-decoration:none}
+
+/* Where the section sits on the original page (y = 1005 at 1440px), and the original's full height (7397px). */
+.page-top{height:1005px}
+.page-bottom{height:5252px} /* 1005 + 1140 + 5252 = 7397 */
+
+/* ---------- Section ---------- */
+.c0{height:1140px;background:#fff}
+.c1{width:1280px;height:1140px;margin:0 auto;padding:80px 56px}
+.c2{display:grid;grid-template-columns:552px 552px;column-gap:64px;row-gap:24px;align-items:flex-end}
+.c3{display:flex;flex-direction:column;gap:16px}
+.c4{font-size:13px;line-height:18px;color:var(--text);text-transform:capitalize}
+.c5{font-size:36px;line-height:40px;letter-spacing:-0.9px;font-weight:400;color:var(--text)}
+.c7{font-size:17px;line-height:26px;color:var(--text);width:544px}
+.c8{height:40px}
+.c9{display:inline-flex;align-items:center;justify-content:center;gap:4px;height:40px;padding:0 12px;border-radius:16777200px;background:var(--ink);color:#fff;font-size:13px;line-height:18px;font-weight:500}
+
+/* Illustration frame */
+.c10{margin-top:64px;height:548px}
+.c11{position:relative;height:548px;border-radius:24px;overflow:hidden;isolation:isolate;
+  background-image:linear-gradient(in oklab, rgb(220, 224, 251) 0%, rgb(246, 246, 250) 50%, rgb(255, 255, 255) 100%)}
+.c12{position:absolute;width:0;height:0}
+.c15,.c17,.c147,.c149,.c151{position:absolute;pointer-events:none}
+.c15 img,.c17 img,.c147 img,.c149 img,.c151 img{width:100%;height:auto;filter:url("#_r_8_")}
+.c15{top:16.4375px;left:-58.3984px;width:186.875px}
+.c17{top:10.9531px;left:992.805px;width:151.836px}
+.c147{top:400.039px;left:-210.234px;width:548px}
+.c149{top:387.711px;left:782.078px;width:526.078px}
+.c151{top:460.32px;left:256.953px;width:548px}
+
+/* Tilted dashboard panel */
+.c19{position:absolute;top:38.3594px;left:46.7188px;width:1074.55px;height:671.594px;transform-origin:50% 100%}
+.c20{position:absolute;top:67.1562px;left:53.7266px;right:53.7266px;bottom:0;z-index:-10;border-radius:12px;background:var(--text);filter:blur(40px);pointer-events:none}
+.c21{position:relative;height:671.594px;border:1px solid var(--line);border-radius:12px;overflow:hidden;box-shadow:rgba(20, 21, 27, 0.1) 0px 4px 12px -4px}
+.c22{display:flex;height:669.594px;background:#fff;color:var(--text);font-family:var(--inter);font-size:11.2617px;line-height:15.7664px;font-weight:400}
+.c146,.c163{position:absolute;pointer-events:none;background-image:radial-gradient(closest-side, rgba(255, 255, 255, 0.6), rgba(0, 0, 0, 0))}
+.c146{top:-334.797px;left:-268.133px;width:1608.82px;height:1339.19px}
+
+/* Sidebar */
+.c23{display:flex;flex-direction:column;width:203.781px;flex-shrink:0;padding:10.7255px 10.7255px 7.18606px;background:oklab(0.97427 0.00153187 -0.00506717 / 0.6);border-right:1px solid var(--line)}
+.c24,.c98{display:flex;align-items:center;gap:7.18606px;padding:5.36273px;border-radius:5.36273px}
+.c25{width:16.0859px;height:16.0859px}
+.c26{font-weight:600;white-space:nowrap}
+.c27{width:11.7969px;height:11.7969px;margin-left:auto;color:var(--t45)}
+.c30{display:flex;align-items:center;gap:7.18606px;margin-top:7.18606px;padding:3.5394px 5.36273px;border:1px solid var(--line);border-radius:5.36273px;background:#fff;color:var(--t50)}
+.c31{width:11.7969px;height:11.7969px}
+.c34{margin-left:auto;padding:0 3.5394px;border:1px solid var(--line);border-radius:2.68137px;font-size:8.58037px;line-height:11.1545px}
+.c35{display:flex;flex-direction:column;gap:14.2649px;margin-top:10.7255px}
+.c36,.c42,.c60,.c90{display:flex;flex-direction:column;gap:1.82333px}
+.c43,.c61{padding:0 5.36273px 3.5394px;color:var(--t45);font-size:9.65292px;line-height:13.5153px;font-weight:500}
+.c37,.c44,.c54,.c62,.c66,.c74,.c82,.c93{position:relative;display:flex;align-items:center;gap:7.18606px;padding:3.5394px 5.36273px;border-radius:5.36273px;color:var(--t70)}
+.c82{font-weight:500}
+.c83{position:absolute;inset:0;border-radius:5.36273px;background:oklab(0.36619 0.000957593 -0.00770146 / 0.08);transform:translateY(0.795431px)}
+.c38,.c45,.c55,.c63,.c67,.c75,.c84,.c94{position:relative;width:12.8672px;height:12.8672px;flex-shrink:0;color:var(--t50)}
+.c41,.c53,.c59,.c65,.c73,.c81,.c89,.c97{position:relative;white-space:nowrap}
+.c90{margin-top:auto;padding-top:7.18606px;border-top:1px solid var(--line)}
+.c91{display:flex;align-items:center;gap:7.18606px;padding:3.5394px 5.36273px;color:oklab(0.36619 0.000957593 -0.00770146 / 0.6)}
+.c92{width:5.35938px;height:5.35938px;border-radius:16777200px;background:var(--text)}
+.c99{display:flex;align-items:center;justify-content:center;width:16.0859px;height:16.0859px;border-radius:16777200px;background:rgb(220, 224, 251);font-size:7.50783px;line-height:10.511px;font-weight:600}
+
+/* Main pane */
+.c101{position:relative;flex-grow:1}
+.c102{position:absolute;inset:0}
+.c103{display:flex;flex-direction:column;gap:17.1607px;height:100%;padding:21.4509px}
+.c104{display:flex;align-items:center;justify-content:space-between}
+.c105{display:flex;flex-direction:column}
+.c106{color:var(--muted);font-size:9.65292px;line-height:13.5156px}
+.c107{font-size:18.2333px;line-height:25.5234px;letter-spacing:-0.182333px;font-weight:600}
+.c108{display:flex;align-items:center;gap:8.58037px}
+.c109,.c110{padding:4.29019px 10.7255px;border-radius:5.36273px}
+.c109{border:1px solid oklab(0.36619 0.000957593 -0.00770146 / 0.15)}
+.c110{background:var(--ink);color:#fff;font-weight:500}
+.c111,.c121,.c126,.c131,.c136{background:#fff;border:1px solid var(--line);border-radius:8.58037px;box-shadow:rgba(0, 0, 0, 0.03) 0px 1px 2px 0px}
+.c111{display:flex;flex-direction:column;gap:12.8706px;padding:15.0157px}
+.c112{display:flex;align-items:center;justify-content:space-between}
+.c113{font-weight:500}
+.c114{color:var(--muted)}
+.c115{display:flex;gap:4.29019px;height:27.8828px}
+.c116,.c118{display:flex;align-items:center;padding:0 8.58037px;border-radius:5.36273px}
+.c116{width:458.539px;flex-shrink:0;background:color(srgb 0.410588 0.433922 0.569608);color:#fff;font-weight:500}
+.c118{flex-grow:1;justify-content:flex-end;overflow:hidden;background:var(--line);color:var(--muted)}
+.c117,.c119,.c138,.c141,.c144{font-variant-numeric:tabular-nums}
+.c120{display:grid;grid-template-columns:repeat(3, 268.148px);column-gap:10.7255px}
+.c121,.c126,.c131{display:flex;flex-direction:column;gap:5.36273px;padding:12.8706px}
+.c122,.c127,.c132{color:var(--muted)}
+.c123,.c128,.c133{display:flex;align-items:baseline;justify-content:space-between;gap:6.43528px}
+.c124,.c129,.c134{font-size:21.4509px;line-height:30.0313px;letter-spacing:-0.214509px;font-weight:600;font-variant-numeric:tabular-nums}
+.c125,.c130,.c135{display:block;padding:1.07255px 6.43528px;border-radius:16777200px;background:var(--green);font-size:9.11665px;line-height:12.7633px;font-weight:500}
+.c136{display:flex;flex-direction:column;padding:6.43528px 15.0157px}
+.c137,.c140,.c143{display:flex;align-items:center;justify-content:space-between;padding:9.65292px 0}
+.c140,.c143{border-top:1px solid oklab(0.36619 0.000957593 -0.00770146 / 0.08)}
+.c138,.c141,.c144{font-weight:500}
+.c142,.c145{color:var(--muted)}
+
+/* "Promoting v15…" toast */
+.c153{position:absolute;top:447.812px;left:823.211px;width:333.109px;height:78.2734px;transform-origin:50% 100%}
+.c154{position:relative;height:100%;border:1px solid var(--line);border-radius:12px;overflow:hidden;
+  box-shadow:rgba(20, 21, 27, 0.32) 0px 32px 64px -16px, rgba(20, 21, 27, 0.12) 0px 4px 12px -4px}
+.c155{display:flex;align-items:center;gap:13.2444px;height:100%;padding:16.5555px;background:#fff;color:var(--text);font-family:var(--inter);font-size:13.2444px;line-height:18.5421px}
+.c156{position:relative;display:grid;place-items:center;width:36.4219px;height:36.4219px;flex-shrink:0;border-radius:16777200px;background:oklab(0.36619 0.000957593 -0.00770146 / 0.08)}
+.c157{position:absolute;inset:0;border-radius:16777200px;background:var(--green);opacity:0}
+.c158{position:relative;width:16.5547px;height:16.5547px}
+.c160{display:flex;flex-direction:column;gap:3.31109px}
+.c161{font-size:16.5555px;line-height:23.1777px;font-weight:600}
+.c162{color:var(--muted);font-size:11.9199px;line-height:16.6879px}
+.c163{top:-38.1328px;left:-82.7734px;width:496.656px;height:152.539px}
+
+/* Steps */
+.c164{margin-top:40px}
+.c165{display:grid;grid-template-columns:repeat(4, 277px);column-gap:20px}
+.c166,.c171,.c176,.c181{display:grid;row-gap:12px;align-content:start}
+.c167,.c172,.c177,.c182{display:flex;flex-direction:column;gap:16px;text-align:left}
+.c168,.c173,.c178,.c183{position:relative;display:block;height:2px;border-radius:16777200px;overflow:hidden;background:oklab(0.36619 0.000957593 -0.00770146 / 0.12)}
+.c184{position:absolute;inset:0;border-radius:16777200px;background:var(--text);transform-origin:0 1px;transform:scaleX(0.416537)}
+.c169,.c174,.c179,.c185{font-size:18px;line-height:24px;color:oklab(0.36619 0.000957593 -0.00770146 / 0.4)}
+.c185{color:var(--text)}
+.c170,.c175,.c180,.c186{font-size:16px;line-height:24px;color:oklab(0.36619 0.000957593 -0.00770146 / 0.35)}
+.c186{color:oklab(0.36619 0.000957593 -0.00770146 / 0.8)}
+
+/* ---------- Motion: DESIGN.md "Motion" + "Effect code", section 4 ---------- */
+
+/* Watch it in action: hover, with the page's computed values and transition */
+#platform > div > div:nth-of-type(1) > div:nth-of-type(2) > a{transition:scale 300ms cubic-bezier(0.34, 1.56, 0.64, 1)}
+#platform > div > div:nth-of-type(1) > div:nth-of-type(2) > a:hover{scale:1.05}
+#platform > div > div:nth-of-type(1) > div:nth-of-type(2) > a:focus-visible{outline:1px solid rgb(0, 95, 204);outline-offset:1px;box-shadow:oklab(0.36619 0.000957593 -0.00770146 / 0.5) 0px 0px 0px 2px}
+
+/* pulse: the page's own keyframes and timing */
+@keyframes pulse{
+  0%{opacity:1;animation-timing-function:cubic-bezier(0.4, 0, 0.6, 1)}
+  50%{opacity:0.5;animation-timing-function:cubic-bezier(0.4, 0, 0.6, 1)}
+  100%{opacity:1;animation-timing-function:cubic-bezier(0.4, 0, 0.6, 1)}
+}
+#_r_7_ > div:nth-of-type(3) > div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(2) > div > div > span:nth-of-type(3) > span:nth-of-type(1) > span:nth-of-type(2) > span{animation:pulse 2000ms linear 0ms infinite normal none}
+
+/* Scroll reveals: fitted to the recorded motion. JS adds .is-visible when each enters the viewport. */
+#platform > div > div:nth-of-type(1){opacity:0;transform:translate(0px, 24px);transition:opacity 608ms cubic-bezier(0.177, 0.911, 0.213, 1.015), transform 608ms cubic-bezier(0.177, 0.911, 0.213, 1.015)}
+#platform > div > div:nth-of-type(2){opacity:0;transform:translate(0px, 24px);transition:opacity 621ms cubic-bezier(0.183, 0.875, 0.173, 1.022), transform 621ms cubic-bezier(0.183, 0.875, 0.173, 1.022)}
+#platform > div > div:nth-of-type(3){opacity:0;transform:translate(0px, 24px);transition:opacity 609ms cubic-bezier(0.18, 0.819, 0.153, 1.03), transform 609ms cubic-bezier(0.18, 0.819, 0.153, 1.03)}
+#platform > div > div.is-visible{opacity:1;transform:none}
+</style>
+</head>
+<body>
+<div class="page-top" aria-hidden="true"></div>
+
+<section class="c0" data-rail-label="Platform" id="platform"><div class="c1"><div class="c2"><div class="c3"><p class="c4">The platform</p><h2 class="c5">The easiest way to<br class="c6">train your models</h2></div><p class="c7">Shape, evaluate, and ship improvements, all on one intuitive platform made for the experts on your team, not just researchers in a lab.</p><div class="c8"><a class="c9" href="https://x.com/trajectorylabs/status/2117740530562183330" rel="noreferrer" target="_blank" role="button" tabindex="0">Watch it in action</a></div></div><div class="c10"><div class="c11" id="_r_7_"><svg class="c12" aria-hidden="true"><filter id="_r_8_" color-interpolation-filters="sRGB"><feColorMatrix type="matrix" values="0.12089019607843138 0.40668235294117644 0.04105490196078431 0 0.43137254901960786 0.11255294117647059 0.378635294117647 0.038223529411764705 0 0.47058823529411764 0.029180392156862738 0.0981647058823529 0.009909803921568624 0 0.8627450980392157 0 0 0 1 0"></feColorMatrix></filter></svg><div class="c15"><img alt="" width="1386" height="634" src="bundle/assets/image-5fba2067.webp"></div><div class="c17"><img alt="" width="736" height="416" src="bundle/assets/image-b0d50f4f.webp"></div><div class="c19"><div class="c20" aria-hidden="true"></div><div class="c21"><div class="c22" aria-hidden="true"><div class="c23"><span class="c24"><img class="c25" alt="" width="36" height="36" src="bundle/assets/trajectory-logo-839d1f6f.svg"><span class="c26">Support agent</span><svg class="c27" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m7 15 5 5 5-5"/><path d="m7 9 5-5 5 5"/></svg></span><span class="c30"><svg class="c31" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>Search<span class="c34">⌘K</span></span><span class="c35"><span class="c36"><span class="c37"><svg class="c38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><span class="c41">Overview</span></span></span><span class="c42"><span class="c43">Data</span><span class="c44"><svg class="c45" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m10.586 5.414-5.172 5.172"/><path d="m18.586 13.414-5.172 5.172"/><path d="M6 12h12"/><circle cx="12" cy="20" r="2"/><circle cx="12" cy="4" r="2"/><circle cx="20" cy="12" r="2"/><circle cx="4" cy="12" r="2"/></svg><span class="c53">Signals</span></span><span class="c54"><svg class="c55" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/></svg><span class="c59">Datasets</span></span></span><span class="c60"><span class="c61">Models</span><span class="c62"><svg class="c63" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/></svg><span class="c65">Training runs</span></span><span class="c66"><svg class="c67" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 5h8"/><path d="M13 12h8"/><path d="M13 19h8"/><path d="m3 17 2 2 4-4"/><path d="m3 7 2 2 4-4"/></svg><span class="c73">Evaluations</span></span><span class="c74"><svg class="c75" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v18"/><path d="m19 8 3 8a5 5 0 0 1-6 0zV7"/><path d="M3 7h1a17 17 0 0 0 8-2 17 17 0 0 0 8 2h1"/><path d="m5 8 3 8a5 5 0 0 1-6 0zV7"/><path d="M7 21h10"/></svg><span class="c81">Graders</span></span><span class="c82"><span class="c83"></span><svg class="c84" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="20" height="8" x="2" y="2" rx="2" ry="2"/><rect width="20" height="8" x="2" y="14" rx="2" ry="2"/><line x1="6" x2="6.01" y1="6" y2="6"/><line x1="6" x2="6.01" y1="18" y2="18"/></svg><span class="c89">Deployments</span></span></span></span><span class="c90"><span class="c91"><span class="c92"></span>v14 live in production</span><span class="c93"><svg class="c94" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"/><circle cx="12" cy="12" r="3"/></svg><span class="c97">Settings</span></span><span class="c98"><span class="c99">MC</span><span class="c100">Maya Chen</span></span></span></div><div class="c101"><div class="c102"><div class="c103"><span class="c104"><span class="c105"><span class="c106">Deployments / Production</span><span class="c107">Production</span></span><span class="c108"><span class="c109">Roll back</span><span class="c110">Promote</span></span></span><span class="c111"><span class="c112"><span class="c113">Rolling out v15</span><span class="c114">Auto-rollback armed</span></span><span class="c115"><span class="c116"><span class="c117">v15 · 58%</span></span><span class="c118"><span class="c119">v14 · 42%</span></span></span></span><span class="c120"><span class="c121"><span class="c122">Latency p50</span><span class="c123"><span class="c124">412 ms</span><span class="c125">−8%</span></span></span><span class="c126"><span class="c127">Escalation rate</span><span class="c128"><span class="c129">6.1%</span><span class="c130">−18%</span></span></span><span class="c131"><span class="c132">Error rate</span><span class="c133"><span class="c134">0.02%</span><span class="c135">Healthy</span></span></span></span><span class="c136"><span class="c137"><span class="c138">v15</span><span class="c139">Rolling out</span></span><span class="c140"><span class="c141">v14</span><span class="c142">Live since Oct 2</span></span><span class="c143"><span class="c144">v13</span><span class="c145">Retired Sep 18</span></span></span></div></div></div></div><div class="c146" aria-hidden="true"></div></div></div><div class="c147"><img alt="" width="1584" height="712" src="bundle/assets/image-1250fb59.webp"></div><div class="c149"><img alt="" width="1410" height="871" src="bundle/assets/image-0f55cab4.webp"></div><div class="c151"><img alt="" width="1882" height="754" src="bundle/assets/image-7242fd54.webp"></div><div class="c153"><div class="c154"><div class="c155" aria-hidden="true"><span class="c156"><span class="c157"></span><svg class="c158" fill="none" viewBox="0 0 16 16"><path d="M3 8.5l3.2 3L13 4.5" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg></span><span class="c160"><span class="c161">Promoting v15…</span><span class="c162">58% of traffic · watching 3 metrics</span></span></div><div class="c163" aria-hidden="true"></div></div></div></div></div><div class="c164"><ol class="c165" aria-label="Platform steps"><li class="c166"><button class="c167" aria-controls="_r_7_" type="button"><span class="c168"></span><span class="c169">Bring your own agents</span></button><p class="c170">Trajectory works with any agent harness and takes just two code changes to get started.</p></li><li class="c171"><button class="c172" aria-controls="_r_7_" type="button"><span class="c173"></span><span class="c174">Train like a lab</span></button><p class="c175">Bring examples of what good looks like and run sophisticated trainings in one click. See how your model performs and steer it towards your goals.</p></li><li class="c176"><button class="c177" aria-controls="_r_7_" type="button"><span class="c178"></span><span class="c179">Compare against the frontier</span></button><p class="c180">See where and why your model delivers the best results against other leading models. Identify gaps and easily make improvements.</p></li><li class="c181"><button class="c182" aria-controls="_r_7_" type="button" aria-current="step"><span class="c183"><span class="c184"></span></span><span class="c185">Deploy on demand</span></button><p class="c186">When you're ready to launch, push updates live with just a click.</p></li></ol></div></div></section>
+
+<div class="page-bottom" aria-hidden="true"></div>
+
+<script>
+(() => {
+  // Scroll-linked motion, exactly as DESIGN.md records it. All linear, tied to page scroll:
+  // translate / opacity over 427 -> 1151px, scale over 429 -> 1152px.
+  // Panels div 3 and div 7: the recorded start matrix3d factors exactly into
+  //   perspective(1800px) translate3d(0, y, z) scale(0.88) rotateX(26deg)
+  // and the recorded end matrix3d is perspective(1800px) translate3d(0, 0, z).
+  const T = [427, 1151], S = [429, 1152];
+  const $ = (s) => document.querySelector("#_r_7_ > " + s);
+  const el = {
+    d1: $("div:nth-of-type(1)"),
+    d2: $("div:nth-of-type(2)"),
+    d3: $("div:nth-of-type(3)"),
+    d3glow: $("div:nth-of-type(3) > div:nth-of-type(1)"),
+    d3sheen: $("div:nth-of-type(3) > div:nth-of-type(2) > div:nth-of-type(2)"),
+    d4: $("div:nth-of-type(4)"),
+    d5: $("div:nth-of-type(5)"),
+    d6: $("div:nth-of-type(6)"),
+    d7: $("div:nth-of-type(7)"),
+    d7sheen: $("div:nth-of-type(7) > div > div:nth-of-type(2)"),
+  };
+  const progress = (y, [a, b]) => Math.min(1, Math.max(0, (y - a) / (b - a)));
+  const mix = (from, to, t) => from + (to - from) * t;
+  const ty = (from, to, t) => "translateY(" + mix(from, to, t) + "px)";
+  const tilt = (y0, z, t, s) =>
+    "perspective(1800px) translate3d(0px, " + mix(y0, 0, t) + "px, " + z + "px) scale(" + mix(0.88, 1, s) + ") rotateX(" + mix(26, 0, t) + "deg)";
+
+  function update() {
+    const y = window.scrollY, t = progress(y, T), s = progress(y, S);
+    el.d1.style.transform = ty(5.13281, 0, t);
+    el.d2.style.transform = ty(6.87, 0, t);
+    el.d3.style.transform = tilt(67.1594, 0, t, s);
+    el.d3glow.style.transform = ty(54.3994, 24.1775, t) + " scale(" + mix(1.08, 0.96, s) + ")";
+    el.d3glow.style.opacity = mix(0.22, 0.42, t);
+    el.d3sheen.style.transform = ty(-482.108, 0, t);
+    el.d3sheen.style.opacity = mix(0.55, 0, t);
+    el.d4.style.transform = ty(54.2506, 0, t);
+    el.d5.style.transform = ty(90.9125, 0, t);
+    el.d6.style.transform = ty(39.4552, 0, t);
+    el.d7.style.transform = tilt(68.0875, 80, t, s);
+    el.d7sheen.style.transform = ty(-121.118, 0, t);
+    el.d7sheen.style.opacity = mix(0.55, 0, t);
+  }
+  let queued = false;
+  addEventListener("scroll", () => {
+    if (queued) return;
+    queued = true;
+    requestAnimationFrame(() => { queued = false; update(); });
+  }, { passive: true });
+  update();
+
+  // Reveals: play once when the block's top crosses 85% of the viewport.
+  const io = new IntersectionObserver((entries) => {
+    for (const e of entries) {
+      if (!e.isIntersecting) continue;
+      e.target.classList.add("is-visible");
+      io.unobserve(e.target);
+    }
+  }, { rootMargin: "0px 0px -15% 0px" });
+  document.querySelectorAll("#platform > div > div").forEach((n) => io.observe(n));
+})();
+</script>
+</body>
+</html>
